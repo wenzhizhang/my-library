@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ brand.name }} - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">{{ brand.name }}</h1>
+        <a href="/brands" class="btn-primary-blue">Back to Brands</a>
+
+        <div class="details-content">
+            <h2>Information</h2>
+            <p><strong>Name:</strong> {{ brand.name }}</p>
+            {% if brand.intro %}
+            <p><strong>Introduction:</strong> {{ brand.intro }}</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}</content>
+<parameter name="filePath">D:\Projects\Python\my-library\templates\brand_details.html

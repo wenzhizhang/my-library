@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Authors - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">Authors</h1>
+        <a href="#" class="btn-primary-blue">Add New Author</a>
+        <div class="grid">
+            {% for author in authors %}
+            <div class="card">
+                {% if author.photo %}
+                <img src="/static/images/{{ author.photo }}" alt="{{ author.name_cn or author.name }}" class="card-image">
+                {% endif %}
+                <h3 class="card-title">{{ author.name_cn or author.name }}</h3>
+                <p class="caption">Nation: {{ author.nation }}</p>
+                <p class="caption">Dynasty: {{ author.dynasty }}</p>
+                <a href="/authors/{{ author.id }}" class="btn-pill-link">View Details</a>
+                <a href="#" class="btn-pill-link">Edit</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

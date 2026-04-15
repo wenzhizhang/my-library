@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Series - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">Book Series</h1>
+        <a href="#" class="btn-primary-blue">Add New Series</a>
+        <div class="grid">
+            {% for serie in series %}
+            <div class="card">
+                <h3 class="card-title">{{ serie.name }}</h3>
+                <p class="caption">{{ serie.intro }}</p>
+                <a href="/series/{{ serie.id }}" class="btn-pill-link">View Details</a>
+                <a href="#" class="btn-pill-link">Edit</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

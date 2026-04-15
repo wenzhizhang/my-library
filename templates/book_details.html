@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title_cn or book.title }} - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">{{ book.title_cn or book.title }}</h1>
+        <a href="/books" class="btn-primary-blue">Back to Books</a>
+
+        <div class="details-grid">
+            {% if book.thumb_image %}
+            <div class="details-image">
+                <img src="/static/images/{{ book.thumb_image }}" alt="{{ book.title_cn or book.title }}" style="max-width: 300px; height: auto;">
+            </div>
+            {% endif %}
+
+            <div class="details-content">
+                <h2>Basic Information</h2>
+                <p><strong>Title:</strong> {{ book.title }}</p>
+                {% if book.title_cn %}
+                <p><strong>Chinese Title:</strong> {{ book.title_cn }}</p>
+                {% endif %}
+                {% if book.isbn %}
+                <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+                {% endif %}
+                {% if book.authors %}
+                <p><strong>Authors:</strong> {{ book.authors | join(', ') }}</p>
+                {% endif %}
+                {% if book.translators %}
+                <p><strong>Translators:</strong> {{ book.translators | join(', ') }}</p>
+                {% endif %}
+                {% if book.publisher %}
+                <p><strong>Publisher:</strong> {{ book.publisher.name }}</p>
+                {% endif %}
+                {% if book.publish_date %}
+                <p><strong>Publish Date:</strong> {{ book.publish_date.strftime('%Y-%m-%d') }}</p>
+                {% endif %}
+
+                <h2>Physical Details</h2>
+                {% if book.binding_type %}
+                <p><strong>Binding Type:</strong> {{ book.binding_type }}</p>
+                {% endif %}
+                {% if book.paper_type %}
+                <p><strong>Paper Type:</strong> {{ book.paper_type }}</p>
+                {% endif %}
+                {% if book.pages %}
+                <p><strong>Pages:</strong> {{ book.pages }}</p>
+                {% endif %}
+                {% if book.book_count %}
+                <p><strong>Book Count:</strong> {{ book.book_count }}</p>
+                {% endif %}
+                {% if book.language %}
+                <p><strong>Language:</strong> {{ book.language }}</p>
+                {% endif %}
+                {% if book.compose_type %}
+                <p><strong>Compose Type:</strong> {{ book.compose_type }}</p>
+                {% endif %}
+
+                <h2>Pricing and Purchase</h2>
+                {% if book.price %}
+                <p><strong>Price:</strong> ${{ book.price }}</p>
+                {% endif %}
+                {% if book.purchase_price %}
+                <p><strong>Purchase Price:</strong> ${{ book.purchase_price }}</p>
+                {% endif %}
+                {% if book.purchase_date %}
+                <p><strong>Purchase Date:</strong> {{ book.purchase_date.strftime('%Y-%m-%d') }}</p>
+                {% endif %}
+                {% if book.purchase_store %}
+                <p><strong>Purchase Store:</strong> {{ book.purchase_store }}</p>
+                {% endif %}
+
+                <h2>Classification</h2>
+                {% if book.brand %}
+                <p><strong>Brand:</strong> {{ book.brand.name }}</p>
+                {% endif %}
+                {% if book.book_series %}
+                <p><strong>Series:</strong> {{ book.book_series.name }}</p>
+                {% endif %}
+                {% if book.category %}
+                <p><strong>Category:</strong> {{ book.category.name }}</p>
+                {% endif %}
+                {% if book.bookshelf %}
+                <p><strong>Bookshelf:</strong> {{ book.bookshelf.name }}</p>
+                {% endif %}
+
+                <h2>Reading Status</h2>
+                {% if book.read_state %}
+                <p><strong>Read State:</strong> {{ book.read_state }}</p>
+                {% endif %}
+                <p><strong>Registered:</strong> {{ 'Yes' if book.registered else 'No' }}</p>
+                <p><strong>In Wish List:</strong> {{ 'Yes' if book.in_wish else 'No' }}</p>
+
+                <h2>Additional Information</h2>
+                {% if book.edition %}
+                <p><strong>Edition:</strong> {{ book.edition }}</p>
+                {% endif %}
+                {% if book.print %}
+                <p><strong>Print:</strong> {{ book.print }}</p>
+                {% endif %}
+                {% if book.printed_number %}
+                <p><strong>Printed Number:</strong> {{ book.printed_number }}</p>
+                {% endif %}
+                {% if book.douban_score %}
+                <p><strong>Douban Score:</strong> {{ book.douban_score }}</p>
+                {% endif %}
+                {% if book.tags %}
+                <p><strong>Tags:</strong> {{ book.tags | join(', ') }}</p>
+                {% endif %}
+                {% if book.link %}
+                <p><strong>Link:</strong> <a href="{{ book.link }}" target="_blank">{{ book.link }}</a></p>
+                {% endif %}
+
+                <h2>Content</h2>
+                {% if book.introduction %}
+                <p><strong>Introduction:</strong> {{ book.introduction }}</p>
+                {% endif %}
+                {% if book.summary %}
+                <p><strong>Summary:</strong> {{ book.summary }}</p>
+                {% endif %}
+                {% if book.catalog %}
+                <p><strong>Catalog:</strong> {{ book.catalog }}</p>
+                {% endif %}
+
+                <h2>Timestamps</h2>
+                <p><strong>Created At:</strong> {{ book.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Updated At:</strong> {{ book.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}</content>
+<parameter name="filePath">D:\Projects\Python\my-library\templates\book_details.html

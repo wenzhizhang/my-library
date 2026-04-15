@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ bookshelf.name }} - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">{{ bookshelf.name }}</h1>
+        <a href="/bookshelves" class="btn-primary-blue">Back to Bookshelves</a>
+
+        <div class="details-content">
+            <h2>Information</h2>
+            <p><strong>Name:</strong> {{ bookshelf.name }}</p>
+            <p><strong>Total Books:</strong> {{ bookshelf.total_books }}</p>
+            <p><strong>Total Sets:</strong> {{ bookshelf.total_sets }}</p>
+            {% if bookshelf.intro %}
+            <p><strong>Introduction:</strong> {{ bookshelf.intro }}</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}</content>
+<parameter name="filePath">D:\Projects\Python\my-library\templates\bookshelf_details.html

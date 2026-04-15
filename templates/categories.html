@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Categories - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">Categories</h1>
+        <a href="#" class="btn-primary-blue">Add New Category</a>
+        <div class="grid">
+            {% for category in categories %}
+            <div class="card">
+                <h3 class="card-title">{{ category.name }}</h3>
+                <p class="caption">{{ category.intro }}</p>
+                <a href="/categories/{{ category.id }}" class="btn-pill-link">View Details</a>
+                <a href="#" class="btn-pill-link">Edit</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

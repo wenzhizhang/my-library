@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Books - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">Books</h1>
+        <a href="/books/add" class="btn-primary-blue">Add New Book</a>
+
+        <!-- Sorting and Pagination Controls -->
+        <div class="controls" style="margin: 20px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="sort">Sort by:</label>
+                <select id="sort" onchange="changeSort(this.value)">
+                    <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
+                    <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Date Added</option>
+                </select>
+
+                <label for="limit">Items per page:</label>
+                <select id="limit" onchange="changeLimit(this.value)">
+                    <option value="5" {% if limit == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                </select>
+            </div>
+            <div>
+                <span>Page {{ page }} of {{ total_pages }} ({{ total_books }} total books)</span>
+            </div>
+        </div>
+
+        <div class="grid">
+            {% for book in books %}
+            <div class="card">
+                {% if book.thumb_image %}
+                <img src="/static/images/{{ book.thumb_image }}" alt="{{ book.title_cn or book.title }}" class="card-image">
+                {% endif %}
+                <h3 class="card-title">{{ book.title_cn or book.title }}</h3>
+                <p class="caption">ISBN: {{ book.isbn }}</p>
+                <p class="caption">Authors: {{ book.authors | join(', ') if book.authors else 'Unknown' }}</p>
+                <a href="/books/{{ book.id }}" class="btn-pill-link">View Details</a>
+                <a href="#" class="btn-pill-link">Edit</a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" style="margin-top: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                {% if page > 1 %}
+                <a href="/books?page=1&limit={{ limit }}&sort_by={{ sort_by }}" class="btn-pill-link">First</a>
+                <a href="/books?page={{ page - 1 }}&limit={{ limit }}&sort_by={{ sort_by }}" class="btn-pill-link">Previous</a>
+                {% endif %}
+
+                {% set start_page = [1, page - 2] | max %}
+                {% set end_page = [total_pages, page + 2] | min %}
+                {% for p in range(start_page, end_page + 1) %}
+                <a href="/books?page={{ p }}&limit={{ limit }}&sort_by={{ sort_by }}" class="btn-pill-link {% if p == page %}active{% endif %}">{{ p }}</a>
+                {% endfor %}
+
+                {% if page < total_pages %}
+                <a href="/books?page={{ page + 1 }}&limit={{ limit }}&sort_by={{ sort_by }}" class="btn-pill-link">Next</a>
+                <a href="/books?page={{ total_pages }}&limit={{ limit }}&sort_by={{ sort_by }}" class="btn-pill-link">Last</a>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="page-input">Go to page:</label>
+                <input type="number" id="page-input" min="1" max="{{ total_pages }}" value="{{ page }}" style="width: 60px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                <button onclick="goToPage()" class="btn-pill-link" style="padding: 5px 10px;">Go</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function changeSort(sortBy) {
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('page', 1); // Reset to first page when sorting changes
+    window.location = url;
+}
+
+function changeLimit(limit) {
+    const url = new URL(window.location);
+    url.searchParams.set('limit', limit);
+    url.searchParams.set('page', 1); // Reset to first page when limit changes
+    window.location = url;
+}
+
+function goToPage() {
+    const pageInput = document.getElementById('page-input');
+    const page = Math.min(Math.max(parseInt(pageInput.value) || 1, 1), {{ total_pages }});
+    const url = new URL(window.location);
+    url.searchParams.set('page', page);
+    window.location = url;
+}
+
+// Allow Enter key to trigger goToPage
+document.getElementById('page-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        goToPage();
+    }
+});
+</script>
+{% endblock %}

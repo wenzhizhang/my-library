@@ -1,0 +1,132 @@
+/* Books page custom styles for overlay and table look */
+.section.light {
+    background: rgba(40, 30, 60, 0.7);
+    border-radius: 16px;
+    padding: 32px 24px;
+    margin: 32px auto;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+    max-width: 800px;
+}
+
+.section-heading {
+    color: #ffb199;
+    font-family: 'Georgia', serif;
+    font-size: 2.2rem;
+    margin-bottom: 18px;
+    text-align: left;
+    letter-spacing: 1px;
+}
+
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.card {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    padding: 18px 24px;
+    transition: box-shadow 0.2s;
+}
+.card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+}
+.card-image {
+    width: 110px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.card-title {
+    color: #ffe0c7;
+    font-size: 1.3rem;
+    margin: 0 0 8px 0;
+    font-family: 'Georgia', serif;
+}
+.caption {
+    color: #e0c3fc;
+    font-size: 1rem;
+    margin: 0 0 4px 0;
+}
+.btn-pill-link {
+    background: none;
+    border: 1px solid #ffb199;
+    color: #ffb199;
+    border-radius: 999px;
+    padding: 4px 18px;
+    margin: 4px 8px 0 0;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s, color 0.2s;
+}
+.btn-pill-link.active, .btn-pill-link:hover {
+    background: #ffb199;
+    color: #2d1b3c;
+}
+.btn-primary-blue {
+    background: #7f7fd5;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 22px;
+    margin-bottom: 18px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-primary-blue:hover {
+    background: #86a8e7;
+}
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.page-info {
+    color: #ffe0c7;
+    font-size: 1rem;
+}
+.pagination {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+.pagination-links {
+    display: flex;
+    gap: 8px;
+}
+.pagination-input label {
+    color: #ffe0c7;
+    margin-right: 8px;
+}
+.pagination-input input {
+    width: 60px;
+    border-radius: 6px;
+    border: 1px solid #ffb199;
+    padding: 2px 8px;
+    margin-right: 8px;
+    background: rgba(255,255,255,0.12);
+    color: #ffe0c7;
+}
+.loading {
+    color: #ffe0c7;
+    font-size: 1.3rem;
+    text-align: center;
+    margin-top: 80px;
+}
+

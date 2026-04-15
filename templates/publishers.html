@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Publishers - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">Publishers</h1>
+        <a href="#" class="btn-primary-blue">Add New Publisher</a>
+        <div class="grid">
+            {% for publisher in publishers %}
+            <div class="card">
+                <h3 class="card-title">{{ publisher.name }}</h3>
+                <p class="caption">{{ publisher.intro }}</p>
+                <a href="/publishers/{{ publisher.id }}" class="btn-pill-link">View Details</a>
+                <a href="#" class="btn-pill-link">Edit</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

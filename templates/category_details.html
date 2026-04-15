@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">{{ category.name }}</h1>
+        <a href="/categories" class="btn-primary-blue">Back to Categories</a>
+
+        <div class="details-content">
+            <h2>Information</h2>
+            <p><strong>Name:</strong> {{ category.name }}</p>
+            {% if category.parent %}
+            <p><strong>Parent Category:</strong> {{ category.parent.name }}</p>
+            {% endif %}
+            <p><strong>Depth:</strong> {{ category.depth }}</p>
+            {% if category.path %}
+            <p><strong>Path:</strong> {{ category.path }}</p>
+            {% endif %}
+            {% if category.intro %}
+            <p><strong>Introduction:</strong> {{ category.intro }}</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}</content>
+<parameter name="filePath">D:\Projects\Python\my-library\templates\category_details.html

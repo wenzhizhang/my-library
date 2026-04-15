@@ -1,0 +1,7 @@
+static/images
+frontend/static/images
+static/images/authors static/images/background static/images/books static/images/screenshots
+.idea
+update_thumb_images.py
+migrate_data.py
+*.pyc

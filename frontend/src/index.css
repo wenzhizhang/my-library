@@ -1,0 +1,153 @@
+/* Apple-Inspired Design System */
+
+/* Color Variables */
+:root {
+  --pure-black: #000000;
+  --light-gray: #f5f5f7;
+  --near-black: #1d1d1f;
+  --apple-blue: #0071e3;
+  --link-blue: #0066cc;
+  --bright-blue: #2997ff;
+  --white: #ffffff;
+  --black-80: rgba(0, 0, 0, 0.8);
+  --black-48: rgba(0, 0, 0, 0.48);
+  --card-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+}
+
+/* Font Family */
+body {
+  font-family: 'SF Pro Display', 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  color: var(--near-black);
+  background-color: var(--light-gray);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Hierarchy */
+.display-hero {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+}
+
+.tile-heading {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: 0.196px;
+}
+
+.sub-heading {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+}
+
+.nav-heading {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.sub-nav {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.50;
+  letter-spacing: normal;
+}
+
+.body {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+}
+
+.body-emphasis {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.24;
+  letter-spacing: -0.374px;
+}
+
+.button-large {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.00;
+  letter-spacing: normal;
+}
+
+.button {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 2.41;
+  letter-spacing: normal;
+}
+
+.link {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+}
+
+.caption {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+.caption-bold {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+}
+
+.micro {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.33;
+  letter-spacing: -0.12px;
+}
+
+.micro-bold {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.33;
+  letter-spacing: -0.12px;
+}
+
+.nano {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.08px;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}

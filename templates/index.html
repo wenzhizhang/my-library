@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}My Library - Home{% endblock %}
+
+{% block content %}
+<section class="section black">
+    <div class="container">
+        <h1 class="display-hero">Welcome to My Library</h1>
+        <p class="body">Discover and manage your personal book collection.</p>
+        <a href="/books" class="btn-pill-link">Explore Books</a>
+        <a href="/authors" class="btn-primary-blue">Browse Authors</a>
+    </div>
+</section>
+
+<section class="section light">
+    <div class="container">
+        <h2 class="section-heading">Featured Books</h2>
+        <div class="grid">
+            <!-- Placeholder for featured books -->
+            <div class="card">
+                <h3 class="card-title">Sample Book 1</h3>
+                <p class="caption">By Author Name</p>
+                <a href="#" class="btn-pill-link">Learn More</a>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Sample Book 2</h3>
+                <p class="caption">By Author Name</p>
+                <a href="#" class="btn-pill-link">Learn More</a>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Sample Book 3</h3>
+                <p class="caption">By Author Name</p>
+                <a href="#" class="btn-pill-link">Learn More</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section black">
+    <div class="container">
+        <h2 class="section-heading">Authors</h2>
+        <p class="body">Explore authors from various eras and cultures.</p>
+        <a href="/authors" class="btn-primary-blue">View All Authors</a>
+    </div>
+</section>
+
+<section class="section light">
+    <div class="container">
+        <h2 class="section-heading">Categories</h2>
+        <div class="grid">
+            <div class="card">
+                <h3 class="card-title">Fiction</h3>
+                <p class="caption">Imaginative stories and narratives.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Non-Fiction</h3>
+                <p class="caption">Real events and factual information.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Science</h3>
+                <p class="caption">Discoveries and innovations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

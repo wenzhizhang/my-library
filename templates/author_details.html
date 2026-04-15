@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}{{ author.name }} - My Library{% endblock %}
+
+{% block content %}
+<section class="section light">
+    <div class="container">
+        <h1 class="section-heading">{{ author.name }}</h1>
+        <a href="/authors" class="btn-primary-blue">Back to Authors</a>
+
+        <div class="details-grid">
+            {% if author.photo %}
+            <div class="details-image">
+                <img src="/static/images/{{ author.photo }}" alt="{{ author.name }}" style="max-width: 300px; height: auto;">
+            </div>
+            {% endif %}
+
+            <div class="details-content">
+                <h2>Basic Information</h2>
+                <p><strong>Name:</strong> {{ author.name }}</p>
+                {% if author.name_cn %}
+                <p><strong>Chinese Name:</strong> {{ author.name_cn }}</p>
+                {% endif %}
+                {% if author.nation %}
+                <p><strong>Nation:</strong> {{ author.nation }}</p>
+                {% endif %}
+                {% if author.dynasty %}
+                <p><strong>Dynasty:</strong> {{ author.dynasty }}</p>
+                {% endif %}
+
+                {% if author.intro %}
+                <h2>Introduction</h2>
+                <p>{{ author.intro }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}</content>
+<parameter name="filePath">D:\Projects\Python\my-library\templates\author_details.html
