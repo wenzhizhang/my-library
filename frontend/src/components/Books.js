@@ -4,7 +4,7 @@ import axios from 'axios';
 import './Books.css';
 import './hover.css';
 import BookCard from './BookCard';
-import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { API_BASE_URL } from './Config';
 
 const Books = () => {
   const [books, setBooks] = useState([]);
