@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import BookCard from './BookCard';
+import { API_BASE_URL } from './Config';
 
 const BrandDetails = () => {
   const { id } = useParams();
@@ -16,7 +17,7 @@ const BrandDetails = () => {
   const fetchBrand = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/brands/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/brands/${id}`);
       setBrand(response.data);
     } catch (error) {
       console.error('Error fetching brand:', error);

@@ -4,6 +4,7 @@ import axios from 'axios';
 import './Books.css';
 import './hover.css';
 import BookCard from './BookCard';
+import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 
 const Books = () => {
   const [books, setBooks] = useState([]);
@@ -23,7 +24,7 @@ const Books = () => {
   const fetchBooks = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/books/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${API_BASE_URL}/books/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setBooks(data.books || []);
       setTotalPages(data.total_pages || 1);

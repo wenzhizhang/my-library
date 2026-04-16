@@ -13,7 +13,7 @@ app = FastAPI(title="My Library", description="A book library management system"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源
+    allow_origins=["http://localhost:3000", "http://111.229.109.204/:3000"],  # 允许所有来源
     allow_credentials=False,  # 修改为 False，或者直接删除这行代码
     allow_methods=["*"],
     allow_headers=["*"],

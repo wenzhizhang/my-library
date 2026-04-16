@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
+import { API_BASE_URL } from './Config';
 
 const Brands = () => {
   const [brands, setBrands] = useState([]);
@@ -21,7 +22,7 @@ const Brands = () => {
   const fetchBrands = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/brands/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${API_BASE_URL}/brands/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setBrands(data.brands || []);
       // Since the API might not have pagination, set defaults

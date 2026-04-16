@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
+import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 
 const BookDetails = () => {
   const { id } = useParams();
@@ -15,7 +16,7 @@ const BookDetails = () => {
   const fetchBook = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/books/${id}/`);
+      const response = await axios.get(`${API_BASE_URL}/books/${id}/`);
       setBook(response.data);
     } catch (error) {
       console.error('Error fetching book:', error);
@@ -40,7 +41,7 @@ const BookDetails = () => {
         <div className="details-grid">
           {book.thumb_image && (
             <div className="details-image">
-              <img src={`http://localhost:8000/static/images/${book.thumb_image}`} alt={book.title_cn || book.title} style={{ maxWidth: '500px', height: 'auto' }} />
+              <img src={`${MEDIA_BASE_URL}/${book.thumb_image}`} alt={book.title_cn || book.title} style={{ maxWidth: '500px', height: 'auto' }} />
             </div>
           )}
 

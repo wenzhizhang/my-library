@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
+import { API_BASE_URL } from './Config';
 
 const Series = () => {
   const [series, setSeries] = useState([]);
@@ -22,7 +23,7 @@ const Series = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/series/?page=${page}&limit=${limit}&sort_by=${sortBy}`
+        `${API_BASE_URL}/series/?page=${page}&limit=${limit}&sort_by=${sortBy}`
       );
       const data = response.data;
       setSeries(data.series || []);

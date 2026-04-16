@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
+import { API_BASE_URL } from './Config';
 
 const CategoryDetails = () => {
   const { id } = useParams();
@@ -17,7 +18,7 @@ const CategoryDetails = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/categories/${id}`
+        `${API_BASE_URL}/categories/${id}`
       );
       setCategory(response.data);
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
+import { API_BASE_URL } from './Config';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -21,7 +22,7 @@ const Categories = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/categories/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${API_BASE_URL}/categories/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setCategories(data.categories || []);
       setTotalPages(data.total_pages || 1);

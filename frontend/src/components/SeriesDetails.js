@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
+import { API_BASE_URL } from './Config';
 
 const SeriesDetails = () => {
   const { id } = useParams();
@@ -16,7 +17,7 @@ const SeriesDetails = () => {
   const fetchSeries = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/series/${id}`);
+      const response = await axios.get(`${API_BASE_URL}/series/${id}`);
       setSeries(response.data);
     } catch (error) {
       console.error("Error fetching series:", error);

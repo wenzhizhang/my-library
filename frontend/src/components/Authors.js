@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
+import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 
 const Authors = () => {
   const [authors, setAuthors] = useState([]);
@@ -21,7 +22,7 @@ const Authors = () => {
   const fetchAuthors = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/authors/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${API_BASE_URL}/authors/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setAuthors(data.authors || []);
       setTotalPages(data.total_pages || 1);
@@ -143,7 +144,7 @@ const Authors = () => {
           {authors.map(author => (
             <div key={author.id} className="card">
               {author.photo && (
-                <img src={`https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/${author.photo}`} alt={author.name_cn || author.name} className="card-image authors-image hvr-float-shadow" />
+                <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={author.name_cn || author.name} className="card-image authors-image hvr-float-shadow" />
               )}
               <h3 className="card-title">{author.name}</h3>
               {author.bio && <p className="caption">{author.bio.length > 100 ? author.bio.substring(0, 100) + '...' : author.bio}</p>}

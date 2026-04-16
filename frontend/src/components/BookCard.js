@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MEDIA_BASE_URL } from './Config';
 
 const BookCard = ({ book }) => {
   const navigate = useNavigate();
@@ -16,8 +17,7 @@ const BookCard = ({ book }) => {
     <div key={book.id} className="card">
       {book.thumb_image && (
         <img 
-          // src={`http://localhost:8000/static/images/${book.thumb_image}`} 
-          src={`https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/${book.thumb_image}`}
+          src={`${MEDIA_BASE_URL}/${book.thumb_image}`}
           alt={book.title_cn || book.title} 
           className="card-image hvr-float-shadow" 
         />

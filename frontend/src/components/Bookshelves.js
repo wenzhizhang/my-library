@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
+import { API_BASE_URL } from './Config';
 
 const Bookshelves = () => {
   const [bookshelves, setBookshelves] = useState([]);
@@ -21,7 +22,7 @@ const Bookshelves = () => {
   const fetchBookshelves = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/bookshelves/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${API_BASE_URL}/bookshelves/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setBookshelves(data.bookshelves || []);
       setTotalPages(data.total_pages || 1);

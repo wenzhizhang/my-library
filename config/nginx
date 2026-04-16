@@ -1,0 +1,62 @@
+# 主服务器块
+server {
+    # 监听 80 端口（HTTP）
+    listen 80;
+    server_name 你的服务器公网IP;  # 替换为你的实际 IP
+    
+    # 日志配置
+    access_log /var/log/nginx/my-library.access.log;
+    error_log /var/log/nginx/my-library.error.log;
+
+    # 默认根路径 - 转发到前端 React 应用
+    location / {
+        proxy_pass http://localhost:3000;  # React 开发服务器
+        proxy_http_version 1.1;
+        
+        # 重要的 HTTP 头部转发
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # 超时设置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # API 路径 - 转发到后端 FastAPI
+    location /api/ {
+        proxy_pass http://localhost:8000/;  # 注意末尾的斜杠
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 处理 WebSocket 和长连接
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        
+        # 超时设置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 90s;
+        proxy_read_timeout 90s;
+    }
+
+    # 静态资源路径（如果使用构建后的 React）
+    location /static/ {
+        alias /path/to/react/build/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 错误页面
+    error_page 404 /index.html;
+    location = /index.html {
+        proxy_pass http://localhost:3000;
+    }
+}

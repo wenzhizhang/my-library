@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
+import { API_BASE_URL } from './Config';
 
 const PublisherDetails = () => {
   const { id } = useParams();
@@ -17,7 +18,7 @@ const PublisherDetails = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/publishers/${id}`
+        `${API_BASE_URL}/publishers/${id}`
       );
       setPublisher(response.data);
     } catch (error) {
