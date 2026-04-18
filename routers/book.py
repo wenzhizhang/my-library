@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from models import Book, Author, book_authors
@@ -87,16 +87,16 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", db: Sessi
 
 @router.get("/{book_id}", response_model=BookResponse)
 def read_book(book_id: int, db: Session = Depends(get_db)):
-    book = db.query(Book).filter(Book.id == book_id).first()
+    book = db.query(Book).options(joinedload(Book.authors)).filter(Book.id == book_id).one_or_none()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    print(book.authors)
+    authors = [{"id": author.id, "formated_name": str(author)} for author in book.authors]
     return {
         "id": book.id,
         "isbn": book.isbn,
         "title_cn": book.title_cn,
         "title": book.title,
-        "author_ids": [author.id for author in book.authors],
+        "authors": authors,
         "translator": book.translator,
         "publisher_id": book.publisher_id,
         "publish_date": book.publish_date,

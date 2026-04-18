@@ -50,7 +50,16 @@ const BookDetails = () => {
             <p><strong>Title:</strong> {book.title}</p>
             {book.title_cn && <p><strong>Chinese Title:</strong> {book.title_cn}</p>}
             {book.isbn && <p><strong>ISBN:</strong> {book.isbn}</p>}
-            {book.authors && <p><strong>Authors:</strong> {book.authors.join(', ')}</p>}
+            {book.authors && (
+              <p><strong>Authors:</strong> {
+                book.authors.map((author, index) => (
+                  <React.Fragment key={author?.id}>
+                    <a href={`/authors/${author?.id}`}>{author?.formated_name}</a>
+                    {index < book.authors.length - 1 && ', '}
+                  </React.Fragment>
+                ))
+              }</p>
+            )}
             {book.translators && <p><strong>Translators:</strong> {book.translators.join(', ')}</p>}
             {book.publisher && <p><strong>Publisher:</strong> {book.publisher.name}</p>}
             {book.publish_date && <p><strong>Publish Date:</strong> {new Date(book.publish_date).toLocaleDateString()}</p>}
@@ -64,8 +73,8 @@ const BookDetails = () => {
             {book.compose_type && <p><strong>Compose Type:</strong> {book.compose_type}</p>}
 
             <h2>Pricing and Purchase</h2>
-            {book.price && <p><strong>Price:</strong> ${book.price}</p>}
-            {book.purchase_price && <p><strong>Purchase Price:</strong> ${book.purchase_price}</p>}
+            {book.price && <p><strong>Price:</strong> ¥ {Number(book.price).toFixed(2)}</p>}
+            {book.purchase_price && <p><strong>Purchase Price:</strong> ¥ {Number(book.purchase_price).toFixed(2)}</p>}
             {book.purchase_date && <p><strong>Purchase Date:</strong> {new Date(book.purchase_date).toLocaleDateString()}</p>}
             {book.purchase_store && <p><strong>Purchase Store:</strong> {book.purchase_store}</p>}
 
@@ -92,10 +101,6 @@ const BookDetails = () => {
             {book.introduction && <p><strong>Introduction:</strong> {book.introduction}</p>}
             {book.summary && <p><strong>Summary:</strong> {book.summary}</p>}
             {book.catalog && <p><strong>Catalog:</strong> {book.catalog}</p>}
-
-            <h2>Timestamps</h2>
-            <p><strong>Created At:</strong> {new Date(book.created_at).toLocaleString()}</p>
-            <p><strong>Updated At:</strong> {new Date(book.updated_at).toLocaleString()}</p>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ from typing import List, Optional
 
 class AuthorSimple(BaseModel):
     id: int
+    formated_name: str
 
     model_config = ConfigDict(from_attributes=True)
 
