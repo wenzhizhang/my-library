@@ -1,0 +1,231 @@
+/* Books component styles */
+/* ... (保留所有原有样式) ... */
+
+/* 新增 BookDetails 特定样式，遵循现有风格 */
+.details-header {
+  margin-bottom: 20px;
+  text-align: left; /* 让按钮靠左对齐 */
+}
+
+.details-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* 使用浅灰色边框 */
+}
+
+.details-cover-section {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* 封面顶部对齐 */
+}
+
+.details-image-container {
+  /* width: 100%; */
+  max-width: 500px; /* 控制最大宽度 */
+}
+
+.card-image { /* 重用现有样式 */
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 10px; /* 如果没有，则加上 */
+}
+
+.details-info-section .card-title { /* 重用现有样式 */
+  font-size: 28px; /* 可根据需要调整 */
+  margin-bottom: 10px;
+  text-align: left; /* 左对齐 */
+}
+
+.book-authors {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* 使用较小的间隙 */
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.author, .translator {
+  /* 重用 caption 样式 */
+}
+
+.details-info-section .caption { /* 应用于 info 区域的 caption */
+  margin: 5px 0;
+  text-align: left;
+  color: rgba(0, 0, 0, 0.8); /* 确保颜色与 caption 一致 */
+}
+
+.book-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: rgba(245, 245, 247, 0.9); /* 使用 card 背景色 */
+  border-radius: 8px;
+  text-align: left;
+}
+
+.rating {
+  text-align: center;
+}
+
+.score {
+  display: block;
+  font-size: 1.2em; /* 相对于父元素 caption 更大一点 */
+  font-weight: bold;
+  color: #ff6b35; /* 可选：使用强调色 */
+}
+
+.label {
+  /* 继承 caption 样式 */
+}
+
+.publish-date {
+  text-align: right;
+}
+
+.price-section {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.current-price {
+  font-size: 1.4em; /* 更大更突出 */
+  font-weight: bold;
+  color: #d32f2f; /* 红色表示价格 */
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #999; /* 灰色表示原价 */
+}
+
+.purchase-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+  justify-content: flex-start; /* 左对齐按钮 */
+}
+
+/* 标签页样式 - 遵循现有风格 */
+.details-tabs {
+  margin-top: 20px;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 5px; /* 按钮之间的间距 */
+  margin-bottom: -1px; /* 让按钮稍微覆盖下方 card 的上边框 */
+  flex-wrap: wrap; /* 防止按钮过多时换行 */
+}
+
+.tab-content {
+  /* 重用 card 样式，已在JSX中应用 */
+  padding: 20px; /* 调整 card 的内边距 */
+  min-height: 200px; /* 防止切换时布局跳动 */
+  text-align: left; /* 内容左对齐 */
+}
+
+.tab-pane {
+  /* 内容面板无需特殊样式，由 card 承载 */
+}
+
+/* 详情网格 */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 调整最小宽度适应 card */
+  gap: 20px;
+}
+
+.detail-group {
+  margin-bottom: 15px; /* 与 .card 的 padding 结合 */
+}
+
+.detail-group h3 {
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid #0071e3; /* 使用主色调 */
+  color: #212121;
+  font-size: 16px; /* 使用标准字体大小 */
+  font-weight: 600;
+}
+
+.detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detail-list li {
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.1); /* 使用浅色虚线 */
+  font-size: 14px; /* 使用 caption 字体大小 */
+}
+
+/* 内容区域 */
+.content-section, .catalog-section {
+  line-height: 1.6;
+}
+
+.catalog-content {
+  background-color: rgba(245, 245, 247, 0.9); /* 使用 card 背景色 */
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-x: auto;
+  font-size: 14px; /* 与 caption 保持一致 */
+}
+
+/* 时间戳 */
+.timestamps {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: left; /* 左对齐 */
+  font-size: 12px; /* 使用更小的字体 */
+  color: #666;
+}
+
+.timestamps span {
+  margin-right: 15px; /* 分隔符间距 */
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .details-main {
+    grid-template-columns: 1fr; /* 移动端改为单列 */
+    gap: 10px;
+  }
+
+  .book-meta {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .purchase-actions {
+    flex-direction: column;
+  }
+
+  .tab-buttons {
+    justify-content: center; /* 移动端按钮居中 */
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr; /* 移动端详情也变为单列 */
+  }
+}
+
+/* 重置按钮默认样式，确保 btn-pill-link 样式生效 */
+.details-tabs button {
+  all: unset; /* 重置默认样式 */
+  font: inherit; /* 继承字体 */
+}

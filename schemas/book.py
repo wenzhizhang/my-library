@@ -13,12 +13,14 @@ class AuthorSimple(BaseModel):
 
 class PublisherSimple(BaseModel):
     id: int
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class BrandSimple(BaseModel):
     id: int
+    name: str
 
 
     model_config = ConfigDict(from_attributes=True)
@@ -26,6 +28,21 @@ class BrandSimple(BaseModel):
 
 class SeriesSimple(BaseModel):
     id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CategorySimple(BaseModel):
+    id: int
+    path: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BookshelfSimple(BaseModel):
+    id: int
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -81,7 +98,7 @@ class BookCreation(BaseModel):
     title: str
     author_ids: Optional[List[int]] = None
     translator: Optional[str] = None
-    publisher_id: int
+    publisher_id: Optional[int] = None
     publish_date: datetime
     brand_id: int
     book_series_id: int
@@ -199,9 +216,9 @@ class BookResponse(BaseModel):
      - title: 书籍原名
      - authors: 作者列表
      - translator: 翻译；整理；校注等
-     - publisher_id: 出版社ID
+     - publisher: 出版社
      - publish_date: 出版日期，格式为YYYY-MM-DD
-     - brand_id: 图书品牌ID
+     - brand: 图书品牌
      - book_series: 图书系列
      - binding_type: 装帧类型，如平装、精装等
      - paper_type: 纸张类型，如胶版纸、铜版纸等
@@ -214,8 +231,8 @@ class BookResponse(BaseModel):
      - purchase_date: 购入日期，格式为YYYY-MM-DD
      - thumb_image: 书籍封面缩略图URL
      - link: 书籍详情链接URL
-     - category_id: 书籍分类ID
-     - bookshelf_id: 所在书架ID
+     - category: 书籍分类
+     - bookshelf: 所在书架
      - read_state: 阅读状态
      - catalog: 目录
      - introduction: 图书内容简介
@@ -234,9 +251,9 @@ class BookResponse(BaseModel):
     title: str
     authors: Optional[List[AuthorSimple]] = None
     translator: Optional[str] = None
-    publisher_id: Optional[int] = None
+    publisher: Optional[PublisherSimple] = None
     publish_date: Optional[datetime] = None
-    brand_id: Optional[int] = None
+    brand: Optional[BrandSimple] = None
     book_series: Optional[SeriesSimple] = None
     binding_type: Optional[str] = None
     paper_type: Optional[str] = None
@@ -249,8 +266,8 @@ class BookResponse(BaseModel):
     purchase_date: Optional[datetime] = None
     thumb_image: Optional[str] = None
     link: Optional[str] = None
-    category_id: Optional[int] = None
-    bookshelf_id: Optional[int] = None
+    category: Optional[CategorySimple] = None
+    bookshelf: Optional[BookshelfSimple] = None
     read_state: Optional[str] = None
     catalog: Optional[str] = None
     introduction: Optional[str] = None
