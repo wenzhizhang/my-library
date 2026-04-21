@@ -5,14 +5,14 @@ from typing import List
 
 from models import Book, Author, book_authors
 from models.book import BookSearchStrategy
-from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParamms
+from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
 
 @router.get("/search", response_model=List[BookResponse])
-def search_books(filter_params: FilterParamms = Depends(), db: Session = Depends(get_db)):
+def search_books(filter_params: FilterParams = Depends(), db: Session = Depends(get_db)):
     # query = db.query(Book).options(joinedload(Book.authors))
 
     stmt = select(Book).options(selectinload(Book.authors))
@@ -76,32 +76,48 @@ def create_book(book: BookCreation, db: Session = Depends(get_db)):
     }
 
 @router.get("/")
-def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", db: Session = Depends(get_db)):
+def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_params: FilterParams = Depends(), db: Session = Depends(get_db)):
     offset = (page - 1) * limit
 
-    total_books = db.query(Book).count()
+    # ✅ 1. 基础 query（加 eager load，避免 N+1）
+    query = db.query(Book).options(selectinload(Book.authors))
+
+    # ✅ 2. 应用搜索条件
+    filters_dict = filter_params.model_dump(exclude_unset=True)
+    query = BookSearchStrategy.apply_filters(query, filters_dict)
+
+    # ✅ 3. 计算 total（⚠️ 必须 distinct）
+    total_books = query.with_entities(Book.id).distinct().count()
     total_pages = (total_books + limit - 1) // limit
 
+    # ✅ 4. 排序
     if sort_by == "title":
-        books = db.query(Book).order_by(Book.title).offset(offset).limit(limit).all()
+        query = query.order_by(Book.title)
     elif sort_by == "created_at":
-        books = db.query(Book).order_by(Book.created_at.desc()).offset(offset).limit(limit).all()
+        query = query.order_by(Book.created_at.desc())
     else:
-        books = db.query(Book).offset(offset).limit(limit).all()
+        query = query.order_by(Book.id)
 
+    # ✅ 5. 分页
+    books = query.offset(offset).limit(limit).all()
+
+    # ✅ 6. 序列化（你原来的逻辑）
     books_data = []
     for book in books:
-        book_dict = {
+        books_data.append({
             "id": book.id,
             "isbn": book.isbn,
             "title_cn": book.title_cn,
             "title": book.title,
             "thumb_image": book.thumb_image,
             "authors": [author.name for author in book.authors]
-        }
-        books_data.append(book_dict)
+        })
 
-    return {"books": books_data, "total_pages": total_pages, "total_books": total_books}
+    return {
+        "books": books_data,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
 
 @router.get("/{book_id}", response_model=BookResponse)
 def read_book(book_id: int, db: Session = Depends(get_db)):

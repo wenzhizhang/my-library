@@ -83,6 +83,9 @@ class BookSearchStrategy:
         joined = set()
         conditions = []
 
+        if filters.get("isbn"):
+            conditions.append(Book.isbn.ilike(f"%{filters['isbn']}%"))
+
         if filters.get("title"):
             conditions.append(
                 or_(Book.title.ilike(f"%{filters['title']}%"), Book.title_cn.ilike(f"%{filters['title']}%"))

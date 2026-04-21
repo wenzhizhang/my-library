@@ -53,7 +53,7 @@ class BookBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class FilterParamms(BaseModel):
+class FilterParams(BaseModel):
     """
     图书过滤参数模型
      - isbn: 国际标准书号
