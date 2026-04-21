@@ -6,7 +6,7 @@ from typing import List, Optional
 
 class AuthorSimple(BaseModel):
     id: int
-    formated_name: str
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,6 +53,26 @@ class BookBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class FilterParamms(BaseModel):
+    """
+    图书过滤参数模型
+     - isbn: 国际标准书号
+     - title: 书籍名称（模糊匹配）
+     - author: 作者名称（模糊匹配）
+     - publisher: 出版社名称（模糊匹配）
+     - min_price: 最小价格
+     - max_price: 最大价格
+    """
+    model_config = {"extra": "forbid"}
+
+    isbn: Optional[str] = None
+    title: Optional[str] = None
+    author: Optional[str] = None
+    publisher: Optional[str] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+
+
 class BookCreation(BaseModel):
     """
     图书模型
@@ -75,7 +95,6 @@ class BookCreation(BaseModel):
      - purchase_price: 购入价格，单位为人民币元
      - purchase_date: 购入日期，格式为YYYY-MM-DD
      - thumb_image: 书籍封面缩略图URL
-     - link: 书籍详情链接URL
      - category_id: 书籍分类ID
      - bookshelf_id: 所在书架ID
      - read_state: 阅读状态
@@ -112,7 +131,6 @@ class BookCreation(BaseModel):
     purchase_price: float
     purchase_date: datetime
     thumb_image: str
-    link: str
     category_id: int
     bookshelf_id: int
     read_state: str
@@ -278,4 +296,4 @@ class BookResponse(BaseModel):
     printed_number: Optional[int] = None
     douban_score: Optional[float] = None
     purchase_store: Optional[str] = None
-    tags: List[str]
+    tags: Optional[List[str]]

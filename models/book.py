@@ -1,7 +1,7 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Dict, Any
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON, or_
+from sqlalchemy.orm import relationship, Mapped, mapped_column, Query
 from datetime import datetime
 
 from .publisher import Publisher, Brand
@@ -74,3 +74,48 @@ class Book(Base):
 
     def __repr__(self):
         return f"<Book(id={self.id}, title='{self.title}')>"
+
+
+class BookSearchStrategy:
+
+    @staticmethod
+    def apply_filters(query, filters):
+        joined = set()
+        conditions = []
+
+        if filters.get("title"):
+            conditions.append(
+                or_(Book.title.ilike(f"%{filters['title']}%"), Book.title_cn.ilike(f"%{filters['title']}%"))
+            )
+
+        if filters.get("author"):
+            author_cls = Book.authors.property.mapper.class_
+
+            if "authors" not in joined:
+                query = query.join(Book.authors)
+                joined.add("authors")
+            conditions.append(
+                or_(
+                    author_cls.name.ilike(f"%{filters['author']}%"),
+                    author_cls.name_cn.ilike(f"%{filters['author']}%")
+                )
+            )
+
+        if filters.get("publisher"):
+            if "publisher" not in joined:
+                query = query.join(Book.publisher)
+                joined.add("publisher")
+            conditions.append(Publisher.name.ilike(f"%{filters['publisher']}%"))
+
+        if filters.get("min_price"):
+            conditions.append(Book.price >= filters["min_price"])
+
+        if filters.get("max_price"):
+            conditions.append(Book.price <= filters["max_price"])
+
+        if conditions:
+            query = query.filter(*conditions)
+
+        return query.distinct()
+
+

@@ -1,12 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
 from models import Book, Author, book_authors
-from schemas.book import BookCreation, BookUpdate, BookResponse
+from models.book import BookSearchStrategy
+from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParamms
 from database import get_db
 
 router = APIRouter(prefix="/api/books", tags=["books"])
+
+
+@router.get("/search", response_model=List[BookResponse])
+def search_books(filter_params: FilterParamms = Depends(), db: Session = Depends(get_db)):
+    # query = db.query(Book).options(joinedload(Book.authors))
+
+    stmt = select(Book).options(selectinload(Book.authors))
+
+    filters_dict = filter_params.model_dump(exclude_unset=True)
+    stmt = BookSearchStrategy.apply_filters(stmt, filters_dict)
+    print(stmt)
+
+    # return query.all()
+    result = db.execute(stmt).scalars().all()
+    return result
+
 
 @router.post("/", response_model=BookResponse)
 def create_book(book: BookCreation, db: Session = Depends(get_db)):
@@ -90,7 +108,7 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).options(joinedload(Book.authors)).filter(Book.id == book_id).one_or_none()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    authors = [{"id": author.id, "formated_name": str(author)} for author in book.authors]
+    authors = [{"id": author.id, "name": str(author)} for author in book.authors]
     return {
         "id": book.id,
         "isbn": book.isbn,
@@ -189,3 +207,4 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     db.delete(book)
     db.commit()
     return {"message": "Book deleted"}
+
