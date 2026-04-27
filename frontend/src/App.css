@@ -1,72 +1,484 @@
-body {
-  background: url("https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/background/bg4.jpg") no-repeat center center fixed;
-  background-size: cover;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
+@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&family=SF+Pro+Text:wght@300;400;600&display=swap');
+
+:root {
+  /* Primary Colors */
+  --pure-black: #000000;
+  --light-gray: #f5f5f7;
+  --near-black: #1d1d1f;
+  
+  /* Interactive Colors */
+  --apple-blue: #0071e3;
+  --link-blue: #0066cc;
+  --bright-blue: #2997ff;
+  
+  /* Text Colors */
+  --white: #ffffff;
+  --black-80: rgba(0, 0, 0, 0.8);
+  --black-48: rgba(0, 0, 0, 0.48);
+  
+  /* Dark Surface Colors */
+  --dark-surface-1: #272729;
+  --dark-surface-2: #262628;
+  --dark-surface-3: #28282a;
+  --dark-surface-4: #2a2a2d;
+  --dark-surface-5: #242426;
+  
+  /* Button States */
+  --button-active: #ededf2;
+  --button-default-light: #fafafc;
+  --overlay: rgba(210, 210, 215, 0.64);
+  --white-32: rgba(255, 255, 255, 0.32);
+  
+  /* Shadows */
+  --card-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
 }
 
-.App {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.1);
-  min-height: 100vh;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: var(--light-gray);
+  color: var(--near-black);
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.app {
+  overflow-x: hidden;
+}
+
+/* Navigation */
+.navigation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  z-index: 1000;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 100%;
+}
+
+.nav-logo {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--white);
+  width: 17px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-link {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--white);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 16px;
+  color: var(--white);
+  font-size: 16px;
+}
+
+/* Section Base Styles */
+.dark-section {
+  background-color: var(--pure-black);
+  color: var(--white);
+}
+
+.light-section {
+  background-color: var(--light-gray);
+  color: var(--near-black);
+}
+
+.section-content {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+/* Typography */
+.hero-headline {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.07;
+  letter-spacing: -0.28px;
+  margin-bottom: 16px;
+}
+
+.hero-subtitle {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+  margin-bottom: 32px;
+  opacity: 0.8;
+}
+
+.section-heading {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: 40px;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.section-heading.white {
+  color: var(--white);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.body-text {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  margin-bottom: 16px;
+  color: var(--black-80);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* Buttons */
+.pill-button {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  padding: 8px 15px;
+  text-decoration: none;
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  border-radius: 980px;
+  margin-right: 16px;
+  transition: all 0.2s ease;
 }
 
-.App-link {
-  color: #61dafb;
+.pill-button.primary {
+  background-color: var(--apple-blue);
+  color: var(--white);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.pill-button.secondary {
+  background-color: transparent;
+  color: var(--white);
+  border: 1px solid var(--white);
+}
+
+.pill-button:hover {
+  transform: scale(1.05);
+}
+
+/* Hero Section */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 800px;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+/* About Section */
+.about-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.about-text {
+  max-width: 600px;
+}
+
+.stat-item {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.stat-number {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: 0.196px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  color: var(--black-48);
+}
+
+/* Projects Section */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.project-card {
+  background-color: var(--dark-surface-1);
+  border-radius: 8px;
+  padding: 24px;
+  transition: transform 0.2s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+}
+
+.project-image {
+  width: 100%;
+  height: 160px;
+  background-color: var(--dark-surface-3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.project-title {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+  margin-bottom: 8px;
+}
+
+.project-description {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  color: var(--white);
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.project-links {
+  display: flex;
+  gap: 16px;
+}
+
+.learn-more, .shop-link {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.learn-more {
+  color: var(--bright-blue);
+}
+
+.shop-link {
+  color: var(--bright-blue);
+}
+
+.learn-more:hover, .shop-link:hover {
+  text-decoration: underline;
+}
+
+/* Skills Section */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.skill-category-title {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+  margin-bottom: 16px;
+  color: var(--near-black);
+}
+
+.skill-list {
+  list-style: none;
+}
+
+.skill-item {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  color: var(--black-80);
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.skill-item::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--apple-blue);
+  font-weight: bold;
+}
+
+/* Contact Section */
+.contact-subtitle {
+  font-family: 'SF Pro Display', sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.19;
+  letter-spacing: 0.231px;
+  text-align: center;
+  margin-bottom: 40px;
+  opacity: 0.8;
+}
+
+.contact-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contact-item {
+  text-align: center;
+}
+
+.contact-label {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  color: var(--white);
+  opacity: 0.6;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.contact-value {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  color: var(--bright-blue);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.contact-value:hover {
+  text-decoration: underline;
+}
+
+/* Footer */
+.footer {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.footer-text {
+  font-family: 'SF Pro Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: -0.224px;
+  color: var(--black-48);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-headline {
+    font-size: 40px;
+    line-height: 1.1;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .hero-subtitle {
+    font-size: 17px;
+    line-height: 1.47;
+  }
+  
+  .section-heading {
+    font-size: 28px;
+  }
+  
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  
+  .hero-buttons {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .pill-button {
+    margin-right: 0;
+    width: 200px;
+  }
+  
+  .nav-links {
+    display: none;
   }
 }
 
-/* Optionally, add a semi-transparent overlay for readability */
-
-/* Frosted glass effect for main containers */
-.frosted-glass {
-  background: rgba(40, 40, 60, 0.25); /* semi-transparent dark */
-  border-radius: 12px;
-  box-shadow: 0 4px 32px 0 rgba(0,0,0,0.37);
-  border: 1.5px solid rgba(255,255,255,0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 32px;
-  margin: 32px auto;
-  width: 90%;
-  max-width: 1100px;
-}
-
-/* Make main containers transparent to show frosted glass effect */
-.main-content, .container, .content {
-  background: transparent;
-  box-shadow: none;
+@media (max-width: 480px) {
+  .hero-headline {
+    font-size: 28px;
+  }
+  
+  .section-content {
+    padding: 60px 16px;
+  }
 }
