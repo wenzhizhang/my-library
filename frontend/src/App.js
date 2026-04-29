@@ -132,6 +132,7 @@ function App() {
       {/* Footer */}
       <footer className="footer light-section">
         <div className="footer-content">
+          <p><a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2026018962号</a></p>
           <p className="footer-text">© 2024 Your Name. All rights reserved.</p>
         </div>
       </footer>
