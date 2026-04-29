@@ -24,7 +24,7 @@ function App() {
       {/* Hero Section - Dark */}
       <section className="hero-section dark-section">
         <div className="hero-content">
-          <h1 className="hero-headline">Full Stack Developer</h1>
+          <h1 className="hero-headline">张问之的技术站</h1>
           <p className="hero-subtitle">Building exceptional digital experiences with modern technologies</p>
           <div className="hero-buttons">
             <Link to="/my-library" className="pill-button primary">View Projects</Link>
