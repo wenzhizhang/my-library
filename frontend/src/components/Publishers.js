@@ -144,7 +144,7 @@ const Publishers = () => {
             <div key={publisher.id} className="card">
               <h3 className="card-title">{publisher.name}</h3>
               {publisher.intro && <p className="caption">{publisher.intro.length > 100 ? publisher.intro.substring(0, 100) + '...' : publisher.intro}</p>}
-              <button className="btn-pill-link" onClick={() => navigate(`/publishers/${publisher.id}`)}>View Details</button>
+              <button className="btn-pill-link" onClick={() => navigate(`/my-library/publishers/${publisher.id}`)}>View Details</button>
             </div>
           ))}
         </div>

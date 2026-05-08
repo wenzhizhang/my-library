@@ -144,7 +144,7 @@ const Bookshelves = () => {
             <div key={bookshelf.id} className="card">
               <h3 className="card-title">{bookshelf.name}</h3>
               {bookshelf.description && <p className="caption">{bookshelf.description.length > 100 ? bookshelf.description.substring(0, 100) + '...' : bookshelf.description}</p>}
-              <button className="btn-pill-link" onClick={() => navigate(`/bookshelves/${bookshelf.id}`)}>View Details</button>
+              <button className="btn-pill-link" onClick={() => navigate(`/my-library/bookshelves/${bookshelf.id}`)}>View Details</button>
             </div>
           ))}
         </div>
