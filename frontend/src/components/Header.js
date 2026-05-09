@@ -1,68 +1,67 @@
 // src/components/Header.js
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom'; // 添加useLocation用于检测当前路由
+import { LIBRARY_PATH } from '../config';
 import './Header.css';
 
 const Header = ({ isMyLibrary = false }) => {
   const location = useLocation();
-  
-  // 根据isMyLibrary参数决定是否添加/my-library前缀
-  const getBasePath = (path) => {
-    if (isMyLibrary) {
-      return `/my-library${path}`;
-    }
-    return path;
+
+  // 统一使用绝对 /my-library 前缀，避免相对路径拼接问题
+  const getPath = (path) => {
+    const normalizedPath = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
+    return `${LIBRARY_PATH}${normalizedPath}`.replace(/\/\/+/, '/');
   };
   
   // 检查当前路径是否激活
   const isActive = (path) => {
-    const fullPath = isMyLibrary ? `/my-library${path}` : path;
+    const fullPath = `${LIBRARY_PATH}${path}`.replace(/\/\/+/, '/');
     return location.pathname === fullPath || location.pathname.startsWith(fullPath + '/');
   };
 
   return (
     <nav className="nav">
       <div className="nav-container">
-        <Link to={getBasePath('/')} className="nav-logo">My Library</Link>
+        <Link to={getPath('/')} className="nav-logo">My Library</Link>
         <div className="nav-links">
           <Link 
-            to={getBasePath('/books')} 
+            to={getPath('/books')} 
             className={`nav-link ${isActive('/books') ? 'active' : ''}`}
           >
             Books
           </Link>
           <Link 
-            to={getBasePath('/authors')} 
+            to={getPath('/authors')} 
             className={`nav-link ${isActive('/authors') ? 'active' : ''}`}
           >
             Authors
           </Link>
           <Link 
-            to={getBasePath('/publishers')} 
+            to={getPath('/publishers')} 
             className={`nav-link ${isActive('/publishers') ? 'active' : ''}`}
           >
             Publishers
           </Link>
           <Link 
-            to={getBasePath('/categories')} 
+            to={getPath('/categories')} 
             className={`nav-link ${isActive('/categories') ? 'active' : ''}`}
           >
             Categories
           </Link>
           <Link 
-            to={getBasePath('/bookshelves')} 
+            to={getPath('/bookshelves')} 
             className={`nav-link ${isActive('/bookshelves') ? 'active' : ''}`}
           >
             Bookshelves
           </Link>
           <Link 
-            to={getBasePath('/brands')} 
+            to={getPath('/brands')} 
             className={`nav-link ${isActive('/brands') ? 'active' : ''}`}
           >
             Brands
           </Link>
           <Link 
-            to={getBasePath('/series')} 
+            to={getPath('/series')} 
             className={`nav-link ${isActive('/series') ? 'active' : ''}`}
           >
             Series

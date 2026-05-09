@@ -187,7 +187,7 @@ const Series = () => {
               )}
               <button
                 className="btn-pill-link"
-                onClick={() => navigate(`/my-library/series/${item.id}`)}
+                onClick={() => navigate(`${item.id}`)}
               >
                 View Details
               </button>

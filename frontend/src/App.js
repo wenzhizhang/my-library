@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './App.css';
+import { LIBRARY_PATH } from './config';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
           <h1 className="hero-headline">张问之的技术站</h1>
           <p className="hero-subtitle">虽然现在还有点丑，但我会不断改进的！</p>
           <div className="hero-buttons">
-            <Link to="/my-library" className="pill-button primary">View Projects</Link>
+            <Link to={LIBRARY_PATH} className="pill-button primary">View Projects</Link>
             <a href="#contact" className="pill-button secondary">Get In Touch</a>
           </div>
         </div>

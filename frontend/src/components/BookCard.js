@@ -6,11 +6,11 @@ const BookCard = ({ book }) => {
   const navigate = useNavigate();
 
   const handleViewDetails = () => {
-    navigate(`/my-library/books/${book.id}`);
+    navigate(`${book.id}`);
   };
 
   const handleEdit = () => {
-    navigate(`/books/edit/${book.id}`);
+    navigate(`edit/${book.id}`);
   };
 
   return (

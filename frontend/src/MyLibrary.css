@@ -1,17 +1,24 @@
-body {
-  background: url("https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/background/bg4.jpg") no-repeat center center fixed;
-  background-size: cover;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-}
-
 .MyLibrary {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.1);
+  position: relative;
   min-height: 100vh;
   text-align: center;
+  background: url("https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/background/bg4.jpg") no-repeat center center fixed;
+  background-size: cover;
+}
+
+.MyLibrary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.MyLibrary > * {
+  position: relative;
+  z-index: 1;
 }
 
 .MyLibrary-logo {

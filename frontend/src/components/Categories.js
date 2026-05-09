@@ -144,7 +144,7 @@ const Categories = () => {
             <div key={category.id} className="card">
               <h3 className="card-title">{category.name}</h3>
               {category.intro && <p className="caption">{category.intro.length > 100 ? category.intro.substring(0, 100) + '...' : category.intro}</p>}
-              <button className="btn-pill-link" onClick={() => navigate(`/my-library/categories/${category.id}`)}>View Details</button>
+              <button className="btn-pill-link" onClick={() => navigate(`${category.id}`)}>View Details</button>
             </div>
           ))}
         </div>

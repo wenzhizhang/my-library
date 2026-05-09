@@ -148,7 +148,7 @@ const Authors = () => {
               )}
               <h3 className="card-title">{author.name}</h3>
               {author.bio && <p className="caption">{author.bio.length > 100 ? author.bio.substring(0, 100) + '...' : author.bio}</p>}
-              <button className="btn-pill-link" onClick={() => navigate(`/my-library/authors/${author.id}`)}>View Details</button>
+              <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>View Details</button>
             </div>
           ))}
         </div>
