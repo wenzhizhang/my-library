@@ -5,3 +5,6 @@ static/images/authors static/images/background static/images/books static/images
 update_thumb_images.py
 migrate_data.py
 *.pyc
+
+# Generated nginx config (keep template)
+config/nginx.conf

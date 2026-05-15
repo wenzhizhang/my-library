@@ -1,0 +1,49 @@
+# Ignore temporary and local files
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache
+.pytest_cache
+htmlcov
+.pyre
+.pytype
+.pyright
+
+# Virtual environments
+venv
+.venv
+env
+ENV
+
+# Node / frontend build
+frontend/node_modules
+frontend/build
+frontend/.cache
+frontend/.pnp
+frontend/.pnp.js
+frontend/.env*
+
+# Editor and OS files
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Docker files
+docker-compose.override.yml
+
+# Other generated artifacts
+build
+dist
