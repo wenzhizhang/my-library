@@ -1,16 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MEDIA_BASE_URL } from './Config';
+import { LIBRARY_PATH } from '../config';
 
 const BookCard = ({ book }) => {
   const navigate = useNavigate();
 
   const handleViewDetails = () => {
-    navigate(`/books/${book.id}`);
+    navigate(`${LIBRARY_PATH}/books/${book.id}`);
   };
 
   const handleEdit = () => {
-    navigate(`/books/edit/${book.id}`);
+    navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
   };
 
   return (

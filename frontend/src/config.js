@@ -1,9 +1,4 @@
 // src/config.js
-const env = process.env.REACT_APP_ENV || process.env.NODE_ENV || 'development';
-
-// Base path for routing - for production deployment
-export const BASE_PATH = process.env.REACT_APP_BASE_PATH || (env === 'production' ? '/my-library' : '');
-
 // Library base path for navigation
 export const LIBRARY_PATH = process.env.REACT_APP_LIBRARY_PATH || '/my-library';
 

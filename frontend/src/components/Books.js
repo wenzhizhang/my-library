@@ -5,6 +5,7 @@ import './Books.css';
 import './hover.css';
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
+import { LIBRARY_PATH } from '../config';
 
 const Books = () => {
   const [books, setBooks] = useState([]);
@@ -175,7 +176,7 @@ const Books = () => {
       <div className="container">
         <h1 className="section-heading">Books</h1>
 
-        <button className="btn-primary-blue" onClick={() => navigate('/books/create')}>
+        <button className="btn-primary-blue" onClick={() => navigate(`${LIBRARY_PATH}/books/create`)}>
           Add New Book
         </button>
 

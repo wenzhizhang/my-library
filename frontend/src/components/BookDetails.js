@@ -1,28 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { LIBRARY_PATH } from '../config';
 
 const BookDetails = () => {
   const { id } = useParams();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
+    const fetchBook = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${API_BASE_URL}/books/${id}/`);
+        setBook(response.data);
+      } catch (error) {
+        console.error('Error fetching book:', error);
+      }
+      setLoading(false);
+    };
+
     fetchBook();
   }, [id]);
-
-  const fetchBook = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API_BASE_URL}/books/${id}/`);
-      setBook(response.data);
-    } catch (error) {
-      console.error('Error fetching book:', error);
-    }
-    setLoading(false);
-  };
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -36,7 +39,7 @@ const BookDetails = () => {
     <section className="section light">
       <div className="container">
         <h1 className="section-heading">{book.title_cn || book.title}</h1>
-        <button className="btn-primary-blue" onClick={() => window.history.back()}>Back to Books</button>
+        <button className="btn-primary-blue" onClick={() => navigate(`${LIBRARY_PATH}/books`)}>Back to Books</button>
 
         <div className="details-grid">
           {book.thumb_image && (
@@ -54,7 +57,7 @@ const BookDetails = () => {
               <p><strong>作者: </strong> {
                 book.authors.map((author, index) => (
                   <React.Fragment key={author?.id}>
-                    <a href={`/authors/${author?.id}`}>{author?.formated_name}</a>
+                    <Link to={`${LIBRARY_PATH}/authors/${author?.id}`}>{author?.formated_name}</Link>
                     {index < book.authors.length - 1 && ', '}
                   </React.Fragment>
                 ))
@@ -63,7 +66,7 @@ const BookDetails = () => {
             {book.translators && <p><strong>翻译/编辑/整理: </strong> {book.translators.join(', ')}</p>}
             {book.publisher && <p><strong>出版社: </strong> 
               <React.Fragment key={book.publisher?.id}>
-                <a href={`/publishers/${book.publisher?.id}`}>{book.publisher?.name}</a>
+                <Link to={`${LIBRARY_PATH}/publishers/${book.publisher?.id}`}>{book.publisher?.name}</Link>
               </React.Fragment>
               </p>
             }
@@ -86,25 +89,25 @@ const BookDetails = () => {
             <h2>出版信息</h2>
             {book.brand && <p><strong>出品方: </strong> 
               <React.Fragment key={book.brand?.id}>
-                <a href={`/brands/${book.brand?.id}`}>{book.brand?.name}</a>
+                <Link to={`${LIBRARY_PATH}/brands/${book.brand?.id}`}>{book.brand?.name}</Link>
               </React.Fragment>
               </p>
             }
             {book.book_series && <p><strong>书系: </strong> 
               <React.Fragment key={book.book_series?.id}>
-                <a href={`/series/${book.book_series?.id}`}>{book.book_series?.name}</a>
+                <Link to={`${LIBRARY_PATH}/series/${book.book_series?.id}`}>{book.book_series?.name}</Link>
               </React.Fragment>
               </p>
             }
             {book.category && <p><strong>分类: </strong> 
               <React.Fragment key={book.category?.id}>
-                <a href={`/categories/${book.category?.id}`}>{book.category?.path}</a>
+                <Link to={`${LIBRARY_PATH}/categories/${book.category?.id}`}>{book.category?.path}</Link>
               </React.Fragment>
               </p>
             }
             {book.bookshelf && <p><strong>所在书架: </strong> 
               <React.Fragment key={book.bookshelf?.id}>
-                <a href={`/bookshelves/${book.bookshelf?.id}`}>{book.bookshelf?.name}</a>
+                <Link to={`${LIBRARY_PATH}/bookshelves/${book.bookshelf?.id}`}>{book.bookshelf?.name}</Link>
               </React.Fragment>
               </p>
             }

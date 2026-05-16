@@ -1,16 +1,16 @@
 // src/components/Header.js
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom'; // 添加useLocation用于检测当前路由
-// Links should rely on Router basename; remove LIBRARY_PATH to avoid duplication
+import { Link, useLocation } from 'react-router-dom';
+import { LIBRARY_PATH } from '../config';
 import './Header.css';
 
-const Header = ({ isMyLibrary = false }) => {
+const Header = () => {
   const location = useLocation();
+  const prefix = LIBRARY_PATH === '/' ? '' : LIBRARY_PATH;
 
-  // Links should be absolute within the app (Router basename will prefix them)
   const getPath = (path) => {
-    if (path === '/') return '/';
-    return path.startsWith('/') ? path : `/${path}`;
+    if (path === '/') return prefix || '/';
+    return `${prefix}${path.startsWith('/') ? path : `/${path}`}`;
   };
 
   // Consider a link active if the current pathname ends with the link path

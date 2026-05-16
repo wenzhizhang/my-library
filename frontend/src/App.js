@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { LIBRARY_PATH } from './config';
 import './App.css';
 
 function App() {
@@ -23,7 +24,7 @@ function App() {
           <h1 className="hero-headline">张问之的技术站</h1>
           <p className="hero-subtitle">虽然现在还有点丑，但我会不断改进的！</p>
           <div className="hero-buttons">
-            <Link to={'/books'} className="pill-button primary">View Projects</Link>
+            <Link to={`${LIBRARY_PATH}/books`} className="pill-button primary">View Projects</Link>
             <a href="#contact" className="pill-button secondary">Get In Touch</a>
           </div>
         </div>
@@ -72,7 +73,7 @@ function App() {
       {/* Footer */}
       <footer className="footer light-section">
         <div className="footer-content">
-          <p><a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2026018962号</a></p>
+          <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer noopener">蜀ICP备2026018962号</a></p>
           <p className="footer-text">© 2024 Your Name. All rights reserved.</p>
         </div>
       </footer>
