@@ -11,7 +11,7 @@ root.render(
     <Router basename={BASE_PATH}>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/my-library/*" element={<MyLibrary />} />
+        <Route path="/*" element={<MyLibrary />} />
       </Routes>
     </Router>
   </React.StrictMode>
