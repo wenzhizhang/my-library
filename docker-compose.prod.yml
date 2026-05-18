@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    image: ccr.ccs.tencentyun.com/${TENCENT_ACCOUNT}/my-library-backend:${TAG:-latest}
+    image: ccr.ccs.tencentyun.com/my-library/my-library-backend:${TAG:-latest}
     ports:
       - '8000:8000'
     environment:
@@ -13,7 +13,7 @@ services:
       - backend-data:/app/data
 
   frontend:
-    image: ccr.ccs.tencentyun.com/${TENCENT_ACCOUNT}/my-library-frontend:${TAG:-latest}
+    image: ccr.ccs.tencentyun.com/my-library/my-library-frontend:${TAG:-latest}
     ports:
       - '80:80'
     depends_on:
