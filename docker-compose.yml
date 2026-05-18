@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ${BACKEND_IMAGE:-my-library-backend:local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,6 +16,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ${FRONTEND_IMAGE:-my-library-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
