@@ -11,7 +11,7 @@ DEFAULT_TAG="latest"
 REGISTRY="ccr.ccs.tencentyun.com"
 DOCKER_COMPOSE_FILE="docker-compose.yml"
 MODE="up"
-CCR_NAMESPACE="my-library" # Default namespace for Tencent CCR, can be overridden by TENCENT_ACCOUNT
+CCR_NAMESPACE="my-library"
 
 # Colors for output
 RED='\033[0;31m'
@@ -106,6 +106,12 @@ fi
 
 TAG="${TAG:-$DEFAULT_TAG}"
 
+# Auto-generate version tag if using default 'latest'
+if [ "${TAG}" = "latest" ] && [ "${MODE}" = "push" ]; then
+    TAG="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')-$(date +%Y%m%d%H%M%S)"
+    print_info "Auto-generated version TAG: ${TAG}"
+fi
+
 if [ "${MODE}" = "push" ]; then
     if [ -z "${TENCENT_ACCOUNT}" ]; then
         print_error "TENCENT_ACCOUNT is required for push mode. Please export it in your shell."
@@ -132,7 +138,11 @@ if command -v "docker" &> /dev/null && docker compose version &> /dev/null; then
     print_info "Using docker compose (new syntax)"
     if [ "${MODE}" = "push" ]; then
         print_info "Logging in to Tencent CCR (${REGISTRY})"
-        docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
+        if [ -n "${TENCENT_PASSWORD}" ]; then
+            echo "${TENCENT_PASSWORD}" | docker login --username "${TENCENT_ACCOUNT}" --password-stdin "${REGISTRY}"
+        else
+            docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
+        fi
         docker compose "${compose_args[@]}" build
         docker compose "${compose_args[@]}" push
     else
@@ -142,7 +152,11 @@ elif command -v "docker-compose" &> /dev/null; then
     print_info "Using docker-compose (legacy syntax)"
     if [ "${MODE}" = "push" ]; then
         print_info "Logging in to Tencent CCR (${REGISTRY})"
-        docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
+        if [ -n "${TENCENT_PASSWORD}" ]; then
+            echo "${TENCENT_PASSWORD}" | docker login --username "${TENCENT_ACCOUNT}" --password-stdin "${REGISTRY}"
+        else
+            docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
+        fi
         docker-compose "${compose_args[@]}" build
         docker-compose "${compose_args[@]}" push
     else
@@ -157,6 +171,13 @@ if [ "${MODE}" = "push" ]; then
     print_info "Push completed successfully"
     print_info "Backend pushed: ${BACKEND_IMAGE}"
     print_info "Frontend pushed: ${FRONTEND_IMAGE}"
+    # Also tag and push as latest
+    print_info "Tagging and pushing latest..."
+    docker tag "${BACKEND_IMAGE}" "${REGISTRY}/${CCR_NAMESPACE}/my-library-backend:latest"
+    docker push "${REGISTRY}/${CCR_NAMESPACE}/my-library-backend:latest"
+    docker tag "${FRONTEND_IMAGE}" "${REGISTRY}/${CCR_NAMESPACE}/my-library-frontend:latest"
+    docker push "${REGISTRY}/${CCR_NAMESPACE}/my-library-frontend:latest"
+    print_info "Latest tag pushed successfully"
 else
     print_info "Build completed!"
     print_info "Frontend: http://localhost"
