@@ -1,7 +1,9 @@
 /* Navigation */
 .nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   height: 48px;
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: saturate(180%) blur(20px);
@@ -26,22 +28,5 @@
   text-decoration: none;
   font-size: 18px;
   font-weight: 600;
-}
-
-.nav-links {
-  display: flex;
-  gap: 20px;
-}
-
-.nav-link {
-  color: #ffffff;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 400;
-  padding: 0 10px;
-  transition: opacity 0.2s;
-}
-
-.nav-link:hover {
-  opacity: 0.8;
+  flex-shrink: 0;
 }

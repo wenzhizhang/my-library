@@ -24,8 +24,8 @@ function MyLibrary() {
   
   return (
     <div className="MyLibrary" style={{ minHeight: '100vh', backgroundColor: '#f5f5f7' }}>
-      <Header isMyLibrary={true} /> {/* 传递isMyLibrary参数 */}
-      <main className="mylibrary-main" style={{ padding: '80px 20px 20px', minHeight: 'calc(100vh - 80px)' }}>
+      <Header isMyLibrary={true}/> {/* 传递isMyLibrary参数 */}
+      <main className="mylibrary-main">
         <Routes>
           {/* 相对路径，因为这是在/my-library/下的嵌套路由 */}
           <Route path="/" element={<Navigate to="books" replace />} />
