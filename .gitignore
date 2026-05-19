@@ -8,3 +8,4 @@ migrate_data.py
 
 # Generated nginx config (keep template)
 config/nginx.conf
+.deepseek/

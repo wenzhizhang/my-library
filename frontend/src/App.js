@@ -1,10 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LIBRARY_PATH } from './config';
+import Galaxy from './Galaxy';
 import './App.css';
 
 function App() {
   return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Galaxy
+          starSpeed={0.5}
+          density={1}
+          hueShift={140}
+          speed={1}
+          glowIntensity={0.3}
+          saturation={0}
+          mouseRepulsion
+          repulsionStrength={2}
+          twinkleIntensity={0.3}
+          rotationSpeed={0.1}
+          transparent
+        />
+      </div>
     <div className="app">
       {/* Navigation */}
       <nav className="navigation">
@@ -19,7 +36,7 @@ function App() {
       </nav>
 
       {/* Hero Section - Dark */}
-      <section className="hero-section dark-section">
+      <section className="hero-section">
         <div className="hero-content">
           <h1 className="hero-headline">张问之的技术站</h1>
           <p className="hero-subtitle">虽然现在还有点丑，但我会不断改进的！</p>
@@ -32,7 +49,7 @@ function App() {
 
       {/* 其他部分保持不变... */}
       {/* About Section - Light */}
-      <section className="about-section light-section">
+      <section className="about-section">
         <div className="section-content">
           <h2 className="section-heading">关于我</h2>
           <div className="about-grid">
@@ -53,7 +70,7 @@ function App() {
       </section>
 
       {/* Contact Section - Dark */}
-      <section className="contact-section dark-section">
+      <section className="contact-section">
         <div className="section-content">
           <h2 className="section-heading white">Let's Work Together</h2>
           <p className="contact-subtitle">Ready to bring your ideas to life? Get in touch!</p>
@@ -71,13 +88,14 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer className="footer light-section">
+      <footer className="footer">
         <div className="footer-content">
           <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer noopener">蜀ICP备2026018962号</a></p>
-          <p className="footer-text">© 2024 Your Name. All rights reserved.</p>
+          <p className="footer-text">© 2026 Zhang Wenzhi. All rights reserved.</p>
         </div>
       </footer>
     </div>
+    </>
   );
 }
 
