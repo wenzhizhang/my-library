@@ -26,7 +26,7 @@ function App() {
       {/* Navigation */}
       <nav className="navigation">
         <div className="nav-container">
-          <div className="nav-logo">T</div>
+          <div className="nav-logo"></div>
           <div className="nav-links">
             <a href="#about" className="nav-link">About</a>
             <a href="#skills" className="nav-link">Skills</a>

@@ -82,9 +82,21 @@ if [ ! -f ".env" ]; then
 # Set your server public IP address here
 SERVER_IP=${DEFAULT_IP}
 
-# Version is auto-managed via VERSION file (X.Y.Z format, e.g., 0.1.0)
-# Patch version auto-increments on each 'push' build
-# TAG is derived from VERSION (vX.Y.Z) — do not edit manually
+# =============================================================================
+# Let's Encrypt / HTTPS 配置 (生产环境需要)
+# =============================================================================
+# 你的域名, 用于 Let's Encrypt 证书签发 (例如: my-library.example.com)
+# 留空则仅在 HTTP 下运行 (本地开发)
+DOMAIN=
+
+# certbot 注册邮箱 (Let's Encrypt 证书过期提醒)
+CERTBOT_EMAIL=
+
+# =============================================================================
+# 版本号由 VERSION 文件自动管理 (X.Y.Z 格式, 例如 0.1.0)
+# 每次 'push' 构建时 patch 版本自动递增
+# TAG 由 VERSION 衍生 (vX.Y.Z) — 请勿手动编辑
+# =============================================================================
 
 # Tencent account is read from the shell environment variable
 # TENCENT_ACCOUNT must be exported in your shell before running push mode.
@@ -92,7 +104,7 @@ SERVER_IP=${DEFAULT_IP}
 # export TENCENT_ACCOUNT=your_account
 EOF2
     print_info "Created .env file with default SERVER_IP=${DEFAULT_IP}"
-    print_warning "Please edit .env file and set your SERVER_IP before deployment if needed!"
+    print_warning "Please edit .env file and set SERVER_IP, DOMAIN, CERTBOT_EMAIL before production deployment!"
 fi
 
 # Load environment variables from .env

@@ -26,4 +26,7 @@ services:
       - backend
     environment:
       - REACT_APP_ENV=production
+      # 本地开发不设置 DOMAIN → 启动脚本使用 HTTP-only 模式
+      - DOMAIN=${DOMAIN:-}
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
     restart: unless-stopped
