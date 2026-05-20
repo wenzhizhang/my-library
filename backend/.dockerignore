@@ -1,0 +1,44 @@
+# Ignore temporary and local files
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache
+.pytest_cache
+htmlcov
+.pyre
+.pytype
+.pyright
+
+# Virtual environments
+venv
+.venv
+env
+ENV
+
+# Editor and OS files
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Docker files
+docker-compose.override.yml
+
+# Database (prod uses volume mount)
+*.db
+
+# Other generated artifacts
+build
+dist

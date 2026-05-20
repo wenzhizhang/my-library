@@ -1,11 +1,11 @@
-static/images
+backend/static/images
 frontend/static/images
-static/images/authors static/images/background static/images/books static/images/screenshots
+backend/static/images/authors backend/static/images/background backend/static/images/books backend/static/images/screenshots
 .idea
 update_thumb_images.py
 migrate_data.py
 *.pyc
 
 # Generated nginx config (keep template)
-config/nginx.conf
+backend/config/nginx.conf
 .deepseek/

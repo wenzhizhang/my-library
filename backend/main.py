@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Session
 from models import Author, Book, Bookshelf, Category, Publisher, Brand, BookSeries
 from datetime import datetime
 from typing import List
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = FastAPI(title="My Library", description="A book library management system")
 
@@ -20,7 +23,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Include routers
 app.include_router(author_router)
@@ -31,7 +34,7 @@ app.include_router(brand_router)
 app.include_router(series_router)
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @app.get("/")
 async def homepage(request: Request):
