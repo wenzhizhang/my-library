@@ -44,7 +44,10 @@ Modes:
 Environment variables:
   SERVER_IP         Set public server IP for build/runtime config
   TENCENT_ACCOUNT   Tencent cloud account name used for CCR login and image namespace
-  TAG               Image tag to use when pushing (default: latest)
+
+Version is auto-managed via the VERSION file (X.Y.Z format).
+Patch version auto-increments on each push build (e.g., 0.1.0 → 0.1.1).
+Image tag is derived as v{version} (e.g., v0.1.0).
 EOF2
     exit 1
 }
@@ -79,15 +82,16 @@ if [ ! -f ".env" ]; then
 # Set your server public IP address here
 SERVER_IP=${DEFAULT_IP}
 
-# TAG is used only when pushing to Tencent CCR
-TAG=${DEFAULT_TAG}
+# Version is auto-managed via VERSION file (X.Y.Z format, e.g., 0.1.0)
+# Patch version auto-increments on each 'push' build
+# TAG is derived from VERSION (vX.Y.Z) — do not edit manually
 
 # Tencent account is read from the shell environment variable
 # TENCENT_ACCOUNT must be exported in your shell before running push mode.
 # Example:
 # export TENCENT_ACCOUNT=your_account
 EOF2
-    print_info "Created .env file with default SERVER_IP=${DEFAULT_IP} and TAG=${DEFAULT_TAG}"
+    print_info "Created .env file with default SERVER_IP=${DEFAULT_IP}"
     print_warning "Please edit .env file and set your SERVER_IP before deployment if needed!"
 fi
 
@@ -106,10 +110,31 @@ fi
 
 TAG="${TAG:-$DEFAULT_TAG}"
 
-# Auto-generate version tag if using default 'latest'
-if [ "${TAG}" = "latest" ] && [ "${MODE}" = "push" ]; then
-    TAG="$(git rev-parse --short HEAD 2>/dev/null || echo 'dev')-$(date +%Y%m%d%H%M%S)"
-    print_info "Auto-generated version TAG: ${TAG}"
+# Read current version from VERSION file
+VERSION_FILE="VERSION"
+if [ ! -f "${VERSION_FILE}" ]; then
+    echo "0.1.0" > "${VERSION_FILE}"
+    print_warning "VERSION file not found, created with initial version 0.1.0"
+fi
+CURRENT_VERSION="$(head -n1 "${VERSION_FILE}" | tr -d '[:space:]')"
+
+# Validate version format (X.Y.Z)
+if ! echo "${CURRENT_VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    print_error "Invalid version format in VERSION file: '${CURRENT_VERSION}'. Expected format: X.Y.Z (e.g., 0.1.0)"
+    exit 1
+fi
+
+if [ "${MODE}" = "push" ]; then
+    # Auto-increment patch version for push mode
+    IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VERSION}"
+    NEW_PATCH=$((PATCH + 1))
+    NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+    echo "${NEW_VERSION}" > "${VERSION_FILE}"
+    TAG="v${NEW_VERSION}"
+    print_info "Version bumped: ${CURRENT_VERSION} → ${NEW_VERSION} (tag: ${TAG})"
+else
+    TAG="v${CURRENT_VERSION}"
+    print_info "Using current version: ${CURRENT_VERSION} (tag: ${TAG})"
 fi
 
 if [ "${MODE}" = "push" ]; then
