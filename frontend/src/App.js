@@ -90,7 +90,7 @@ function App() {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer noopener">蜀ICP备2026018962号</a></p>
+          <p><img src={process.env.PUBLIC_URL + '/images/gonganbeian.png'} style={{width:"16px"}} /> <a href="https://beian.mps.gov.cn/#/query/webSearch?code=51010702044209" rel="noreferrer" target="_blank">川公网安备51010702044209号</a>      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer noopener">蜀ICP备2026018962号</a></p>
           <p className="footer-text">© 2026 Zhang Wenzhi. All rights reserved.</p>
         </div>
       </footer>
