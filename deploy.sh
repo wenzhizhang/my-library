@@ -23,19 +23,22 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --tag TAG    Set image tag to deploy (default: latest)
-  --no-pull    Skip pulling new images
-  --init       (Re)generate .env template and exit
-  -h, --help   Show this help
+  --tag TAG       Set image tag to deploy (default: latest)
+  --no-pull       Skip pulling new images
+  --init          (Re)generate .env template and exit
+  --seed-db FILE  Copy local SQLite database into the persistent volume
+  -h, --help      Show this help
 
 First-time setup:
-  $0 --init                   # Create .env template, then edit it
-  $0                          # Deploy with settings in .env
+  $0 --init                        # Create .env template, then edit it
+  $0                               # Deploy with settings in .env
+  $0 --seed-db ./demo.db           # Deploy and import local database
 
 Examples:
-  $0                          # Deploy latest
-  $0 --tag v1.2.0             # Deploy specific version
-  TAG=latest $0               # Deploy latest via env var
+  $0                               # Deploy latest
+  $0 --tag v1.2.0                  # Deploy specific version
+  $0 --seed-db /path/to/demo.db    # Import database on deploy
+  TAG=latest $0                    # Deploy latest via env var
 
 Environment:
   TAG                  Image tag to deploy (default: latest)
@@ -46,6 +49,7 @@ EOF
 
 NO_PULL=false
 INIT_ONLY=false
+SEED_DB_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -55,6 +59,8 @@ while [[ $# -gt 0 ]]; do
             NO_PULL=true; shift ;;
         --init)
             INIT_ONLY=true; shift ;;
+        --seed-db)
+            SEED_DB_FILE="$2"; shift 2 ;;
         -h|--help)
             usage ;;
         *)
@@ -169,6 +175,36 @@ fi
 
 print_info "Recreating containers..."
 ${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" up -d --remove-orphans
+
+# =============================================================================
+# 数据库迁移 (--seed-db)
+# =============================================================================
+if [ -n "${SEED_DB_FILE}" ]; then
+    if [ ! -f "${SEED_DB_FILE}" ]; then
+        print_error "Seed database file not found: ${SEED_DB_FILE}"
+        exit 1
+    fi
+
+    print_info "Importing database: ${SEED_DB_FILE}"
+
+    # 等待 backend 容器启动
+    BACKEND_NAME="$(${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" ps -q backend 2>/dev/null)"
+    if [ -z "${BACKEND_NAME}" ]; then
+        print_error "Backend container not found after deploy"
+        exit 1
+    fi
+
+    print_info "Stopping backend to import database..."
+    docker stop "${BACKEND_NAME}" >/dev/null
+
+    print_info "Copying ${SEED_DB_FILE} → /app/data/demo.db ..."
+    docker cp "${SEED_DB_FILE}" "${BACKEND_NAME}:/app/data/demo.db"
+
+    print_info "Starting backend..."
+    docker start "${BACKEND_NAME}" >/dev/null
+
+    print_info "Database imported"
+fi
 
 print_info "Cleaning up old images..."
 docker image prune -f 2>/dev/null || true

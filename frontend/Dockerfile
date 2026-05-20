@@ -21,6 +21,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 #   nginx-http-only.conf → HTTP 回退配置 (无证书时使用)
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 COPY nginx-http-only.conf /etc/nginx/conf.d/default-http-only.conf
+COPY nginx-certbot.conf /etc/nginx/conf.d/nginx-certbot.conf
 
 # 复制启动脚本
 COPY start-nginx.sh /start-nginx.sh

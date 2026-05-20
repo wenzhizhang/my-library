@@ -15,6 +15,7 @@ DOMAIN="${DOMAIN:-}"
 EMAIL="${CERTBOT_EMAIL:-}"
 
 HTTP_CONF="/etc/nginx/conf.d/default-http-only.conf"
+CERTBOT_CONF="/etc/nginx/conf.d/nginx-certbot.conf"
 HTTPS_TEMPLATE="/etc/nginx/conf.d/default.conf.template"
 TARGET_CONF="/etc/nginx/conf.d/default.conf"
 
@@ -34,6 +35,22 @@ nginx -s reload
 NGINX_RELOAD
 chmod +x "$RENEW_HOOK"
 
+# ---------------------------------------------------------------------------
+# 等待 backend DNS 可解析 (Nginx 启动时会解析 upstream 主机名)
+# ---------------------------------------------------------------------------
+wait_for_backend() {
+    echo "[start-nginx] Waiting for backend DNS..."
+    for i in $(seq 1 30); do
+        if getent hosts backend >/dev/null 2>&1; then
+            echo "[start-nginx] Backend DNS resolved after $((i*2))s"
+            return 0
+        fi
+        sleep 2
+    done
+    echo "[start-nginx] WARNING: Backend DNS not resolved — Nginx may fail to start"
+    return 1
+}
+
 # ===========================================================================
 # 1. 无域名 → HTTP-only 模式
 # ===========================================================================
@@ -43,6 +60,7 @@ if [ -z "$DOMAIN" ]; then
     echo "[start-nginx] Starting Nginx in HTTP-only mode"
     echo "============================================"
     cp "$HTTP_CONF" "$TARGET_CONF"
+    wait_for_backend
     exec nginx -g "daemon off;"
 fi
 
@@ -63,18 +81,27 @@ else
     # =======================================================================
     echo "[start-nginx] No certificate for ${DOMAIN}, obtaining..."
 
-    # 3a. 先以 HTTP-only 模式临时启动 nginx (后台)
+    # 3a. 用最小化配置临时启动 nginx (后台, 仅用于 certbot 验证)
     echo "[start-nginx] Starting temporary nginx for ACME challenge..."
-    cp "$HTTP_CONF" "$TARGET_CONF"
+    cp "$CERTBOT_CONF" "$TARGET_CONF"
     nginx -g "daemon off;" &
     NGINX_PID=$!
-    sleep 3
+    sleep 2
 
-    # 确保 webroot 目录存在
+    # 3b. 检查临时 nginx 是否存活
+    if ! kill -0 $NGINX_PID 2>/dev/null; then
+        echo "[start-nginx] ERROR: Temporary nginx failed to start"
+        echo "[start-nginx] nginx error log:"
+        cat /var/log/nginx/error.log 2>/dev/null || true
+        exit 1
+    fi
+    echo "[start-nginx] Temporary nginx running (PID $NGINX_PID)"
+
+    # 3c. 确保 webroot 目录存在
     mkdir -p "${CERTBOT_WWW}/.well-known/acme-challenge"
 
-    # 3b. 运行 certbot 获取证书
-    #     --dry-run 先注释, 确认流程后再取消注释正式运行
+    # 3d. 运行 certbot 获取证书
+    echo "[start-nginx] Running certbot..."
     if certbot certonly --webroot \
         -w "$CERTBOT_WWW" \
         -d "$DOMAIN" \
@@ -91,7 +118,7 @@ else
         exit 1
     fi
 
-    # 3c. 停止临时 nginx
+    # 3e. 停止临时 nginx
     echo "[start-nginx] Stopping temporary nginx..."
     kill $NGINX_PID 2>/dev/null || true
     wait $NGINX_PID 2>/dev/null || true
@@ -123,4 +150,5 @@ crond -b -l 8
 echo "============================================"
 echo "[start-nginx] Starting Nginx with HTTPS..."
 echo "============================================"
+wait_for_backend
 exec nginx -g "daemon off;"

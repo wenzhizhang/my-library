@@ -27,8 +27,17 @@ def read_bookshelves(page: int = 1, limit: int = 10, sort_by: str = 'name', db: 
     bookshelves = query.offset(offset).limit(limit).all()
     total_bookshelves = db.query(Bookshelf).count()
     total_pages = (total_bookshelves + limit - 1) // limit
+
+    bookshelves_data = []
+    for bs in bookshelves:
+        bookshelves_data.append({
+            "id": bs.id,
+            "name": bs.name,
+            "intro": bs.intro,
+        })
+
     return {
-        "bookshelves": bookshelves,
+        "bookshelves": bookshelves_data,
         "total_pages": total_pages,
         "total_bookshelves": total_bookshelves
     }

@@ -12,7 +12,7 @@ services:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP:-localhost}
     volumes:
-      - ./demo.db:/app/demo.db
+      - ./backend/data/demo.db:/app/data/demo.db
     restart: unless-stopped
 
   frontend:

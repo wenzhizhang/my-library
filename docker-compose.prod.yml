@@ -9,6 +9,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP}
+      - DATA_DIR=/app/data
     restart: unless-stopped
     volumes:
       - backend-data:/app/data

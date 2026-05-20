@@ -27,8 +27,17 @@ def read_series(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sessi
     series = query.offset(offset).limit(limit).all()
     total_series = db.query(BookSeries).count()
     total_pages = (total_series + limit - 1) // limit
+
+    series_data = []
+    for s in series:
+        series_data.append({
+            "id": s.id,
+            "name": s.name,
+            "intro": s.intro,
+        })
+
     return {
-        "series": series,
+        "series": series_data,
         "total_pages": total_pages,
         "total_series": total_series
     }

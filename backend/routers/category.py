@@ -31,8 +31,20 @@ def read_categories(page: int = 1, limit: int = 10, sort_by: str = 'name', db: S
     categories = query.offset(offset).limit(limit).all()
     total_categories = db.query(Category).count()
     total_pages = (total_categories + limit - 1) // limit
+
+    categories_data = []
+    for c in categories:
+        categories_data.append({
+            "id": c.id,
+            "name": c.name,
+            "parent_id": c.parent_id,
+            "intro": c.intro,
+            "depth": c.depth,
+            "path": c.path,
+        })
+
     return {
-        "categories": categories,
+        "categories": categories_data,
         "total_pages": total_pages,
         "total_categories": total_categories
     }

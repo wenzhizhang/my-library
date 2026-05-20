@@ -27,8 +27,21 @@ def read_authors(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sess
     authors = query.offset(offset).limit(limit).all()
     total_authors = db.query(Author).count()
     total_pages = (total_authors + limit - 1) // limit
+
+    authors_data = []
+    for a in authors:
+        authors_data.append({
+            "id": a.id,
+            "name": a.name,
+            "name_cn": a.name_cn,
+            "nation": a.nation,
+            "dynasty": a.dynasty,
+            "intro": a.intro,
+            "photo": a.photo,
+        })
+
     return {
-        "authors": authors,
+        "authors": authors_data,
         "total_pages": total_pages,
         "total_authors": total_authors
     }

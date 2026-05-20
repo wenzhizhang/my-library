@@ -27,8 +27,18 @@ def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', db: S
     publishers = query.offset(offset).limit(limit).all()
     total_publishers = db.query(Publisher).count()
     total_pages = (total_publishers + limit - 1) // limit
+
+    publishers_data = []
+    for p in publishers:
+        publishers_data.append({
+            "id": p.id,
+            "name": p.name,
+            "intro": p.intro,
+            "logo": p.logo,
+        })
+
     return {
-        "publishers": publishers,
+        "publishers": publishers_data,
         "total_pages": total_pages,
         "total_publishers": total_publishers
     }
@@ -81,8 +91,17 @@ def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sessi
     brands = query.offset(offset).limit(limit).all()
     total_brands = db.query(Brand).count()
     total_pages = (total_brands + limit - 1) // limit
+
+    brands_data = []
+    for b in brands:
+        brands_data.append({
+            "id": b.id,
+            "name": b.name,
+            "intro": b.intro,
+        })
+
     return {
-        "brands": brands,
+        "brands": brands_data,
         "total_pages": total_pages,
         "total_brands": total_brands
     }
