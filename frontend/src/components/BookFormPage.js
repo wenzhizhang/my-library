@@ -781,12 +781,12 @@ function BookFormPage() {
   useEffect(() => {
     const fetchAll = async () => {
       const apis = [
-        { key: 'authors', url: `${API_BASE_URL}/authors/?limit=1000` },
-        { key: 'publishers', url: `${API_BASE_URL}/publishers/?limit=1000` },
-        { key: 'brands', url: `${API_BASE_URL}/brands/?limit=1000` },
-        { key: 'series', url: `${API_BASE_URL}/series/?limit=1000` },
-        { key: 'categories', url: `${API_BASE_URL}/categories/?limit=1000` },
-        { key: 'bookshelves', url: `${API_BASE_URL}/bookshelves/?limit=1000` },
+        { key: 'authors', url: `${window.location.origin}${API_BASE_URL}/authors/?limit=1000` },
+        { key: 'publishers', url: `${window.location.origin}${API_BASE_URL}/publishers/?limit=1000` },
+        { key: 'brands', url: `${window.location.origin}${API_BASE_URL}/brands/?limit=1000` },
+        { key: 'series', url: `${window.location.origin}${API_BASE_URL}/series/?limit=1000` },
+        { key: 'categories', url: `${window.location.origin}${API_BASE_URL}/categories/?limit=1000` },
+        { key: 'bookshelves', url: `${window.location.origin}${API_BASE_URL}/bookshelves/?limit=1000` },
       ];
       const results = await Promise.allSettled(
         apis.map(api => axios.get(api.url))
@@ -835,7 +835,7 @@ function BookFormPage() {
       const fetchBook = async () => {
         setLoadingBook(true);
         try {
-          const response = await axios.get(`/api/books/${bookId}/`);
+          const response = await axios.get(`${window.location.origin}/api/books/${bookId}`);
           const data = response.data;
           setFormData({
             isbn: data.isbn || '',
@@ -918,9 +918,9 @@ function BookFormPage() {
     
     try {
       if (mode === 'edit' && bookId) {
-        await axios.put(`/api/books/${bookId}/`, formData);
+        await axios.put(`${window.location.origin}/api/books/${bookId}`, formData);
       } else {
-        await axios.post('/api/books/', formData);
+        await axios.post(`${window.location.origin}/api/books/`, formData);
       }
       setIsSubmitting(false);
       setSubmitSuccess(true);

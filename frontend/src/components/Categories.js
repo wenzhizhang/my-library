@@ -22,7 +22,7 @@ const Categories = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/categories/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/categories/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setCategories(data.categories || []);
       setTotalPages(data.total_pages || 1);

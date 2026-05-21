@@ -22,7 +22,7 @@ const Bookshelves = () => {
   const fetchBookshelves = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/bookshelves/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/bookshelves/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setBookshelves(data.bookshelves || []);
       setTotalPages(data.total_pages || 1);

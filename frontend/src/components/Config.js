@@ -1,6 +1,7 @@
-const env = process.env.REACT_APP_ENV || process.env.NODE_ENV || 'development';
+// Always use relative path — works via nginx proxy in dev & prod,
+// avoids mixed-content issues on HTTPS.
+const API_BASE_URL = '/api';
 
-const API_BASE_URL = env === 'development' ? 'http://localhost:8000/api' : '/api';
 const MEDIA_BASE_URL = 'https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media';
 
 export { API_BASE_URL, MEDIA_BASE_URL };

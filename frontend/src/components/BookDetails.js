@@ -17,7 +17,7 @@ const BookDetails = () => {
     const fetchBook = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`${API_BASE_URL}/books/${id}/`);
+        const response = await axios.get(`${window.location.origin}${API_BASE_URL}/books/${id}`);
         setBook(response.data);
       } catch (error) {
         console.error('Error fetching book:', error);
@@ -27,7 +27,7 @@ const BookDetails = () => {
 
     const fetchSimilarBooks = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/books/${id}/similar?limit=5`);
+        const response = await axios.get(`${window.location.origin}${API_BASE_URL}/books/${id}/similar?limit=5`);
         setSimilarBooks(response.data.similar_books || []);
       } catch (error) {
         console.error('Error fetching similar books:', error);

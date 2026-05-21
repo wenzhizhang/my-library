@@ -86,7 +86,7 @@ const Books = () => {
         ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v))
       };
 
-      const response = await axios.get(`${API_BASE_URL}/books/`, { params });
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/books/`, { params });
       const data = response.data;
 
       setBooks(data.books || []);

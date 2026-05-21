@@ -18,7 +18,7 @@ const BookshelfDetails = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/bookshelves/${id}`
+        `${window.location.origin}${API_BASE_URL}/bookshelves/${id}`
       );
       setBookshelf(response.data);
     } catch (error) {

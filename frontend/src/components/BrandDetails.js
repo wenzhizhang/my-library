@@ -17,7 +17,7 @@ const BrandDetails = () => {
   const fetchBrand = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/brands/${id}`);
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/brands/${id}`);
       setBrand(response.data);
     } catch (error) {
       console.error('Error fetching brand:', error);

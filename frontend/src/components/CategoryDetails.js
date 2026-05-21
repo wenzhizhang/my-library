@@ -18,7 +18,7 @@ const CategoryDetails = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/categories/${id}`
+        `${window.location.origin}${API_BASE_URL}/categories/${id}`
       );
       setCategory(response.data);
     } catch (error) {

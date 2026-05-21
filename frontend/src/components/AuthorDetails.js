@@ -18,7 +18,7 @@ const AuthorDetails = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/authors/${id}`
+        `${window.location.origin}${API_BASE_URL}/authors/${id}`
       );
       setAuthor(response.data);
     } catch (error) {

@@ -16,7 +16,12 @@ app = FastAPI(title="My Library", description="A book library management system"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://111.229.109.204:3000", "http://dingfengbo.top:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://111.229.109.204:3000",
+        "http://dingfengbo.top:3000",
+        "https://dingfengbo.top"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -223,4 +228,4 @@ async def brand_details(request: Request, brand_id: int, db: Session = Depends(g
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, forwarded_allow_ips='*')

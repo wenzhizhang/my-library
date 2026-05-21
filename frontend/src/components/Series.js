@@ -23,7 +23,7 @@ const Series = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/series/?page=${page}&limit=${limit}&sort_by=${sortBy}`
+        `${window.location.origin}${API_BASE_URL}/series/?page=${page}&limit=${limit}&sort_by=${sortBy}`
       );
       const data = response.data;
       setSeries(data.series || []);

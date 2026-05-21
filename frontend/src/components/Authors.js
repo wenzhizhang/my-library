@@ -22,7 +22,7 @@ const Authors = () => {
   const fetchAuthors = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/authors/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/authors/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
       const data = response.data;
       setAuthors(data.authors || []);
       setTotalPages(data.total_pages || 1);
