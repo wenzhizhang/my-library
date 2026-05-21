@@ -74,7 +74,7 @@ const BookDetails = () => {
               <p><strong>作者: </strong> {
                 book.authors.map((author, index) => (
                   <React.Fragment key={author?.id}>
-                    <Link to={`${LIBRARY_PATH}/authors/${author?.id}`}>{author?.formated_name}</Link>
+                    <Link to={`${LIBRARY_PATH}/authors/${author?.id}`}>{author?.name}</Link>
                     {index < book.authors.length - 1 && ', '}
                   </React.Fragment>
                 ))

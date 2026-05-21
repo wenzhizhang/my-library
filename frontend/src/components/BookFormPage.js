@@ -1,47 +1,25 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import './Books.css';
+import { API_BASE_URL } from './Config';
+import { LIBRARY_PATH } from '../config';
 
 // ============================================================
 // Apple Design System - Book Creation/Update Page (JavaScript)
 // ============================================================
 
-// --- Mock Data ---
+// --- Predefined Option Lists ---
 
-const MOCK_AUTHORS = [
-  { id: 1, name: "余华" },
-  { id: 2, name: "村上春树" },
-  { id: 3, name: "J.K. Rowling" },
-  { id: 4, name: "加西亚·马尔克斯" },
-];
-
-const MOCK_PUBLISHERS = [
-  { id: 1, name: "人民文学出版社" },
-  { id: 2, name: "上海译文出版社" },
-  { id: 3, name: "Penguin Books" },
-];
-
-const MOCK_BRANDS = [
-  { id: 1, name: "经典文库" },
-  { id: 2, name: "当代世界学术名著" },
-];
-
-const MOCK_SERIES = [
-  { id: 1, name: "哈利·波特系列" },
-  { id: 2, name: "百年孤独系列" },
-];
-
-const MOCK_CATEGORIES = [
-  { id: 1, name: "小说" },
-  { id: 2, name: "文学" },
-  { id: 3, name: "科技" },
-  { id: 4, name: "历史" },
-];
-
-const MOCK_BOOKSHELVES = [
-  { id: 1, name: "客厅书架 A" },
-  { id: 2, name: "书房书架 B" },
-  { id: 3, name: "卧室书架 C" },
+const BINDING_TYPES = ['精装', '平装', '盒装', '线装'];
+const PAPER_TYPES = ['铜版纸', '胶版纸', '宣纸', '轻型纸', '纯质纸', '书写纸', '雅致纸', '特种纸'];
+const LANGUAGES = ['中文', '繁体中文', '英文', '中文/英文', '日文'];
+const COMPOSE_TYPES = ['横排', '竖排'];
+const PURCHASE_STORES = [
+  '京东自营', '京东文轩', '京东博库', '壹书堂', '广西师范大学出版社',
+  '摩点众筹', '当当自营', '孔夫子旧书网', '淘宝', '拼多多',
+  '抖音', '微店', '小红书', '西西弗书店', '中图网',
+  '快团团', '齐鲁书社', '浙江古籍出版社', '纸上声音',
 ];
 
 // --- Design Tokens ---
@@ -203,7 +181,11 @@ function Section({ children, dark = false, style = {} }) {
   const sectionStyle = {
     width: '100%',
     minHeight: '60vh',
-    background: dark ? COLORS.pureBlack : COLORS.lightGray,
+    background: dark
+      ? 'rgba(0, 0, 0, 0.25)'
+      : 'rgba(209, 209, 215, 0.15)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
     color: dark ? COLORS.white : COLORS.nearBlack,
     display: 'flex',
     flexDirection: 'column',
@@ -360,7 +342,7 @@ function AppleInput({
     lineHeight: TYPOGRAPHY.body.lineHeight,
     letterSpacing: TYPOGRAPHY.body.letterSpacing,
     color: dark ? COLORS.white : COLORS.nearBlack,
-    background: dark ? COLORS.darkSurface1 : COLORS.white,
+    background: dark ? 'rgba(39, 39, 41, 0.6)' : 'rgba(255, 255, 255, 0.55)',
     border: 'none',
     borderRadius: '8px',
     padding: '12px 16px',
@@ -462,7 +444,7 @@ function AppleSelect({
     lineHeight: TYPOGRAPHY.body.lineHeight,
     letterSpacing: TYPOGRAPHY.body.letterSpacing,
     color: dark ? COLORS.white : COLORS.nearBlack,
-    background: dark ? COLORS.darkSurface1 : COLORS.white,
+    background: dark ? 'rgba(39, 39, 41, 0.6)' : 'rgba(255, 255, 255, 0.55)',
     border: 'none',
     borderRadius: '8px',
     padding: '12px 16px',
@@ -509,6 +491,233 @@ function AppleSelect({
           <option key={opt.id} value={opt.id}>{opt.name}</option>
         ))}
       </select>
+    </div>
+  );
+}
+
+// --- Combobox Component (dropdown + free text) ---
+
+function AppleCombobox({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Select or type...',
+  required = false,
+  dark = false,
+  style = {},
+  error,
+}) {
+  const labelStyle = {
+    fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
+    fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
+    fontWeight: TYPOGRAPHY.bodyEmphasis.fontWeight,
+    lineHeight: TYPOGRAPHY.bodyEmphasis.lineHeight,
+    letterSpacing: TYPOGRAPHY.bodyEmphasis.letterSpacing,
+    color: dark ? COLORS.white : COLORS.nearBlack,
+    marginBottom: '8px',
+    display: 'block',
+  };
+
+  const inputBaseStyle = {
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.body.fontSize,
+    fontWeight: TYPOGRAPHY.body.fontWeight,
+    lineHeight: TYPOGRAPHY.body.lineHeight,
+    letterSpacing: TYPOGRAPHY.body.letterSpacing,
+    color: dark ? COLORS.white : COLORS.nearBlack,
+    background: dark ? 'rgba(39, 39, 41, 0.6)' : 'rgba(255, 255, 255, 0.55)',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    width: '100%',
+    outline: 'none',
+    transition: 'box-shadow 0.2s ease',
+    boxSizing: 'border-box',
+    ...style,
+  };
+
+  const datalistId = `datalist-${label.replace(/\s+/g, '-')}`;
+
+  return (
+    <div style={{ marginBottom: '24px', width: '100%' }}>
+      <label style={labelStyle}>
+        {label}
+        {required && <span style={{ color: COLORS.appleBlue, marginLeft: '4px' }}>*</span>}
+      </label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        list={datalistId}
+        style={inputBaseStyle}
+      />
+      <datalist id={datalistId}>
+        {options.map((opt, idx) => (
+          <option key={idx} value={opt} />
+        ))}
+      </datalist>
+      {error && (
+        <div style={{
+          fontFamily: TYPOGRAPHY.caption.fontFamily,
+          fontSize: TYPOGRAPHY.caption.fontSize,
+          color: '#ff3b30',
+          marginTop: '6px',
+          letterSpacing: TYPOGRAPHY.caption.letterSpacing,
+        }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Searchable Select with "+ New" link ---
+
+function SearchableSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Search and select...',
+  required = false,
+  dark = false,
+  error,
+  addNewLink,
+  addNewLabel = '+ New',
+}) {
+  const [search, setSearch] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredOptions = options.filter(opt =>
+    opt.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedOption = options.find(opt => opt.id === value);
+
+  const labelStyle = {
+    fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
+    fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
+    fontWeight: TYPOGRAPHY.bodyEmphasis.fontWeight,
+    lineHeight: TYPOGRAPHY.bodyEmphasis.lineHeight,
+    letterSpacing: TYPOGRAPHY.bodyEmphasis.letterSpacing,
+    color: dark ? COLORS.white : COLORS.nearBlack,
+    marginBottom: '8px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  };
+
+  const inputStyle = {
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.body.fontSize,
+    fontWeight: TYPOGRAPHY.body.fontWeight,
+    color: dark ? COLORS.white : COLORS.nearBlack,
+    background: dark ? 'rgba(39, 39, 41, 0.6)' : 'rgba(255, 255, 255, 0.55)',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    width: '100%',
+    outline: 'none',
+    boxSizing: 'border-box',
+    cursor: 'pointer',
+  };
+
+  const dropdownStyle = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: '200px',
+    overflowY: 'auto',
+    background: dark ? 'rgba(39, 39, 41, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(8px)',
+    borderRadius: '0 0 8px 8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 10,
+  };
+
+  const optionStyle = (isSelected) => ({
+    padding: '10px 16px',
+    cursor: 'pointer',
+    fontFamily: TYPOGRAPHY.body.fontFamily,
+    fontSize: TYPOGRAPHY.body.fontSize,
+    color: dark ? COLORS.white : COLORS.nearBlack,
+    background: isSelected ? (dark ? 'rgba(0,113,227,0.3)' : 'rgba(0,113,227,0.1)') : 'transparent',
+  });
+
+  return (
+    <div style={{ marginBottom: '24px', width: '100%', position: 'relative' }}>
+      <label style={labelStyle}>
+        <span>
+          {label}
+          {required && <span style={{ color: COLORS.appleBlue, marginLeft: '4px' }}>*</span>}
+        </span>
+        {addNewLink && (
+          <a
+            href={addNewLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              fontSize: '12px',
+              color: COLORS.appleBlue,
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {addNewLabel}
+          </a>
+        )}
+      </label>
+      <input
+        type="text"
+        value={isOpen ? search : (selectedOption ? selectedOption.name : '')}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => {
+          setSearch('');
+          setIsOpen(true);
+        }}
+        onBlur={(e) => {
+          // Small delay to allow click on dropdown items
+          setTimeout(() => setIsOpen(false), 150);
+        }}
+        placeholder={placeholder}
+        style={inputStyle}
+      />
+      {isOpen && filteredOptions.length > 0 && (
+        <div style={dropdownStyle} onMouseDown={(e) => e.preventDefault()}>
+          {filteredOptions.map(opt => (
+            <div
+              key={opt.id}
+              style={optionStyle(opt.id === value)}
+              onClick={() => {
+                onChange(opt.id);
+                setSearch('');
+                setIsOpen(false);
+              }}
+            >
+              {opt.name}
+            </div>
+          ))}
+        </div>
+      )}
+      {error && (
+        <div style={{
+          fontFamily: TYPOGRAPHY.caption.fontFamily,
+          fontSize: TYPOGRAPHY.caption.fontSize,
+          color: '#ff3b30',
+          marginTop: '6px',
+          letterSpacing: TYPOGRAPHY.caption.letterSpacing,
+        }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -560,6 +769,54 @@ function BookFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // --- API Data ---
+  const [authors, setAuthors] = useState([]);
+  const [publishers, setPublishers] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [series, setSeries] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [bookshelves, setBookshelves] = useState([]);
+
+  // Fetch reference data on mount
+  useEffect(() => {
+    const fetchAll = async () => {
+      const apis = [
+        { key: 'authors', url: `${API_BASE_URL}/authors/?limit=1000` },
+        { key: 'publishers', url: `${API_BASE_URL}/publishers/?limit=1000` },
+        { key: 'brands', url: `${API_BASE_URL}/brands/?limit=1000` },
+        { key: 'series', url: `${API_BASE_URL}/series/?limit=1000` },
+        { key: 'categories', url: `${API_BASE_URL}/categories/?limit=1000` },
+        { key: 'bookshelves', url: `${API_BASE_URL}/bookshelves/?limit=1000` },
+      ];
+      const results = await Promise.allSettled(
+        apis.map(api => axios.get(api.url))
+      );
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled') {
+          const data = r.value.data;
+          const key = apis[i].key;
+          // Normalize to { id, name, ... }
+          const list = data[key] || data[key + 'Data'] || [];
+          const normalized = list.map(item => ({
+            id: item.id,
+            name: item.name_cn || item.name || item.path || item.title,
+            ...(key === 'authors' ? { name_cn: item.name_cn, name_en: item.name, nation: item.nation, dynasty: item.dynasty } : {}),
+          }));
+          switch (key) {
+            case 'authors': setAuthors(normalized); break;
+            case 'publishers': setPublishers(normalized); break;
+            case 'brands': setBrands(normalized); break;
+            case 'series': setSeries(normalized); break;
+            case 'categories': setCategories(normalized); break;
+            case 'bookshelves': setBookshelves(normalized); break;
+            default: break;
+          }
+        }
+      });
+    };
+    fetchAll();
+  }, []);
+
   const updateField = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -585,6 +842,13 @@ function BookFormPage() {
             title_cn: data.title_cn || '',
             title: data.title || '',
             author_ids: data.authors?.map(a => a.id) || [],
+            ...(() => {
+              // Capture author names from edit API response as fallback
+              const map = {};
+              (data.authors || []).forEach(a => { map[a.id] = a.name; });
+              setAuthorNameMap(map);
+              return {};
+            })(),
             translator: data.translator || '',
             publisher_id: data.publisher?.id || null,
             publish_date: data.publish_date ? data.publish_date.substring(0, 10) : '',
@@ -671,6 +935,10 @@ function BookFormPage() {
     }
   };
 
+  const [authorSearch, setAuthorSearch] = useState('');
+  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
+  const [authorNameMap, setAuthorNameMap] = useState({});  // id → formatted name fallback
+
   const handleAuthorToggle = (authorId) => {
     setFormData(prev => {
       const current = prev.author_ids;
@@ -680,6 +948,34 @@ function BookFormPage() {
       return { ...prev, author_ids: updated };
     });
   };
+
+  const handleAuthorAdd = (authorId) => {
+    setFormData(prev => {
+      if (prev.author_ids.includes(authorId)) return prev;
+      return { ...prev, author_ids: [...prev.author_ids, authorId] };
+    });
+    setAuthorSearch('');
+    setAuthorDropdownOpen(false);
+  };
+
+  const handleAuthorRemove = (authorId) => {
+    setFormData(prev => ({
+      ...prev,
+      author_ids: prev.author_ids.filter(id => id !== authorId),
+    }));
+  };
+
+  const formatAuthorName = (a) => {
+    const prefix = a.dynasty ? `[${a.dynasty}]` : (a.nation ? `[${a.nation}]` : '');
+    const displayName = a.name_cn || a.name_en || a.name;
+    return prefix ? `${prefix} ${displayName}` : displayName;
+  };
+
+  const filteredAuthors = authors.filter(a =>
+    !formData.author_ids.includes(a.id) &&
+    (a.name.toLowerCase().includes(authorSearch.toLowerCase()) ||
+     (a.name_en && a.name_en.toLowerCase().includes(authorSearch.toLowerCase())))
+  );
 
   const handleTagAdd = (tag) => {
     if (tag.trim() && !formData.tags.includes(tag.trim())) {
@@ -732,7 +1028,7 @@ function BookFormPage() {
   );
 
   const basicInfoSection = (
-    <Section style={{ padding: '80px 24px' }}>
+    <Section dark style={{ padding: '80px 24px' }}>
       <Container>
         <h2 style={{
           fontFamily: TYPOGRAPHY.sectionHeading.fontFamily,
@@ -740,7 +1036,7 @@ function BookFormPage() {
           fontWeight: TYPOGRAPHY.sectionHeading.fontWeight,
           lineHeight: TYPOGRAPHY.sectionHeading.lineHeight,
           letterSpacing: TYPOGRAPHY.sectionHeading.letterSpacing,
-          color: COLORS.nearBlack,
+          color: COLORS.white,
           margin: '0 0 48px 0',
           textAlign: 'center',
         }}>
@@ -761,6 +1057,7 @@ function BookFormPage() {
             placeholder="978-7-..."
             required
             error={errors.isbn}
+            dark
           />
           
           <AppleInput
@@ -770,6 +1067,7 @@ function BookFormPage() {
             placeholder="书名"
             required
             error={errors.title_cn}
+            dark
           />
           
           <AppleInput
@@ -777,6 +1075,7 @@ function BookFormPage() {
             value={formData.title}
             onChange={(v) => updateField('title', v)}
             placeholder="Original Title"
+            dark
           />
           
           <AppleInput
@@ -784,57 +1083,122 @@ function BookFormPage() {
             value={formData.translator}
             onChange={(v) => updateField('translator', v)}
             placeholder="Translator name"
+            dark
           />
 
-          <div style={{ marginBottom: '24px', width: '100%' }}>
+          <div style={{ marginBottom: '24px', width: '100%', position: 'relative' }}>
             <label style={{
               fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
               fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
               fontWeight: TYPOGRAPHY.bodyEmphasis.fontWeight,
               lineHeight: TYPOGRAPHY.bodyEmphasis.lineHeight,
               letterSpacing: TYPOGRAPHY.bodyEmphasis.letterSpacing,
-              color: COLORS.nearBlack,
-              marginBottom: '12px',
-              display: 'block',
+              color: COLORS.white,
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
             }}>
-              Authors {errors.author_ids && <span style={{ color: '#ff3b30', fontWeight: 400 }}>({errors.author_ids})</span>}
+              <span>Authors {errors.author_ids && <span style={{ color: '#ff3b30', fontWeight: 400 }}>({errors.author_ids})</span>}</span>
+              <a href={`${LIBRARY_PATH}/authors`} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: '12px', color: COLORS.brightBlue, textDecoration: 'none' }}>
+                + New Author
+              </a>
             </label>
-            <div style={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: '8px',
-              padding: '4px',
-            }}>
-              {MOCK_AUTHORS.map(author => (
-                <button
-                  key={author.id}
-                  type="button"
-                  onClick={() => handleAuthorToggle(author.id)}
-                  style={{
-                    padding: '6px 16px',
-                    borderRadius: '980px',
-                    border: `1px solid ${formData.author_ids.includes(author.id) ? COLORS.appleBlue : 'rgba(0, 0, 0, 0.15)'}`,
-                    background: formData.author_ids.includes(author.id) ? COLORS.appleBlue : 'transparent',
-                    color: formData.author_ids.includes(author.id) ? COLORS.white : COLORS.nearBlack,
-                    fontFamily: TYPOGRAPHY.caption.fontFamily,
-                    fontSize: TYPOGRAPHY.caption.fontSize,
+
+            {/* Selected author pills */}
+            {formData.author_ids.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                {formData.author_ids.map(id => {
+                  const author = authors.find(a => a.id === id);
+                  return (
+                    <span key={id} style={{
+                      padding: '4px 10px',
+                      background: COLORS.appleBlue,
+                      color: COLORS.white,
+                      borderRadius: '980px',
+                      fontFamily: TYPOGRAPHY.caption.fontFamily,
+                      fontSize: TYPOGRAPHY.caption.fontSize,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}>
+                      {author ? formatAuthorName(author) : (authorNameMap[id] || `ID:${id}`)}
+                      <button type="button" onClick={() => handleAuthorRemove(id)} style={{
+                        background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)',
+                        cursor: 'pointer', padding: 0, fontSize: '14px', lineHeight: 1,
+                      }}>×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Search input */}
+            <input
+              type="text"
+              value={authorSearch}
+              onChange={(e) => {
+                setAuthorSearch(e.target.value);
+                setAuthorDropdownOpen(true);
+              }}
+              onFocus={() => setAuthorDropdownOpen(true)}
+              onBlur={(e) => setTimeout(() => setAuthorDropdownOpen(false), 150)}
+              placeholder="Search authors..."
+              style={{
+                fontFamily: TYPOGRAPHY.body.fontFamily,
+                fontSize: TYPOGRAPHY.body.fontSize,
+                fontWeight: TYPOGRAPHY.body.fontWeight,
+                color: COLORS.white,
+                background: 'rgba(39, 39, 41, 0.6)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                width: '100%',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+
+            {/* Dropdown */}
+            {authorDropdownOpen && filteredAuthors.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                maxHeight: '200px',
+                overflowY: 'auto',
+                background: 'rgba(39, 39, 41, 0.95)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '0 0 8px 8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                zIndex: 10,
+              }} onMouseDown={(e) => e.preventDefault()}>
+                {filteredAuthors.map(a => (
+                  <div key={a.id} onClick={() => handleAuthorAdd(a.id)} style={{
+                    padding: '10px 16px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    outline: 'none',
-                  }}
-                >
-                  {author.name}
-                </button>
-              ))}
-            </div>
+                    fontFamily: TYPOGRAPHY.body.fontFamily,
+                    fontSize: TYPOGRAPHY.body.fontSize,
+                    color: COLORS.white,
+                  }}>
+                    {formatAuthorName(a)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <AppleSelect
+          <SearchableSelect
             label="Publisher"
             value={formData.publisher_id}
             onChange={(v) => updateField('publisher_id', v)}
-            options={MOCK_PUBLISHERS}
-            placeholder="Select publisher"
+            options={publishers}
+            placeholder="Search and select publisher..."
+            dark
+            addNewLink={`${LIBRARY_PATH}/publishers`}
+            addNewLabel="+ New Publisher"
           />
 
           <AppleInput
@@ -842,24 +1206,31 @@ function BookFormPage() {
             value={formData.publish_date}
             onChange={(v) => updateField('publish_date', v)}
             type="date"
+            dark
           />
 
-          <AppleSelect
+          <SearchableSelect
             label="Category"
             value={formData.category_id}
             onChange={(v) => updateField('category_id', v)}
-            options={MOCK_CATEGORIES}
-            placeholder="Select category"
+            options={categories}
+            placeholder="Search and select category..."
             required
+            dark
             error={errors.category_id}
+            addNewLink={`${LIBRARY_PATH}/categories`}
+            addNewLabel="+ New Category"
           />
 
-          <AppleSelect
+          <SearchableSelect
             label="Bookshelf"
             value={formData.bookshelf_id}
             onChange={(v) => updateField('bookshelf_id', v)}
-            options={MOCK_BOOKSHELVES}
-            placeholder="Select location"
+            options={bookshelves}
+            placeholder="Search and select location..."
+            dark
+            addNewLink={`${LIBRARY_PATH}/bookshelves`}
+            addNewLabel="+ New Bookshelf"
           />
         </div>
       </Container>
@@ -889,19 +1260,21 @@ function BookFormPage() {
           maxWidth: '800px',
           margin: '0 auto',
         }}>
-          <AppleInput
+          <AppleCombobox
             label="Binding Type"
             value={formData.binding_type}
             onChange={(v) => updateField('binding_type', v)}
-            placeholder="Hardcover / Paperback"
+            options={BINDING_TYPES}
+            placeholder="精装 / 平装..."
             dark
           />
 
-          <AppleInput
+          <AppleCombobox
             label="Paper Type"
             value={formData.paper_type}
             onChange={(v) => updateField('paper_type', v)}
-            placeholder="Offset / Glossy"
+            options={PAPER_TYPES}
+            placeholder="铜版纸 / 胶版纸..."
             dark
           />
 
@@ -923,38 +1296,44 @@ function BookFormPage() {
             dark
           />
 
-          <AppleInput
+          <AppleCombobox
             label="Language"
             value={formData.language}
             onChange={(v) => updateField('language', v)}
-            placeholder="zh-CN / en"
+            options={LANGUAGES}
+            placeholder="中文 / 英文..."
             dark
           />
 
-          <AppleInput
+          <AppleCombobox
             label="Compose Type"
             value={formData.compose_type}
             onChange={(v) => updateField('compose_type', v)}
-            placeholder="排版方式"
+            options={COMPOSE_TYPES}
+            placeholder="横排 / 竖排"
             dark
           />
 
-          <AppleSelect
+          <SearchableSelect
             label="Brand"
             value={formData.brand_id}
             onChange={(v) => updateField('brand_id', v)}
-            options={MOCK_BRANDS}
-            placeholder="Select brand"
+            options={brands}
+            placeholder="Search and select brand..."
             dark
+            addNewLink={`${LIBRARY_PATH}/brands`}
+            addNewLabel="+ New Brand"
           />
 
-          <AppleSelect
+          <SearchableSelect
             label="Book Series"
             value={formData.book_series_id}
             onChange={(v) => updateField('book_series_id', v)}
-            options={MOCK_SERIES}
-            placeholder="Select series"
+            options={series}
+            placeholder="Search and select series..."
             dark
+            addNewLink={`${LIBRARY_PATH}/series`}
+            addNewLabel="+ New Series"
           />
         </div>
       </Container>
@@ -962,7 +1341,7 @@ function BookFormPage() {
   );
 
   const pricingSection = (
-    <Section style={{ padding: '80px 24px' }}>
+    <Section dark style={{ padding: '80px 24px' }}>
       <Container>
         <h2 style={{
           fontFamily: TYPOGRAPHY.sectionHeading.fontFamily,
@@ -970,7 +1349,7 @@ function BookFormPage() {
           fontWeight: TYPOGRAPHY.sectionHeading.fontWeight,
           lineHeight: TYPOGRAPHY.sectionHeading.lineHeight,
           letterSpacing: TYPOGRAPHY.sectionHeading.letterSpacing,
-          color: COLORS.nearBlack,
+          color: COLORS.white,
           margin: '0 0 48px 0',
           textAlign: 'center',
         }}>
@@ -991,6 +1370,7 @@ function BookFormPage() {
             type="number"
             step="0.01"
             placeholder="0.00"
+            dark
           />
 
           <AppleInput
@@ -1000,6 +1380,7 @@ function BookFormPage() {
             type="number"
             step="0.01"
             placeholder="0.00"
+            dark
           />
 
           <AppleInput
@@ -1007,13 +1388,16 @@ function BookFormPage() {
             value={formData.purchase_date}
             onChange={(v) => updateField('purchase_date', v)}
             type="date"
+            dark
           />
 
-          <AppleInput
+          <AppleCombobox
             label="Purchase Store"
             value={formData.purchase_store}
             onChange={(v) => updateField('purchase_store', v)}
-            placeholder="Amazon / Dangdang / Local Store"
+            options={PURCHASE_STORES}
+            placeholder="京东自营 / 当当..."
+            dark
           />
 
           <AppleInput
@@ -1025,6 +1409,7 @@ function BookFormPage() {
             min="0"
             max="10"
             placeholder="0.0 - 10.0"
+            dark
           />
 
           <AppleInput
@@ -1032,6 +1417,7 @@ function BookFormPage() {
             value={formData.edition}
             onChange={(v) => updateField('edition', v)}
             placeholder="1st Edition"
+            dark
           />
 
           <AppleInput
@@ -1039,6 +1425,7 @@ function BookFormPage() {
             value={formData.printing_info}
             onChange={(v) => updateField('printing_info', v)}
             placeholder="1st Printing"
+            dark
           />
 
           <AppleInput
@@ -1047,6 +1434,7 @@ function BookFormPage() {
             onChange={(v) => updateField('printed_number', v ? Number(v) : null)}
             type="number"
             placeholder="0"
+            dark
           />
         </div>
       </Container>
@@ -1135,7 +1523,7 @@ function BookFormPage() {
                   key={tag}
                   style={{
                     padding: '4px 12px',
-                    background: COLORS.darkSurface2,
+                    background: 'rgba(38, 38, 40, 0.7)',
                     color: COLORS.white,
                     borderRadius: '980px',
                     fontFamily: TYPOGRAPHY.caption.fontFamily,
@@ -1177,7 +1565,7 @@ function BookFormPage() {
               style={{
                 fontFamily: TYPOGRAPHY.body.fontFamily,
                 fontSize: TYPOGRAPHY.body.fontSize,
-                background: COLORS.darkSurface1,
+                background: 'rgba(39, 39, 41, 0.6)',
                 color: COLORS.white,
                 border: 'none',
                 borderRadius: '8px',
@@ -1261,12 +1649,12 @@ function BookFormPage() {
   );
 
   const submitSection = (
-    <Section style={{ padding: '60px 24px', minHeight: 'auto' }}>
+    <Section dark style={{ padding: '60px 24px', minHeight: 'auto' }}>
       <Container style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
         {submitSuccess && (
           <div style={{
             padding: '16px 32px',
-            background: 'rgba(52, 199, 89, 0.1)',
+            background: 'rgba(52, 199, 89, 0.15)',
             borderRadius: '8px',
             color: '#34c759',
             fontFamily: TYPOGRAPHY.body.fontFamily,
@@ -1299,7 +1687,7 @@ function BookFormPage() {
         <p style={{
           fontFamily: TYPOGRAPHY.caption.fontFamily,
           fontSize: TYPOGRAPHY.caption.fontSize,
-          color: COLORS.black48,
+          color: 'rgba(255, 255, 255, 0.48)',
           letterSpacing: TYPOGRAPHY.caption.letterSpacing,
           marginTop: '16px',
         }}>
@@ -1312,9 +1700,8 @@ function BookFormPage() {
   if (loadingBook) return <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Loading book data...</div>;
 
   return (
-    <div style={{ 
+    <div className="section light" style={{ 
       fontFamily: TYPOGRAPHY.fontText,
-      background: COLORS.lightGray,
       minHeight: '100vh',
       margin: 0,
       padding: 0,
