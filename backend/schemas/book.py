@@ -60,6 +60,7 @@ class FilterParams(BaseModel):
      - title: 书籍名称（模糊匹配）
      - author: 作者名称（模糊匹配）
      - publisher: 出版社名称（模糊匹配）
+     - tag: 标签名称（精确匹配）
      - min_price: 最小价格
      - max_price: 最大价格
     """
@@ -69,6 +70,7 @@ class FilterParams(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     publisher: Optional[str] = None
+    tag: Optional[str] = None
     min_price: Optional[float] = None
     max_price: Optional[float] = None
 

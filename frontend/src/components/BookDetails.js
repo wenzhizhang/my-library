@@ -8,6 +8,7 @@ import { LIBRARY_PATH } from '../config';
 const BookDetails = () => {
   const { id } = useParams();
   const [book, setBook] = useState(null);
+  const [similarBooks, setSimilarBooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -24,7 +25,23 @@ const BookDetails = () => {
       setLoading(false);
     };
 
-    fetchBook();
+    const fetchSimilarBooks = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/books/${id}/similar?limit=5`);
+        setSimilarBooks(response.data.similar_books || []);
+      } catch (error) {
+        console.error('Error fetching similar books:', error);
+      }
+    };
+
+    const loadData = async () => {
+      setLoading(true);
+      await fetchBook();
+      setLoading(false);
+      await fetchSimilarBooks();
+    };
+
+    loadData();
   }, [id]);
 
   if (loading) {
@@ -120,7 +137,30 @@ const BookDetails = () => {
             {book.print && <p><strong>印次: </strong> {book.print}</p>}
             {book.printed_number && <p><strong>印数: </strong> {book.printed_number}</p>}
             {book.douban_score && <p><strong>豆瓣评分: </strong> {book.douban_score}</p>}
-            {book.tags && <p><strong>Tags:</strong> {book.tags.join(', ')}</p>}
+            {book.tags && book.tags.length > 0 && (
+              <div>
+                <strong>Tags: </strong>
+                {book.tags.map((tag, index) => (
+                  <React.Fragment key={tag}>
+                    <Link
+                      to={`${LIBRARY_PATH}/books?tag=${encodeURIComponent(tag)}`}
+                      style={{
+                        display: 'inline-block',
+                        padding: '2px 10px',
+                        margin: '2px 4px',
+                        background: '#0071e3',
+                        color: '#fff',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {tag}
+                    </Link>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
 
             <h2>内容</h2>
             {book.introduction && <p><strong>内容简介: </strong> {book.introduction}</p>}
@@ -129,6 +169,38 @@ const BookDetails = () => {
           </div>
         </div>
       </div>
+      {similarBooks.length > 0 && (
+        <div className="container" style={{ marginTop: '40px' }}>
+          <h2 className="section-heading" style={{ fontSize: '28px' }}>Similar Books</h2>
+          <p style={{ color: '#666', marginBottom: '20px' }}>
+            Based on shared tags
+          </p>
+          <div className="grid">
+            {similarBooks.map(sb => (
+              <div key={sb.id} className="card" style={{ cursor: 'pointer' }}
+                   onClick={() => navigate(`${LIBRARY_PATH}/books/${sb.id}`)}>
+                {sb.thumb_image && (
+                  <img
+                    src={`${MEDIA_BASE_URL}/${sb.thumb_image}`}
+                    alt={sb.title_cn || sb.title}
+                    className="card-image"
+                    style={{ maxHeight: '200px', objectFit: 'cover' }}
+                  />
+                )}
+                <h3 className="card-title">{sb.title_cn || sb.title}</h3>
+                <p className="caption">
+                  Authors: {sb.authors ? sb.authors.map(a => a.name).join(', ') : 'Unknown'}
+                </p>
+                {sb.shared_tags && sb.shared_tags.length > 0 && (
+                  <p className="caption" style={{ color: '#0071e3' }}>
+                    Shared tags: {sb.shared_tags.join(', ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 };

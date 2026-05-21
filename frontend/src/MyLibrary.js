@@ -30,6 +30,7 @@ function MyLibrary() {
           {/* 相对路径，因为这是在/my-library/下的嵌套路由 */}
           <Route path="/" element={<Navigate to="books" replace />} />
           <Route path="books" element={<Books />} />
+          <Route path="books/edit/:bookId" element={<BookFormPage />} />
           <Route path="books/create" element={<BookFormPage />} />
           <Route path="books/:id" element={<BookDetails />} />
           

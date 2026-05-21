@@ -23,7 +23,8 @@ const Books = () => {
     isbn: '',
     title: '',
     author: '',
-    publisher: ''
+    publisher: '',
+    tag: ''
   });
 
   // 👉 真正用于请求的参数（点击 Search 才更新）
@@ -31,7 +32,8 @@ const Books = () => {
     isbn: '',
     title: '',
     author: '',
-    publisher: ''
+    publisher: '',
+    tag: ''
   });
 
   const navigate = useNavigate();
@@ -45,7 +47,8 @@ const Books = () => {
       isbn: params.get('isbn') || '',
       title: params.get('title') || '',
       author: params.get('author') || '',
-      publisher: params.get('publisher') || ''
+      publisher: params.get('publisher') || '',
+      tag: params.get('tag') || ''
     };
 
     setPage(parseInt(params.get('page')) || 1);
@@ -202,6 +205,7 @@ const Books = () => {
               <input placeholder="Title" value={inputParams.title} onChange={(e) => handleInputChange('title', e.target.value)} />
               <input placeholder="Author" value={inputParams.author} onChange={(e) => handleInputChange('author', e.target.value)} />
               <input placeholder="Publisher" value={inputParams.publisher} onChange={(e) => handleInputChange('publisher', e.target.value)} />
+              <input placeholder="Tag" value={inputParams.tag} onChange={(e) => handleInputChange('tag', e.target.value)} />
             </div>
           )}
 
@@ -224,6 +228,40 @@ const Books = () => {
             Page {page} / {totalPages} ({totalBooks})
           </div>
         </div>
+
+        {searchParams.tag && (
+          <div style={{
+            margin: '12px 0',
+            padding: '8px 16px',
+            background: '#e8f0fe',
+            borderRadius: '8px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <span style={{ color: '#1a73e8', fontWeight: 600 }}>
+              Filtered by tag: {searchParams.tag}
+            </span>
+            <button
+              onClick={() => {
+                const newParams = { ...searchParams, tag: '' };
+                setInputParams(prev => ({ ...prev, tag: '' }));
+                setSearchParams(newParams);
+                setPage(1);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#d93025',
+                cursor: 'pointer',
+                fontSize: '16px',
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="grid">
           {books.map(book => (

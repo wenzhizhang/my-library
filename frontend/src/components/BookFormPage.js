@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // ============================================================
 // Apple Design System - Book Creation/Update Page (JavaScript)
@@ -168,6 +170,8 @@ function Navigation() {
     letterSpacing: '-0.12px',
   };
 
+
+
   return (
     <nav style={navStyle}>
       <div style={{ fontWeight: 600, fontSize: '17px', letterSpacing: '-0.374px' }}>
@@ -214,6 +218,8 @@ function Section({ children, dark = false, style = {} }) {
 }
 
 function Container({ children, maxWidth = '980px', style = {} }) {
+
+
   return (
     <div style={{ 
       width: '100%', 
@@ -299,6 +305,8 @@ function AppleButton({
   const activeStyle = isActive ? {
     transform: 'scale(0.98)',
   } : {};
+
+
 
   return (
     <button
@@ -402,6 +410,8 @@ function AppleInput({
     />
   );
 
+
+
   return (
     <div style={{ marginBottom: '24px', width: '100%' }}>
       <label style={labelStyle}>
@@ -472,6 +482,8 @@ function AppleSelect({
 
   const [isFocused, setIsFocused] = useState(false);
 
+
+
   return (
     <div style={{ marginBottom: '24px', width: '100%' }}>
       <label style={labelStyle}>
@@ -503,7 +515,11 @@ function AppleSelect({
 
 // --- Main Component ---
 
-function BookFormPage({ mode = 'create', initialData = {} }) {
+function BookFormPage() {
+  const { bookId } = useParams();
+  const navigate = useNavigate();
+  const mode = bookId ? 'edit' : 'create';
+
   const [formData, setFormData] = useState({
     isbn: '',
     title_cn: '',
@@ -538,7 +554,6 @@ function BookFormPage({ mode = 'create', initialData = {} }) {
     douban_score: null,
     purchase_store: '',
     tags: [],
-    ...initialData,
   });
 
   const [errors, setErrors] = useState({});
@@ -555,6 +570,60 @@ function BookFormPage({ mode = 'create', initialData = {} }) {
       });
     }
   }, [errors]);
+
+  const [loadingBook, setLoadingBook] = useState(mode === 'edit');
+  
+  useEffect(() => {
+    if (mode === 'edit' && bookId) {
+      const fetchBook = async () => {
+        setLoadingBook(true);
+        try {
+          const response = await axios.get(`/api/books/${bookId}/`);
+          const data = response.data;
+          setFormData({
+            isbn: data.isbn || '',
+            title_cn: data.title_cn || '',
+            title: data.title || '',
+            author_ids: data.authors?.map(a => a.id) || [],
+            translator: data.translator || '',
+            publisher_id: data.publisher?.id || null,
+            publish_date: data.publish_date ? data.publish_date.substring(0, 10) : '',
+            brand_id: data.brand?.id || null,
+            book_series_id: data.book_series?.id || null,
+            binding_type: data.binding_type || '',
+            paper_type: data.paper_type || '',
+            pages: data.pages || null,
+            book_count: data.book_count || null,
+            language: data.language || '',
+            compose_type: data.compose_type || '',
+            price: data.price || null,
+            purchase_price: data.purchase_price || null,
+            purchase_date: data.purchase_date ? data.purchase_date.substring(0, 10) : '',
+            thumb_image: data.thumb_image || '',
+            link: data.link || '',
+            category_id: data.category?.id || null,
+            bookshelf_id: data.bookshelf?.id || null,
+            read_state: data.read_state || '',
+            catalog: data.catalog || '',
+            introduction: data.introduction || '',
+            summary: data.summary || '',
+            registered: data.registered || false,
+            edition: data.edition || '',
+            printing_info: data.printing_info || '',
+            printed_number: data.printed_number || null,
+            douban_score: data.douban_score || null,
+            purchase_store: data.purchase_store || '',
+            tags: data.tags || [],
+            in_wish: data.in_wish || false,
+          });
+        } catch (error) {
+          console.error('Error fetching book for edit:', error);
+        }
+        setLoadingBook(false);
+      };
+      fetchBook();
+    }
+  }, [bookId, mode]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -583,14 +652,23 @@ function BookFormPage({ mode = 'create', initialData = {} }) {
     
     setIsSubmitting(true);
     
-    // Simulate API call - replace with actual fetch/axios
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log('Submitting book data:', formData);
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    
-    setTimeout(() => setSubmitSuccess(false), 3000);
+    try {
+      if (mode === 'edit' && bookId) {
+        await axios.put(`/api/books/${bookId}/`, formData);
+      } else {
+        await axios.post('/api/books/', formData);
+      }
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+      
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        navigate('/my-library/books');
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving book:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const handleAuthorToggle = (authorId) => {
@@ -1230,6 +1308,8 @@ function BookFormPage({ mode = 'create', initialData = {} }) {
       </Container>
     </Section>
   );
+
+  if (loadingBook) return <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Loading book data...</div>;
 
   return (
     <div style={{ 

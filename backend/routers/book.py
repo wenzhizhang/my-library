@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
-from typing import List
+from typing import List, Optional
 
 from models import Book, Author, book_authors
 from models.book import BookSearchStrategy
@@ -119,6 +119,59 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
         "total_books": total_books
     }
 
+
+@router.get("/{book_id}/similar")
+def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db)):
+    """Get similar books based on shared tags."""
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    current_tags = book.tags or []
+    if not current_tags:
+        return {"book": {"id": book.id, "title": book.title_cn or book.title}, "similar_books": []}
+    
+    # Find other books (excluding current) with at least one matching tag
+    from sqlalchemy import or_
+    tag_conditions = [Book.tags.like(f'%"{tag}"%') for tag in current_tags]
+    candidates = db.query(Book).options(selectinload(Book.authors)).filter(
+        Book.id != book_id,
+        Book.tags.isnot(None),
+        or_(*tag_conditions)
+    ).all()
+    
+    # Compute similarity score in Python
+    current_tag_set = set(current_tags)
+    scored = []
+    for candidate in candidates:
+        candidate_tags = set(candidate.tags or [])
+        shared = current_tag_set & candidate_tags
+        scored.append((len(shared), candidate))
+    
+    # Sort by score descending, then take top `limit`
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = scored[:limit]
+    
+    similar_books = []
+    for score, b in top:
+        similar_books.append({
+            "id": b.id,
+            "isbn": b.isbn,
+            "title_cn": b.title_cn,
+            "title": b.title,
+            "thumb_image": b.thumb_image,
+            "authors": [{"id": a.id, "name": str(a)} for a in (b.authors or [])],
+            "tags": b.tags or [],
+            "shared_tags": list(current_tag_set & set(b.tags or [])),
+            "shared_count": score,
+        })
+    
+    return {
+        "book": {"id": book.id, "title": book.title_cn or book.title},
+        "similar_books": similar_books,
+    }
+
+
 @router.get("/{book_id}", response_model=BookResponse)
 def read_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).options(joinedload(Book.authors)).filter(Book.id == book_id).one_or_none()
@@ -223,4 +276,3 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     db.delete(book)
     db.commit()
     return {"message": "Book deleted"}
-

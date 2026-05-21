@@ -110,6 +110,9 @@ class BookSearchStrategy:
                 joined.add("publisher")
             conditions.append(Publisher.name.ilike(f"%{filters['publisher']}%"))
 
+        if filters.get("tag"):
+            conditions.append(Book.tags.like(f'%"{filters["tag"]}"%'))
+
         if filters.get("min_price"):
             conditions.append(Book.price >= filters["min_price"])
 
