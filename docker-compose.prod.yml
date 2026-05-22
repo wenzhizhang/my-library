@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # ---- 反向代理入口 ----
+  nginx:
+    image: ccr.ccs.tencentyun.com/${CCR_NAMESPACE:-my-library}/my-library-nginx:${TAG:-latest}
+    pull_policy: always
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - frontend
+      - backend
+    environment:
+      - DOMAIN=${DOMAIN:-}
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    restart: unless-stopped
+
+  # ---- my-library 后端 ----
   backend:
     image: ccr.ccs.tencentyun.com/${CCR_NAMESPACE:-my-library}/my-library-backend:${TAG:-latest}
     pull_policy: always
@@ -14,22 +33,13 @@ services:
     volumes:
       - backend-data:/app/data
 
+  # ---- my-library 前端 ----
   frontend:
     image: ccr.ccs.tencentyun.com/${CCR_NAMESPACE:-my-library}/my-library-frontend:${TAG:-latest}
     pull_policy: always
-    ports:
-      - '80:80'
-      - '443:443'
     depends_on:
       - backend
-    environment:
-      - REACT_APP_ENV=production
-      - DOMAIN=${DOMAIN:-}
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
     restart: unless-stopped
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-www:/var/www/certbot
 
 volumes:
   backend-data:

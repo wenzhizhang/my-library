@@ -1,4 +1,27 @@
 services:
+  # ---- 反向代理入口 ----
+  # 单独的 nginx 容器，统一入口 + 自动 HTTPS（通过 Certbot）。
+  # 设置 DOMAIN + CERTBOT_EMAIL 环境变量以启用 HTTPS。
+  nginx:
+    image: ${NGINX_IMAGE:-my-library-nginx:local}
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - frontend
+      - backend
+    environment:
+      - DOMAIN=${DOMAIN:-}
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    restart: unless-stopped
+
+  # ---- my-library 后端 ----
   backend:
     image: ${BACKEND_IMAGE:-my-library-backend:local}
     build:
@@ -15,18 +38,19 @@ services:
       - ./backend/data/demo.db:/app/data/demo.db
     restart: unless-stopped
 
+  # ---- my-library 前端 ----
+  # 纯静态文件服务器，端口 3000，通过 nginx 反向代理访问。
   frontend:
     image: ${FRONTEND_IMAGE:-my-library-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - '80:80'
     depends_on:
       - backend
-    environment:
-      - REACT_APP_ENV=production
-      # 本地开发不设置 DOMAIN → 启动脚本使用 HTTP-only 模式
-      - DOMAIN=${DOMAIN:-}
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
     restart: unless-stopped
+
+volumes:
+  certbot-etc:
+    driver: local
+  certbot-www:
+    driver: local

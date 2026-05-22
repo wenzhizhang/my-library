@@ -50,11 +50,12 @@ EOF
 NO_PULL=false
 INIT_ONLY=false
 SEED_DB_FILE=""
+CLI_TAG=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --tag)
-            TAG="$2"; shift 2 ;;
+            CLI_TAG="$2"; shift 2 ;;
         --no-pull)
             NO_PULL=true; shift ;;
         --init)
@@ -68,9 +69,6 @@ while [[ $# -gt 0 ]]; do
             usage ;;
     esac
 done
-
-TAG="${TAG:-latest}"
-export TAG
 
 if [ ! -f "${COMPOSE_FILE}" ]; then
     print_error "Compose file not found: ${COMPOSE_FILE}"
@@ -97,9 +95,9 @@ init_env() {
 SERVER_IP=
 
 # =============================================================================
-# Let's Encrypt / HTTPS 配置
+# Let's Encrypt / HTTPS 配置（设置后启用自动 HTTPS）
 # =============================================================================
-# 你的域名, 用于 TLS 证书签发 (例如: my-library.example.com)
+# 你的域名, 用于 Let's Encrypt 证书签发 (例如: my-library.example.com)
 # 留空则仅在 HTTP 下运行
 DOMAIN=
 
@@ -117,7 +115,7 @@ TAG=latest
 CCR_NAMESPACE=my-library
 EOF
     print_info ".env template created at ${ENV_FILE}"
-    print_info "Please edit .env and set DOMAIN / CERTBOT_EMAIL for HTTPS, then re-run deploy.sh"
+    print_info "Set DOMAIN and CERTBOT_EMAIL in .env to enable HTTPS, then re-run deploy.sh"
 }
 
 if [ ! -f "${ENV_FILE}" ]; then
@@ -138,23 +136,20 @@ fi
 # Load .env
 export $(grep -v '^#' "${ENV_FILE}" | xargs)
 
-# TAG 允许再次被命令行 --tag 覆盖
-TAG="${TAG:-latest}"
+# TAG 优先级: CLI --tag > .env TAG > latest
+TAG="${CLI_TAG:-${TAG:-latest}}"
 export TAG
 
 print_info "Deploying with TAG=${TAG}"
 
 # =============================================================================
-# HTTPS 配置检查
+# HTTP / HTTPS 模式
 # =============================================================================
+# HTTPS 检查
 if [ -n "${DOMAIN}" ]; then
-    if [ -z "${CERTBOT_EMAIL}" ]; then
-        print_warn "DOMAIN is set but CERTBOT_EMAIL is empty."
-        print_warn "certbot may fail to register — set CERTBOT_EMAIL in .env"
-    fi
     print_info "HTTPS will be enabled for: ${DOMAIN}"
 else
-    print_warn "DOMAIN not set — running in HTTP-only mode."
+    print_info "Starting Nginx reverse proxy on port 80 (HTTP-only)"
     print_warn "To enable HTTPS, set DOMAIN and CERTBOT_EMAIL in .env"
 fi
 
@@ -211,18 +206,14 @@ docker image prune -f 2>/dev/null || true
 
 print_info "Deployment complete!"
 if [ -n "${DOMAIN}" ]; then
-    print_info "Frontend: https://${DOMAIN}"
-    print_info "Backend:  https://${DOMAIN}/api/"
+    print_info "Nginx proxy: https://${DOMAIN}"
+    print_info "Backend API: https://${DOMAIN}/api/"
     echo ""
-    print_info "Certificate status:"
-    print_info "   To check cert logs: docker logs \$(docker ps -qf name=frontend) 2>&1 | grep certbot"
-    print_info "   Manual renewal:     docker exec \$(docker ps -qf name=frontend) certbot renew --webroot -w /var/www/certbot"
-    print_info "   Cron auto-renewal:  runs daily at 02:00 and 14:00 inside the container"
+    print_info "Certificate renewal: runs daily inside container (auto)"
+    print_info "Manual check: docker exec \$(docker ps -qf name=nginx) certbot renew --webroot -w /var/www/certbot --dry-run"
 else
-    print_info "Frontend: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
-    print_info "Backend:  http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost'):8000"
-    echo ""
-    print_warn "HTTPS not configured. Set DOMAIN and CERTBOT_EMAIL in .env for TLS."
+    print_info "Nginx proxy: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
+    print_info "Backend API: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost'):8000/api/"
 fi
-echo ""
+print_info ""
 ${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" ps

@@ -83,7 +83,7 @@ if [ ! -f ".env" ]; then
 SERVER_IP=${DEFAULT_IP}
 
 # =============================================================================
-# Let's Encrypt / HTTPS 配置 (生产环境需要)
+# Let's Encrypt / HTTPS 配置（设置后启用自动 HTTPS）
 # =============================================================================
 # 你的域名, 用于 Let's Encrypt 证书签发 (例如: my-library.example.com)
 # 留空则仅在 HTTP 下运行 (本地开发)
@@ -104,7 +104,7 @@ CERTBOT_EMAIL=
 # export TENCENT_ACCOUNT=your_account
 EOF2
     print_info "Created .env file with default SERVER_IP=${DEFAULT_IP}"
-    print_warning "Please edit .env file and set SERVER_IP, DOMAIN, CERTBOT_EMAIL before production deployment!"
+    print_warning "Set DOMAIN and CERTBOT_EMAIL in .env to enable HTTPS."
 fi
 
 # Load environment variables from .env
@@ -154,22 +154,28 @@ if [ "${MODE}" = "push" ]; then
         print_error "TENCENT_ACCOUNT is required for push mode. Please export it in your shell."
         exit 1
     fi
+    export NGINX_IMAGE="${REGISTRY}/${CCR_NAMESPACE}/my-library-nginx:${TAG}"
     export BACKEND_IMAGE="${REGISTRY}/${CCR_NAMESPACE}/my-library-backend:${TAG}"
     export FRONTEND_IMAGE="${REGISTRY}/${CCR_NAMESPACE}/my-library-frontend:${TAG}"
 else
+    export NGINX_IMAGE="my-library-nginx:local"
     export BACKEND_IMAGE="my-library-backend:local"
     export FRONTEND_IMAGE="my-library-frontend:local"
 fi
 
 print_info "Mode: ${MODE}"
 print_info "Building with SERVER_IP=${SERVER_IP} TAG=${TAG}"
-print_info "Backend image: ${BACKEND_IMAGE}"
+print_info "Nginx image:    ${NGINX_IMAGE}"
+print_info "Backend image:  ${BACKEND_IMAGE}"
 print_info "Frontend image: ${FRONTEND_IMAGE}"
 
 # Build and run or push
 print_info "Building Docker images..."
 
 compose_args=(--env-file .env)
+
+# 禁用 BuildKit provenance attestation，避免构建卡在 "resolving provenance" 步骤
+export BUILDX_NO_DEFAULT_ATTESTATIONS=1
 
 if command -v "docker" &> /dev/null && docker compose version &> /dev/null; then
     print_info "Using docker compose (new syntax)"
@@ -206,10 +212,13 @@ fi
 
 if [ "${MODE}" = "push" ]; then
     print_info "Push completed successfully"
+    print_info "Nginx pushed:   ${NGINX_IMAGE}"
     print_info "Backend pushed: ${BACKEND_IMAGE}"
     print_info "Frontend pushed: ${FRONTEND_IMAGE}"
     # Also tag and push as latest
     print_info "Tagging and pushing latest..."
+    docker tag "${NGINX_IMAGE}" "${REGISTRY}/${CCR_NAMESPACE}/my-library-nginx:latest"
+    docker push "${REGISTRY}/${CCR_NAMESPACE}/my-library-nginx:latest"
     docker tag "${BACKEND_IMAGE}" "${REGISTRY}/${CCR_NAMESPACE}/my-library-backend:latest"
     docker push "${REGISTRY}/${CCR_NAMESPACE}/my-library-backend:latest"
     docker tag "${FRONTEND_IMAGE}" "${REGISTRY}/${CCR_NAMESPACE}/my-library-frontend:latest"
@@ -217,6 +226,6 @@ if [ "${MODE}" = "push" ]; then
     print_info "Latest tag pushed successfully"
 else
     print_info "Build completed!"
-    print_info "Frontend: http://localhost"
-    print_info "Backend API: http://localhost:8000/api/"
+    print_info "Nginx proxy:    http://localhost"
+    print_info "Backend API:    http://localhost:8000/api/"
 fi
