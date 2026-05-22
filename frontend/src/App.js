@@ -1,10 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import { LIBRARY_PATH } from './config';
 import Galaxy from './Galaxy';
+import Projects from './components/Projects';
+import ProjectFormPage from './components/ProjectFormPage';
 import './App.css';
 
-function App() {
+function HomePage() {
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
@@ -41,7 +43,7 @@ function App() {
           <h1 className="hero-headline">张问之的技术站</h1>
           <p className="hero-subtitle">虽然现在还有点丑，但我会不断改进的！</p>
           <div className="hero-buttons">
-            <Link to={`${LIBRARY_PATH}/books`} className="pill-button primary">View Projects</Link>
+            <Link to="/projects" className="pill-button primary">View Projects</Link>
             <a href="#contact" className="pill-button secondary">Get In Touch</a>
           </div>
         </div>
@@ -94,8 +96,17 @@ function App() {
           <p className="footer-text">© 2026 Zhang Wenzhi. All rights reserved.</p>
         </div>
       </footer>
-    </div>
-    </>
+    </div></>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/projects/create" element={<ProjectFormPage />} />
+    </Routes>
   );
 }
 

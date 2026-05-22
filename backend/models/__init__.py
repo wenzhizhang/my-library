@@ -5,6 +5,7 @@ from .bookshelf import Bookshelf
 from .category import Category
 from .publisher import Publisher, Brand
 from .series import BookSeries
+from .application import Application
 
 __all__ = [
     "Base",
@@ -16,4 +17,5 @@ __all__ = [
     "Brand",
     "BookSeries",
     "book_authors",
+    "Application",
 ]

@@ -4,6 +4,7 @@ from .bookshelf import router as bookshelf_router
 from .category import router as category_router
 from .publisher import publisher_router, brand_router
 from .series import router as series_router
+from .application import router as application_router
 
 __all__ = [
     "author_router",
@@ -12,5 +13,6 @@ __all__ = [
     "category_router",
     "publisher_router",
     "brand_router",
-    "series_router"
+    "series_router",
+    "application_router",
 ]
