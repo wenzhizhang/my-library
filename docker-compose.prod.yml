@@ -45,8 +45,6 @@ services:
   solar:
     image: ccr.ccs.tencentyun.com/solar-system/solar:${TAG:-latest}
     pull_policy: always
-    ports:
-      - '8080:8080'
     restart: unless-stopped
 
 volumes:

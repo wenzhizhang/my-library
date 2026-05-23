@@ -98,7 +98,7 @@ server {
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /solar/ {
-        proxy_pass http://solar:8080/solar/;
+        proxy_pass http://solar:80/solar/;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /docs {
