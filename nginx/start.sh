@@ -97,6 +97,10 @@ server {
         proxy_pass http://backend:8000/api/;
         include /etc/nginx/includes/proxy-common.conf;
     }
+    location /solar/ {
+        proxy_pass http://solar:8080/solar/;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
     location /docs {
         proxy_pass http://backend:8000/docs;
         include /etc/nginx/includes/proxy-common.conf;
