@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from models import BookSeries
+from models import BookSeries, Book
 from schemas.series import BookSeriesCreation, BookSeriesUpdate, BookSeriesResponse
 from database import get_db
 
@@ -44,7 +44,7 @@ def read_series(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sessi
 
 @router.get("/{series_id}", response_model=BookSeriesResponse)
 def read_series_item(series_id: int, db: Session = Depends(get_db)):
-    series = db.query(BookSeries).options(joinedload(BookSeries.books)).filter(BookSeries.id == series_id).first()
+    series = db.query(BookSeries).options(joinedload(BookSeries.books).joinedload(Book.authors)).filter(BookSeries.id == series_id).first()
     if series is None:
         raise HTTPException(status_code=404, detail="Series not found")
     return series

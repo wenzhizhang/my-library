@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from models import Author
+from models import Author, Book
 from schemas.author import AuthorCreation, AuthorUpdate, AuthorResponse
 from database import get_db
 
@@ -48,14 +48,14 @@ def read_authors(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sess
 
 @router.get("/{author_id}", response_model=AuthorResponse)
 def read_author(author_id: int, db: Session = Depends(get_db)):
-    author = db.query(Author).filter(Author.id == author_id).first()
+    author = db.query(Author).options(joinedload(Author.books).joinedload(Book.authors)).filter(Author.id == author_id).first()
     if author is None:
         raise HTTPException(status_code=404, detail="Author not found")
     return author
 
 @router.put("/{author_id}", response_model=AuthorResponse)
 def update_author(author_id: int, author_update: AuthorUpdate, db: Session = Depends(get_db)):
-    author = db.query(Author).filter(Author.id == author_id).first()
+    author = db.query(Author).options(joinedload(Author.books).joinedload(Book.authors)).filter(Author.id == author_id).first()
     if author is None:
         raise HTTPException(status_code=404, detail="Author not found")
     for key, value in author_update.dict(exclude_unset=True).items():
@@ -66,7 +66,7 @@ def update_author(author_id: int, author_update: AuthorUpdate, db: Session = Dep
 
 @router.delete("/{author_id}")
 def delete_author(author_id: int, db: Session = Depends(get_db)):
-    author = db.query(Author).filter(Author.id == author_id).first()
+    author = db.query(Author).options(joinedload(Author.books).joinedload(Book.authors)).filter(Author.id == author_id).first()
     if author is None:
         raise HTTPException(status_code=404, detail="Author not found")
     db.delete(author)

@@ -110,7 +110,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
             "title_cn": book.title_cn,
             "title": book.title,
             "thumb_image": book.thumb_image,
-            "authors": [author.name for author in book.authors]
+            "authors": [str(author) for author in book.authors]
         })
 
     return {

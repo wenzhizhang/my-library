@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import Optional, List
 
 
 class BookSimple(BaseModel):
@@ -7,9 +7,17 @@ class BookSimple(BaseModel):
     title: str
     title_cn: Optional[str] = None
     thumb_image: Optional[str] = None
+    isbn: Optional[str] = None
+    authors: Optional[List[str]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("authors", mode="before")
+    @classmethod
+    def extract_author_names(cls, v):
+        if v is None:
+            return None
+        return [str(a) for a in v]
 
 class AuthorBase(BaseModel):
     id: int

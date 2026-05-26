@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from models import Publisher, Brand
+from models import Publisher, Brand, Book
 from schemas.publisher import PublisherCreation, PublisherUpdate, PublisherResponse, BrandCreation, BrandUpdate, BrandResponse
 from database import get_db
 
@@ -45,7 +45,7 @@ def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', db: S
 
 @publisher_router.get("/{publisher_id}", response_model=PublisherResponse)
 def read_publisher(publisher_id: int, db: Session = Depends(get_db)):
-    publisher = db.query(Publisher).options(joinedload(Publisher.books)).filter(Publisher.id == publisher_id).first()
+    publisher = db.query(Publisher).options(joinedload(Publisher.books).joinedload(Book.authors)).filter(Publisher.id == publisher_id).first()
     if publisher is None:
         raise HTTPException(status_code=404, detail="Publisher not found")
     return publisher
@@ -108,7 +108,7 @@ def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Sessi
 
 @brand_router.get("/{brand_id}", response_model=BrandResponse)
 def read_brand(brand_id: int, db: Session = Depends(get_db)):
-    brand = db.query(Brand).options(joinedload(Brand.books)).filter(Brand.id == brand_id).first()
+    brand = db.query(Brand).options(joinedload(Brand.books).joinedload(Book.authors)).filter(Brand.id == brand_id).first()
     if brand is None:
         raise HTTPException(status_code=404, detail="Brand not found")
     return brand

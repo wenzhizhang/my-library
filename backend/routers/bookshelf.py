@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from models import Bookshelf
+from models import Bookshelf, Book
 from schemas.bookshelf import BookshelfCreation, BookshelfUpdate, BookshelfResponse
 from database import get_db
 
@@ -44,7 +44,7 @@ def read_bookshelves(page: int = 1, limit: int = 10, sort_by: str = 'name', db: 
 
 @router.get("/{bookshelf_id}", response_model=BookshelfResponse)
 def read_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
-    bookshelf = db.query(Bookshelf).options(joinedload(Bookshelf.books)).filter(Bookshelf.id == bookshelf_id).first()
+    bookshelf = db.query(Bookshelf).options(joinedload(Bookshelf.books).joinedload(Book.authors)).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
     return bookshelf

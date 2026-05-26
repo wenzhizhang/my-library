@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from models import Category
+from models import Category, Book
 from schemas.category import CategoryCreation, CategoryUpdate, CategoryResponse
 from database import get_db
 
@@ -51,7 +51,7 @@ def read_categories(page: int = 1, limit: int = 10, sort_by: str = 'name', db: S
 
 @router.get("/{category_id}", response_model=CategoryResponse)
 def read_category(category_id: int, db: Session = Depends(get_db)):
-    category = db.query(Category).options(joinedload(Category.books)).filter(Category.id == category_id).first()
+    category = db.query(Category).options(joinedload(Category.books).joinedload(Book.authors)).filter(Category.id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
