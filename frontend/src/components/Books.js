@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import './hover.css';
@@ -8,60 +8,57 @@ import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
 const Books = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState('title');
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
   const [goToPage, setGoToPage] = useState('');
+
+  // Derive state from URL search params
+  const page = parseInt(searchParams.get('page')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 10;
+  const sortBy = searchParams.get('sort_by') || 'title';
+
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Input state for form fields (not yet committed)
   const [inputParams, setInputParams] = useState({
-    isbn: '', title: '', author: '', publisher: '', tag: ''
+    isbn: searchParams.get('isbn') || '',
+    title: searchParams.get('title') || '',
+    author: searchParams.get('author') || '',
+    publisher: searchParams.get('publisher') || '',
+    tag: searchParams.get('tag') || ''
   });
 
-  const [searchParams, setSearchParams] = useState({
-    isbn: '', title: '', author: '', publisher: '', tag: ''
-  });
-
-  const navigate = useNavigate();
-  const location = useLocation();
-
+  // Sync input state when URL changes externally (e.g. tag link from BookDetails)
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const init = {
-      isbn: params.get('isbn') || '',
-      title: params.get('title') || '',
-      author: params.get('author') || '',
-      publisher: params.get('publisher') || '',
-      tag: params.get('tag') || ''
-    };
-    setPage(parseInt(params.get('page')) || 1);
-    setLimit(parseInt(params.get('limit')) || 10);
-    setSortBy(params.get('sort_by') || 'title');
-    setInputParams(init);
-    setSearchParams(init);
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams({
-      page, limit, sort_by: sortBy,
-      ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v))
+    setInputParams({
+      isbn: searchParams.get('isbn') || '',
+      title: searchParams.get('title') || '',
+      author: searchParams.get('author') || '',
+      publisher: searchParams.get('publisher') || '',
+      tag: searchParams.get('tag') || ''
     });
-    navigate(`?${params.toString()}`, { replace: true });
-  }, [page, limit, sortBy, searchParams]);
+  }, [searchParams]);
 
-  useEffect(() => { fetchBooks(); }, [page, limit, sortBy, searchParams]);
-
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     setLoading(true);
     try {
       const params = {
-        page, limit, sort_by: sortBy,
-        ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v))
+        page,
+        limit,
+        sort_by: sortBy,
       };
+
+      // Add non-empty filter params
+      for (const key of ['isbn', 'title', 'author', 'publisher', 'tag']) {
+        const val = searchParams.get(key);
+        if (val) params[key] = val;
+      }
+
       const response = await axios.get(`${window.location.origin}${API_BASE_URL}/books/`, { params });
       const data = response.data;
       setBooks(data.books || []);
@@ -71,17 +68,47 @@ const Books = () => {
       console.error('Error fetching books:', error);
     }
     setLoading(false);
-  };
+  }, [page, limit, sortBy, searchParams]);
+
+  useEffect(() => { fetchBooks(); }, [fetchBooks]);
 
   const handleInputChange = (field, value) => setInputParams(prev => ({ ...prev, [field]: value }));
-  const handleSearch = () => { setSearchParams(inputParams); setPage(1); };
-  const handleSortChange = (val) => { setSortBy(val); setPage(1); };
-  const handleLimitChange = (val) => { setLimit(parseInt(val)); setPage(1); };
+
+  const handleSearch = () => {
+    const newParams = new URLSearchParams(searchParams);
+    for (const key of ['isbn', 'title', 'author', 'publisher', 'tag']) {
+      if (inputParams[key]) {
+        newParams.set(key, inputParams[key]);
+      } else {
+        newParams.delete(key);
+      }
+    }
+    newParams.set('page', '1');
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const handleSortChange = (val) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('sort_by', val);
+    newParams.set('page', '1');
+    setSearchParams(newParams, { replace: true });
+  };
+
+  const handleLimitChange = (val) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('limit', val);
+    newParams.set('page', '1');
+    setSearchParams(newParams, { replace: true });
+  };
+
   const handleGoToPage = () => {
     const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPage(pageNum);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('page', String(pageNum));
+    setSearchParams(newParams, { replace: true });
     setGoToPage('');
   };
+
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
   const renderPagination = () => {
@@ -90,7 +117,15 @@ const Books = () => {
     const endPage = Math.min(totalPages, page + 2);
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
-        <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPage(i)}>
+        <button
+          key={i}
+          className={`btn-pill-link ${i === page ? 'active' : ''}`}
+          onClick={() => {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set('page', String(i));
+            setSearchParams(newParams, { replace: true });
+          }}
+        >
           {i}
         </button>
       );
@@ -100,15 +135,31 @@ const Books = () => {
         <div className="pagination-links">
           {page > 1 && (
             <>
-              <button className="btn-pill-link" onClick={() => setPage(1)}>First</button>
-              <button className="btn-pill-link" onClick={() => setPage(page - 1)}>Previous</button>
+              <button className="btn-pill-link" onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set('page', '1');
+                setSearchParams(newParams, { replace: true });
+              }}>First</button>
+              <button className="btn-pill-link" onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set('page', String(page - 1));
+                setSearchParams(newParams, { replace: true });
+              }}>Previous</button>
             </>
           )}
           {pages}
           {page < totalPages && (
             <>
-              <button className="btn-pill-link" onClick={() => setPage(page + 1)}>Next</button>
-              <button className="btn-pill-link" onClick={() => setPage(totalPages)}>Last</button>
+              <button className="btn-pill-link" onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set('page', String(page + 1));
+                setSearchParams(newParams, { replace: true });
+              }}>Next</button>
+              <button className="btn-pill-link" onClick={() => {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set('page', String(totalPages));
+                setSearchParams(newParams, { replace: true });
+              }}>Last</button>
             </>
           )}
         </div>
@@ -123,6 +174,8 @@ const Books = () => {
   };
 
   if (loading) return <div className="loading">Loading...</div>;
+
+  const activeTag = searchParams.get('tag');
 
   return (
     <section className="section light">
@@ -209,14 +262,14 @@ const Books = () => {
         </div>
 
         {/* Tag filter badge */}
-        {searchParams.tag && (
+        {activeTag && (
           <div className="tag-filter-badge">
-            <span className="tag-filter-text">Filtered by tag: {searchParams.tag}</span>
+            <span className="tag-filter-text">Filtered by tag: {activeTag}</span>
             <button onClick={() => {
-              const newParams = { ...searchParams, tag: '' };
-              setInputParams(prev => ({ ...prev, tag: '' }));
-              setSearchParams(newParams);
-              setPage(1);
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete('tag');
+              newParams.set('page', '1');
+              setSearchParams(newParams, { replace: true });
             }} className="tag-filter-close">×</button>
           </div>
         )}
