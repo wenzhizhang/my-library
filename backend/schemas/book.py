@@ -298,4 +298,5 @@ class BookResponse(BaseModel):
     printed_number: Optional[int] = None
     douban_score: Optional[float] = None
     purchase_store: Optional[str] = None
-    tags: Optional[List[str]]
+    tags: Optional[List[str]] = None
+    in_wish: Optional[bool] = None

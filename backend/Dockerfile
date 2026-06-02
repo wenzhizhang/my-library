@@ -8,7 +8,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Seed database — shipped in the image, used on first start
+COPY data/demo.db /app/seed/demo.db
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -18,31 +18,19 @@ const Books = () => {
   const [goToPage, setGoToPage] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // 👉 输入状态（不会立即触发搜索）
   const [inputParams, setInputParams] = useState({
-    isbn: '',
-    title: '',
-    author: '',
-    publisher: '',
-    tag: ''
+    isbn: '', title: '', author: '', publisher: '', tag: ''
   });
 
-  // 👉 真正用于请求的参数（点击 Search 才更新）
   const [searchParams, setSearchParams] = useState({
-    isbn: '',
-    title: '',
-    author: '',
-    publisher: '',
-    tag: ''
+    isbn: '', title: '', author: '', publisher: '', tag: ''
   });
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // URL -> state
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-
     const init = {
       isbn: params.get('isbn') || '',
       title: params.get('title') || '',
@@ -50,45 +38,32 @@ const Books = () => {
       publisher: params.get('publisher') || '',
       tag: params.get('tag') || ''
     };
-
     setPage(parseInt(params.get('page')) || 1);
     setLimit(parseInt(params.get('limit')) || 10);
     setSortBy(params.get('sort_by') || 'title');
-
     setInputParams(init);
     setSearchParams(init);
   }, []);
 
-  // state -> URL
   useEffect(() => {
     const params = new URLSearchParams({
-      page,
-      limit,
-      sort_by: sortBy,
+      page, limit, sort_by: sortBy,
       ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v))
     });
-
     navigate(`?${params.toString()}`, { replace: true });
   }, [page, limit, sortBy, searchParams]);
 
-  // fetch only when searchParams change
-  useEffect(() => {
-    fetchBooks();
-  }, [page, limit, sortBy, searchParams]);
+  useEffect(() => { fetchBooks(); }, [page, limit, sortBy, searchParams]);
 
   const fetchBooks = async () => {
     setLoading(true);
     try {
       const params = {
-        page,
-        limit,
-        sort_by: sortBy,
+        page, limit, sort_by: sortBy,
         ...Object.fromEntries(Object.entries(searchParams).filter(([_, v]) => v))
       };
-
       const response = await axios.get(`${window.location.origin}${API_BASE_URL}/books/`, { params });
       const data = response.data;
-
       setBooks(data.books || []);
       setTotalPages(data.total_pages || 1);
       setTotalBooks(data.total_books || 0);
@@ -98,38 +73,21 @@ const Books = () => {
     setLoading(false);
   };
 
-  // 输入变化（不触发搜索）
-  const handleInputChange = (field, value) => {
-    setInputParams(prev => ({ ...prev, [field]: value }));
-  };
-
-  // 点击搜索才触发
-  const handleSearch = () => {
-    setSearchParams(inputParams);
-    setPage(1);
-  };
-
-  const handleSortChange = (val) => {
-    setSortBy(val);
-    setPage(1);
-  };
-
-  const handleLimitChange = (val) => {
-    setLimit(parseInt(val));
-    setPage(1);
-  };
-
+  const handleInputChange = (field, value) => setInputParams(prev => ({ ...prev, [field]: value }));
+  const handleSearch = () => { setSearchParams(inputParams); setPage(1); };
+  const handleSortChange = (val) => { setSortBy(val); setPage(1); };
+  const handleLimitChange = (val) => { setLimit(parseInt(val)); setPage(1); };
   const handleGoToPage = () => {
     const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
     setPage(pageNum);
     setGoToPage('');
   };
+  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
   const renderPagination = () => {
     const pages = [];
     const startPage = Math.max(1, page - 2);
     const endPage = Math.min(totalPages, page + 2);
-
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
         <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPage(i)}>
@@ -137,7 +95,6 @@ const Books = () => {
         </button>
       );
     }
-
     return (
       <div className="pagination">
         <div className="pagination-links">
@@ -147,9 +104,7 @@ const Books = () => {
               <button className="btn-pill-link" onClick={() => setPage(page - 1)}>Previous</button>
             </>
           )}
-
           {pages}
-
           {page < totalPages && (
             <>
               <button className="btn-pill-link" onClick={() => setPage(page + 1)}>Next</button>
@@ -157,15 +112,10 @@ const Books = () => {
             </>
           )}
         </div>
-
         <div className="pagination-input">
-          <input
-            type="number"
-            min="1"
-            max={totalPages}
-            value={goToPage}
+          <input type="number" min="1" max={totalPages} value={goToPage}
             onChange={(e) => setGoToPage(e.target.value)}
-          />
+            onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()} />
           <button className="btn-pill-link" onClick={handleGoToPage}>Go</button>
         </div>
       </div>
@@ -183,83 +133,91 @@ const Books = () => {
           Add New Book
         </button>
 
-        <div className="controls">
-          <div className="control-group search-group">
-            <input
-              placeholder="Search ISBN"
-              value={inputParams.isbn}
-              onChange={(e) => handleInputChange('isbn', e.target.value)}
-            />
+        {/* Toolbar */}
+        <div className="toolbar">
 
-            <button className="btn-pill-link" onClick={handleSearch}>
-              Search
-            </button>
-
-            <button className="btn-pill-link" onClick={() => setShowAdvanced(!showAdvanced)}>
-              Advanced
-            </button>
-          </div>
-
-          {showAdvanced && (
-            <div className="control-group search-group advanced">
-              <input placeholder="Title" value={inputParams.title} onChange={(e) => handleInputChange('title', e.target.value)} />
-              <input placeholder="Author" value={inputParams.author} onChange={(e) => handleInputChange('author', e.target.value)} />
-              <input placeholder="Publisher" value={inputParams.publisher} onChange={(e) => handleInputChange('publisher', e.target.value)} />
-              <input placeholder="Tag" value={inputParams.tag} onChange={(e) => handleInputChange('tag', e.target.value)} />
+          {/* Search */}
+          <div className="toolbar-search">
+            <div className="toolbar-search-row">
+              <input className="toolbar-search-input" placeholder="ISBN"
+                value={inputParams.isbn}
+                onChange={(e) => handleInputChange('isbn', e.target.value)}
+                onKeyDown={handleKeyDown} />
+              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+              <button
+                className={`btn-pill-link${showAdvanced ? ' active' : ''}`}
+                onClick={() => setShowAdvanced(!showAdvanced)}>
+                Advanced
+              </button>
             </div>
-          )}
 
-          <div className="control-group">
-            <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-              <option value="id">ID</option>
-              <option value="title">Title</option>
-              <option value="created_at">Date Added</option>
-            </select>
-
-            <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
+            {showAdvanced && (
+              <div className="toolbar-search-advanced">
+                <label className="search-label">
+                  <span>Title</span>
+                  <input placeholder="Search title…"
+                    value={inputParams.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)} />
+                </label>
+                <label className="search-label">
+                  <span>Author</span>
+                  <input placeholder="Search author…"
+                    value={inputParams.author}
+                    onChange={(e) => handleInputChange('author', e.target.value)} />
+                </label>
+                <label className="search-label">
+                  <span>Publisher</span>
+                  <input placeholder="Search publisher…"
+                    value={inputParams.publisher}
+                    onChange={(e) => handleInputChange('publisher', e.target.value)} />
+                </label>
+                <label className="search-label">
+                  <span>Tag</span>
+                  <input placeholder="Search tag…"
+                    value={inputParams.tag}
+                    onChange={(e) => handleInputChange('tag', e.target.value)} />
+                </label>
+              </div>
+            )}
           </div>
 
-          <div className="page-info">
+          {/* Sort & limit */}
+          <div className="toolbar-actions">
+            <label className="control-label">
+              <span className="control-label-text">Sort</span>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
+                <option value="title">Title</option>
+                <option value="created_at">Date Added</option>
+              </select>
+            </label>
+            <label className="control-label">
+              <span className="control-label-text">Per page</span>
+              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+
+          {/* Page info */}
+          <div className="toolbar-info">
             Page {page} / {totalPages} ({totalBooks})
           </div>
         </div>
 
+        {/* Tag filter badge */}
         {searchParams.tag && (
-          <div style={{
-            margin: '12px 0',
-            padding: '8px 16px',
-            background: '#e8f0fe',
-            borderRadius: '8px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            <span style={{ color: '#1a73e8', fontWeight: 600 }}>
-              Filtered by tag: {searchParams.tag}
-            </span>
-            <button
-              onClick={() => {
-                const newParams = { ...searchParams, tag: '' };
-                setInputParams(prev => ({ ...prev, tag: '' }));
-                setSearchParams(newParams);
-                setPage(1);
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#d93025',
-                cursor: 'pointer',
-                fontSize: '16px',
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
+          <div className="tag-filter-badge">
+            <span className="tag-filter-text">Filtered by tag: {searchParams.tag}</span>
+            <button onClick={() => {
+              const newParams = { ...searchParams, tag: '' };
+              setInputParams(prev => ({ ...prev, tag: '' }));
+              setSearchParams(newParams);
+              setPage(1);
+            }} className="tag-filter-close">×</button>
           </div>
         )}
 

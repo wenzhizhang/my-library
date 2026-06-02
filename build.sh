@@ -34,12 +34,15 @@ print_error() {
 
 usage() {
     cat <<EOF2
-Usage: $0 [MODE]
+Usage: $0 [MODE] [OPTIONS]
 
 Modes:
   up          Build and run locally (default)
   push        Build and push images to Tencent CCR
   help        Show this help message
+
+Options:
+  --no-cache  Disable Docker build cache (force full rebuild)
 
 Environment variables:
   SERVER_IP         Set public server IP for build/runtime config
@@ -52,12 +55,26 @@ EOF2
     exit 1
 }
 
-if [ "$#" -gt 1 ]; then
+# Parse arguments
+NO_CACHE=""
+POSITIONAL_ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        --no-cache)
+            NO_CACHE="--no-cache"
+            ;;
+        *)
+            POSITIONAL_ARGS+=("$arg")
+            ;;
+    esac
+done
+
+if [ "${#POSITIONAL_ARGS[@]}" -gt 1 ]; then
     usage
 fi
 
-if [ "$#" -eq 1 ]; then
-    case "$1" in
+if [ "${#POSITIONAL_ARGS[@]}" -eq 1 ]; then
+    case "${POSITIONAL_ARGS[0]}" in
         push)
             MODE="push"
             ;;
@@ -68,7 +85,7 @@ if [ "$#" -eq 1 ]; then
             usage
             ;;
         *)
-            print_error "Unknown mode: $1"
+            print_error "Unknown mode: ${POSITIONAL_ARGS[0]}"
             usage
             ;;
     esac
@@ -186,8 +203,16 @@ if command -v "docker" &> /dev/null && docker compose version &> /dev/null; then
         else
             docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
         fi
-        docker compose "${compose_args[@]}" build
+        docker compose "${compose_args[@]}" build ${NO_CACHE}
         docker compose "${compose_args[@]}" push
+        # Also push as :latest so deploy.sh can pull without specifying --tag
+        print_info "Tagging and pushing :latest ..."
+        for img in "${NGINX_IMAGE}" "${BACKEND_IMAGE}" "${FRONTEND_IMAGE}"; do
+          LATEST_IMG="${img%:*}:latest"
+          docker tag "${img}" "${LATEST_IMG}"
+          docker push "${LATEST_IMG}"
+          print_info "  ${LATEST_IMG}"
+        done
     else
         docker compose "${compose_args[@]}" up --build
     fi
@@ -200,8 +225,16 @@ elif command -v "docker-compose" &> /dev/null; then
         else
             docker login --username "${TENCENT_ACCOUNT}" "${REGISTRY}"
         fi
-        docker-compose "${compose_args[@]}" build
+        docker-compose "${compose_args[@]}" build ${NO_CACHE}
         docker-compose "${compose_args[@]}" push
+        # Also push as :latest
+        print_info "Tagging and pushing :latest ..."
+        for img in "${NGINX_IMAGE}" "${BACKEND_IMAGE}" "${FRONTEND_IMAGE}"; do
+          LATEST_IMG="${img%:*}:latest"
+          docker tag "${img}" "${LATEST_IMG}"
+          docker push "${LATEST_IMG}"
+          print_info "  ${LATEST_IMG}"
+        done
     else
         docker-compose "${compose_args[@]}" up --build
     fi

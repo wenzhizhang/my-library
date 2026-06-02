@@ -213,6 +213,7 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
         "douban_score": book.douban_score,
         "purchase_store": book.purchase_store,
         "tags": book.tags or [],
+        "in_wish": book.in_wish,
     }
 
 @router.put("/{book_id}", response_model=BookResponse)
@@ -266,6 +267,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
         "douban_score": book.douban_score,
         "purchase_store": book.purchase_store,
         "tags": book.tags or [],
+        "in_wish": book.in_wish,
     }
 
 @router.delete("/{book_id}")
