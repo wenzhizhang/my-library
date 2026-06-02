@@ -35,7 +35,7 @@ services:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP:-localhost}
     volumes:
-      - ./backend/data/demo.db:/app/data/demo.db
+      - my-library-data:/app/data
     restart: unless-stopped
 
   # ---- my-library 前端 ----
@@ -50,6 +50,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  my-library-data:
+    driver: local
   certbot-etc:
     driver: local
   certbot-www:

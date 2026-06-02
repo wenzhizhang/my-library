@@ -1,11 +1,13 @@
 // src/components/Header.js
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 import { LIBRARY_PATH } from '../config';
 import './Header.css';
 
 const Header = () => {
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
   const prefix = LIBRARY_PATH === '/' ? '' : LIBRARY_PATH;
 
   const getPath = (path) => {
@@ -71,6 +73,16 @@ const Header = () => {
           >
             Series
           </Link>
+        </div>
+        <div className="nav-auth">
+          {isAuthenticated ? (
+            <div className="nav-auth-user">
+              <span className="nav-username">{user?.username}</span>
+              <button className="nav-logout" onClick={logout}>Logout</button>
+            </div>
+          ) : (
+            <Link to={`${LIBRARY_PATH}/login`} className="nav-link nav-login-link">Login</Link>
+          )}
         </div>
       </div>
     </nav>

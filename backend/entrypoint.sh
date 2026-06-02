@@ -1,6 +1,19 @@
 #!/bin/sh
-# Backend entrypoint: seed database if not present or seed is newer, then start uvicorn.
+# Backend entrypoint: verify deps, seed database, start uvicorn.
 set -e
+
+# Verify critical packages are importable
+python3 -c "
+import sys
+packages = ['jose', 'passlib', 'bcrypt']
+for p in packages:
+    try:
+        __import__(p)
+        print(f'[entrypoint] {p} OK')
+    except ImportError as e:
+        print(f'[entrypoint] ERROR: {p} not installed — {e}')
+        sys.exit(1)
+" || exit 1
 
 SEED_DB="/app/seed/demo.db"
 DATA_DB="/app/data/demo.db"
