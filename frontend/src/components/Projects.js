@@ -214,19 +214,62 @@ const Projects = () => {
               </p>
             )}
 
-            {/* URL hint */}
-            {project.url && (
-              <p
+            {/* Actions */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                marginTop: '12px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => navigate('/projects/create', { state: { project } })}
                 style={{
+                  padding: '4px 14px',
+                  borderRadius: '980px',
+                  border: '1px solid rgba(0,0,0,0.15)',
+                  background: 'transparent',
+                  color: '#1d1d1f',
                   fontSize: '12px',
-                  color: '#0071e3',
-                  margin: '12px 0 0',
+                  fontWeight: 500,
+                  cursor: 'pointer',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+                  transition: 'background 0.2s',
                 }}
+                onMouseEnter={(e) => (e.target.style.background = 'rgba(0,0,0,0.04)')}
+                onMouseLeave={(e) => (e.target.style.background = 'transparent')}
               >
-                Open →
-              </p>
-            )}
+                Edit
+              </button>
+              <button
+                onClick={async () => {
+                  if (!window.confirm(`Delete "${project.name}"?`)) return;
+                  try {
+                    await axios.delete(`${window.location.origin}${API_BASE_URL}/applications/${project.id}`);
+                    fetchProjects();
+                  } catch (err) {
+                    console.error('Delete failed:', err);
+                  }
+                }}
+                style={{
+                  padding: '4px 14px',
+                  borderRadius: '980px',
+                  border: '1px solid rgba(255,59,48,0.3)',
+                  background: 'transparent',
+                  color: '#ff3b30',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => (e.target.style.background = 'rgba(255,59,48,0.06)')}
+                onMouseLeave={(e) => (e.target.style.background = 'transparent')}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from './Config';
 
 const ProjectFormPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editProject = location.state?.project;
+
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    url: '',
-    icon_url: '',
-    sort_order: 0,
+    name: editProject?.name || '',
+    description: editProject?.description || '',
+    url: editProject?.url || '',
+    icon_url: editProject?.icon_url || '',
+    sort_order: editProject?.sort_order || 0,
   });
+  const [editId] = useState(editProject?.id || null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,11 +38,15 @@ const ProjectFormPage = () => {
     setError(null);
 
     try {
-      await axios.post(`${window.location.origin}${API_BASE_URL}/applications/`, formData);
+      if (editId) {
+        await axios.put(`${window.location.origin}${API_BASE_URL}/applications/${editId}`, formData);
+      } else {
+        await axios.post(`${window.location.origin}${API_BASE_URL}/applications/`, formData);
+      }
       navigate('/projects');
     } catch (err) {
-      console.error('Error creating application:', err);
-      setError('Failed to register application. Please try again.');
+      console.error('Error saving application:', err);
+      setError('Failed to save application. Please try again.');
     }
     setSubmitting(false);
   };
@@ -63,7 +71,7 @@ const ProjectFormPage = () => {
             fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
           }}
         >
-          Register New Application
+          {editId ? 'Edit Application' : 'Register New Application'}
         </h1>
         <p
           style={{
@@ -75,7 +83,7 @@ const ProjectFormPage = () => {
             fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
           }}
         >
-          Add a new project to your portfolio
+          {editId ? 'Update your application details' : 'Add a new project to your portfolio'}
         </p>
       </div>
 

@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 import { MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
 const BookCard = ({ book }) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleViewDetails = () => {
     navigate(`${LIBRARY_PATH}/books/${book.id}`);
@@ -27,7 +29,9 @@ const BookCard = ({ book }) => {
       <p className="caption">ISBN: {book.isbn}</p>
       <p className="caption">Authors: {book.authors ? book.authors.join(', ') : 'Unknown'}</p>
       <button className="btn-pill-link" onClick={handleViewDetails}>View Details</button>
-      <button className="btn-pill-link" onClick={handleEdit}>Edit</button>
+      {isAuthenticated && (
+        <button className="btn-pill-link" onClick={handleEdit}>Edit</button>
+      )}
     </div>
   );
 };
