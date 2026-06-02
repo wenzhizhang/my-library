@@ -6,6 +6,7 @@ from .publisher import publisher_router, brand_router
 from .series import router as series_router
 from .application import router as application_router
 from .user import router as user_router
+from .stats import router as stats_router
 
 __all__ = [
     "author_router",
@@ -17,4 +18,5 @@ __all__ = [
     "series_router",
     "application_router",
     "user_router",
+    "stats_router",
 ]

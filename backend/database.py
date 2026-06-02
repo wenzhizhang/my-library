@@ -77,5 +77,27 @@ def _get_db_auto(uuid: Optional[str] = Depends(get_current_user_uuid)):
 
 get_db = _get_db_auto
 
+# =============================================================================
+# Stats database
+# =============================================================================
+STATS_DB_PATH = os.path.join(DATA_DIR, "stats.db")
+stats_engine = create_engine(f"sqlite:///{STATS_DB_PATH}", connect_args={"check_same_thread": False})
+StatsSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=stats_engine)
+
+
+def init_stats_db():
+    from models.stats import VisitLog  # noqa: F401
+    Base.metadata.create_all(bind=stats_engine, tables=[VisitLog.__table__])
+
+
+def get_stats_db():
+    db = StatsSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 # Initialize on import
 init_auth_db()
+init_stats_db()

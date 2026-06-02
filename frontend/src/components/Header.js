@@ -1,13 +1,22 @@
 // src/components/Header.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { LIBRARY_PATH } from '../config';
 import './Header.css';
 
 const Header = () => {
+  const [visitCount, setVisitCount] = useState(null);
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
+
+  // Report page view on every navigation, update displayed count
+  useEffect(() => {
+    fetch('/api/stats/page-view', { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => setVisitCount(data.total_visits))
+      .catch(() => {});
+  }, [location.pathname]);
   const prefix = LIBRARY_PATH === '/' ? '' : LIBRARY_PATH;
 
   const getPath = (path) => {
@@ -82,6 +91,9 @@ const Header = () => {
             </div>
           ) : (
             <Link to={`${LIBRARY_PATH}/login`} className="nav-link nav-login-link">Login</Link>
+          )}
+          {visitCount !== null && (
+            <span className="nav-visit-count">{visitCount} visits</span>
           )}
         </div>
       </div>
