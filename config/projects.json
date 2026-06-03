@@ -1,0 +1,16 @@
+[
+  {
+    "name": "My Library",
+    "description": "个人图书管理系统，支持书籍管理、分类、检索和阅读追踪。",
+    "url": "/my-library/login",
+    "icon_url": "/images/logo/logo-my-library.png",
+    "sort_order": 1
+  },
+  {
+    "name": "Solar System Simulator",
+    "description": "A toy solar system simulator for fun",
+    "url": "/solar/",
+    "icon_url": "/images/logo/logo-solar.png",
+    "sort_order": 2
+  }
+]

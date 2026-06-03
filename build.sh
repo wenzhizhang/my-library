@@ -189,6 +189,10 @@ print_info "Frontend image: ${FRONTEND_IMAGE}"
 # Build and run or push
 print_info "Building Docker images..."
 
+# Copy project config into backend build context
+mkdir -p backend/config
+cp -f config/projects.json backend/config/projects.json
+
 compose_args=(--env-file .env)
 
 # 禁用 BuildKit provenance attestation，避免构建卡在 "resolving provenance" 步骤

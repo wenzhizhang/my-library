@@ -11,6 +11,9 @@ COPY . .
 # Seed database — shipped in the image, used on first start
 COPY data/demo.db /app/seed/demo.db
 
+# Project config — baked into the image as fallback
+COPY config/projects.json /app/config/projects.json
+
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 

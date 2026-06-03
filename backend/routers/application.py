@@ -4,13 +4,13 @@ from typing import List
 
 from models import Application
 from schemas.application import ApplicationCreation, ApplicationUpdate, ApplicationResponse
-from database import get_db
+from database import get_applications_db
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 
 @router.post("/", response_model=ApplicationResponse)
-def create_application(application: ApplicationCreation, db: Session = Depends(get_db)):
+def create_application(application: ApplicationCreation, db: Session = Depends(get_applications_db)):
     """注册一个新应用"""
     db_app = Application(**application.model_dump())
     db.add(db_app)
@@ -24,7 +24,7 @@ def read_applications(
     page: int = 1,
     limit: int = 20,
     sort_by: str = 'sort_order',
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_applications_db),
 ):
     """获取应用列表（分页）"""
     offset = (page - 1) * limit
@@ -62,7 +62,7 @@ def read_applications(
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
-def read_application(application_id: int, db: Session = Depends(get_db)):
+def read_application(application_id: int, db: Session = Depends(get_applications_db)):
     """获取单个应用详情"""
     app = db.query(Application).filter(Application.id == application_id).first()
     if app is None:
@@ -74,7 +74,7 @@ def read_application(application_id: int, db: Session = Depends(get_db)):
 def update_application(
     application_id: int,
     application_update: ApplicationUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_applications_db),
 ):
     """更新应用信息"""
     app = db.query(Application).filter(Application.id == application_id).first()
@@ -88,7 +88,7 @@ def update_application(
 
 
 @router.delete("/{application_id}")
-def delete_application(application_id: int, db: Session = Depends(get_db)):
+def delete_application(application_id: int, db: Session = Depends(get_applications_db)):
     """删除应用"""
     app = db.query(Application).filter(Application.id == application_id).first()
     if app is None:

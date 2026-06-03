@@ -98,6 +98,28 @@ def get_stats_db():
         db.close()
 
 
+# =============================================================================
+# Applications database (shared)
+# =============================================================================
+APPS_DB_PATH = os.path.join(DATA_DIR, "applications.db")
+apps_engine = create_engine(f"sqlite:///{APPS_DB_PATH}", connect_args={"check_same_thread": False})
+AppsSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=apps_engine)
+
+
+def init_apps_db():
+    from models.application import Application  # noqa: F401
+    Base.metadata.create_all(bind=apps_engine, tables=[Application.__table__])
+
+
+def get_applications_db():
+    db = AppsSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 # Initialize on import
 init_auth_db()
 init_stats_db()
+init_apps_db()

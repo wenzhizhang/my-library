@@ -38,7 +38,10 @@ const Header = () => {
   return (
     <nav className="nav">
       <div className="nav-container">
-        <Link to={getPath('/')} className="nav-logo">My Library</Link>
+        <Link to={getPath('/')} className="nav-logo">
+          <img src="/images/logo/logo-my-library.png" alt="My Library" className="nav-logo-img" />
+          My Library
+        </Link>
         <div className="nav-links">
           <Link 
             to={getPath('/books')} 

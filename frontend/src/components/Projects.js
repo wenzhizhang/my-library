@@ -94,34 +94,6 @@ const Projects = () => {
         </p>
       </div>
 
-      {/* Action Bar */}
-      <div
-        style={{
-          maxWidth: '980px',
-          margin: '0 auto',
-          padding: '20px 20px 0',
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button
-          onClick={() => navigate('/projects/create')}
-          style={{
-            padding: '8px 22px',
-            borderRadius: '980px',
-            border: 'none',
-            background: '#0071e3',
-            color: '#fff',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-          }}
-        >
-          + Add New Application
-        </button>
-      </div>
-
       {/* Project Grid */}
       <div
         style={{
@@ -138,9 +110,7 @@ const Projects = () => {
             <p style={{ color: 'rgba(0,0,0,0.48)', fontSize: '17px' }}>
               No applications registered yet.
             </p>
-            <p style={{ color: 'rgba(0,0,0,0.48)', fontSize: '14px', marginTop: '8px' }}>
-              Click "Add New Application" to register your first project.
-            </p>
+
           </div>
         )}
 
@@ -214,62 +184,6 @@ const Projects = () => {
               </p>
             )}
 
-            {/* Actions */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                marginTop: '12px',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => navigate('/projects/create', { state: { project } })}
-                style={{
-                  padding: '4px 14px',
-                  borderRadius: '980px',
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'transparent',
-                  color: '#1d1d1f',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => (e.target.style.background = 'rgba(0,0,0,0.04)')}
-                onMouseLeave={(e) => (e.target.style.background = 'transparent')}
-              >
-                Edit
-              </button>
-              <button
-                onClick={async () => {
-                  if (!window.confirm(`Delete "${project.name}"?`)) return;
-                  try {
-                    await axios.delete(`${window.location.origin}${API_BASE_URL}/applications/${project.id}`);
-                    fetchProjects();
-                  } catch (err) {
-                    console.error('Delete failed:', err);
-                  }
-                }}
-                style={{
-                  padding: '4px 14px',
-                  borderRadius: '980px',
-                  border: '1px solid rgba(255,59,48,0.3)',
-                  background: 'transparent',
-                  color: '#ff3b30',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => (e.target.style.background = 'rgba(255,59,48,0.06)')}
-                onMouseLeave={(e) => (e.target.style.background = 'transparent')}
-              >
-                Delete
-              </button>
-            </div>
           </div>
         ))}
       </div>
