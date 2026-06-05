@@ -30,19 +30,23 @@ server {
     error_log  /var/log/nginx/my-library.error.log warn;
 
     location / {
-        proxy_pass http://frontend:3000;
+        set $frontend_upstream "http://frontend:3000";
+        proxy_pass $frontend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /api/ {
-        proxy_pass http://backend:8000/api/;
+        set $backend_upstream "http://backend:8000";
+        proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /docs {
-        proxy_pass http://backend:8000/docs;
+        set $backend_upstream "http://backend:8000";
+        proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /openapi.json {
-        proxy_pass http://backend:8000/openapi.json;
+        set $backend_upstream "http://backend:8000";
+        proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
 }
@@ -73,7 +77,8 @@ NGX
 gen_https() {
     cat > "${CONF_DIR}/https.conf" << NGX
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name ${DOMAIN};
 
     ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
@@ -90,23 +95,28 @@ server {
     error_log  /var/log/nginx/my-library.error.log warn;
 
     location / {
-        proxy_pass http://frontend:3000;
+        set \$frontend_upstream "http://frontend:3000";
+        proxy_pass \$frontend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /api/ {
-        proxy_pass http://backend:8000/api/;
+        set \$backend_upstream "http://backend:8000";
+        proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /solar/ {
-        proxy_pass http://solar:80/solar/;
+        set \$solar_upstream "http://solar:80";
+        proxy_pass \$solar_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /docs {
-        proxy_pass http://backend:8000/docs;
+        set \$backend_upstream "http://backend:8000";
+        proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
     location /openapi.json {
-        proxy_pass http://backend:8000/openapi.json;
+        set \$backend_upstream "http://backend:8000";
+        proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
 }
@@ -154,32 +164,105 @@ else
         if ! kill -0 $NGINX_PID 2>/dev/null; then
             echo "[start-nginx] ERROR: Temporary nginx failed to start"
             cat /var/log/nginx/error.log 2>/dev/null || true
-            exit 1
+            gen_http_only
+            echo "[start-nginx] Falling back to HTTP-only mode"
+        else
+            # ── 运行 certbot ──
+            CERTBOT_OK=false
+            if [ -n "${EMAIL}" ]; then
+                echo "[start-nginx] Requesting certificate with email ${EMAIL}..."
+                if certbot certonly --webroot \
+                    -w "${CERTBOT_WWW}" \
+                    -d "${DOMAIN}" \
+                    --email "${EMAIL}" \
+                    --agree-tos \
+                    --non-interactive \
+                    --force-renewal; then
+                    CERTBOT_OK=true
+                fi
+            else
+                echo "[start-nginx] CERTBOT_EMAIL not set, obtaining certificate without email..."
+                if certbot certonly --webroot \
+                    -w "${CERTBOT_WWW}" \
+                    -d "${DOMAIN}" \
+                    --register-unsafely-without-email \
+                    --agree-tos \
+                    --non-interactive \
+                    --force-renewal; then
+                    CERTBOT_OK=true
+                fi
+            fi
+
+            kill $NGINX_PID 2>/dev/null || true
+            wait $NGINX_PID 2>/dev/null || true
+
+            if [ "$CERTBOT_OK" = true ]; then
+                echo "[start-nginx] Certificate obtained successfully"
+                # ── 生成 HTTPS 配置 ──
+                gen_http_redirect
+                gen_https
+            else
+                echo "[start-nginx] Certificate acquisition failed, falling back to HTTP-only"
+                gen_http_only
+
+                # ── 后台自动重试证书获取（前端启动后不影响已有流量） ──
+                (
+                    # 初始等待：绕开 Let's Encrypt 速率限制（5次/小时）
+                    RETRY_WAIT=900
+                    while [ ! -f "${CERT_DIR}/fullchain.pem" ]; do
+                        RETRY_WAIT=$(( RETRY_WAIT * 2 ))
+                        [ $RETRY_WAIT -gt 3600 ] && RETRY_WAIT=3600
+                        echo "[start-nginx] Retrying certificate in ${RETRY_WAIT}s..."
+                        sleep $RETRY_WAIT
+
+                        gen_certbot_temp
+                        nginx -s reload
+                        sleep 2
+
+                        CERTBOT_RETRY_OK=false
+                        if [ -n "${EMAIL}" ]; then
+                            if certbot certonly --webroot \
+                                -w "${CERTBOT_WWW}" \
+                                -d "${DOMAIN}" \
+                                --email "${EMAIL}" \
+                                --agree-tos \
+                                --non-interactive \
+                                --force-renewal; then
+                                CERTBOT_RETRY_OK=true
+                            fi
+                        else
+                            if certbot certonly --webroot \
+                                -w "${CERTBOT_WWW}" \
+                                -d "${DOMAIN}" \
+                                --register-unsafely-without-email \
+                                --agree-tos \
+                                --non-interactive \
+                                --force-renewal; then
+                                CERTBOT_RETRY_OK=true
+                            fi
+                        fi
+
+                        if [ "$CERTBOT_RETRY_OK" = true ]; then
+                            echo "[start-nginx] Certificate obtained successfully!"
+                            gen_http_redirect
+                            gen_https
+                            nginx -s reload
+                            break
+                        fi
+                    done
+                ) &
+            fi
         fi
-
-        certbot certonly --webroot \
-            -w "${CERTBOT_WWW}" \
-            -d "${DOMAIN}" \
-            --email "${EMAIL}" \
-            --agree-tos \
-            --non-interactive \
-            --force-renewal
-
-        kill $NGINX_PID 2>/dev/null || true
-        wait $NGINX_PID 2>/dev/null || true
-        echo "[start-nginx] Certificate obtained"
     else
-        # ── 续期检查 ──
+        # ── 证书已存在 -> 续期检查 ──
         echo "[start-nginx] Certificate exists, checking renewal..."
         certbot renew --webroot -w "${CERTBOT_WWW}" \
             --non-interactive --quiet \
             --deploy-hook "nginx -s reload" || true
+        gen_http_redirect
+        gen_https
     fi
 
-    # ── 生成 HTTPS 配置 ──
-    gen_http_redirect
-    gen_https
-    echo "[start-nginx] HTTPS config generated for ${DOMAIN}"
 
     # ── 后台自动续期（每天检查一次） ──
     (
