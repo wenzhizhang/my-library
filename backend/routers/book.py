@@ -7,6 +7,7 @@ from models import Book, Author, book_authors
 from models.book import BookSearchStrategy
 from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
+from rag.pipeline import sync_book, remove_book
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
@@ -37,6 +38,8 @@ def create_book(book: BookCreation, db: Session = Depends(get_db)):
     
     db.add(db_book)
     db.commit()
+    # Index for RAG search (best-effort, never blocks the response)
+    sync_book(db, db_book.id)
     db.refresh(db_book)
     return {
         "id": db_book.id,
@@ -232,6 +235,8 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
         setattr(book, key, value)
     db.commit()
     db.refresh(book)
+    # Re-index for RAG search (best-effort)
+    sync_book(db, book.id)
     return {
         "id": book.id,
         "isbn": book.isbn,
@@ -275,6 +280,8 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
+    # Remove from RAG index (best-effort)
+    remove_book(db, book_id)
     db.delete(book)
     db.commit()
     return {"message": "Book deleted"}

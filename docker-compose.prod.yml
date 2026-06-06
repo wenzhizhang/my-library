@@ -29,6 +29,7 @@ services:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP}
       - DATA_DIR=/app/data
+      - HF_ENDPOINT=https://hf-mirror.com
     restart: unless-stopped
     volumes:
       - backend-data:/app/data

@@ -2,9 +2,28 @@ import os
 from typing import Optional
 
 from fastapi import Depends
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
 from models import Base
+
+# ── sqlite-vec extension loader ──────────────────────────────────────────────
+
+import sqlite_vec
+
+
+def _load_vec_extension(dbapi_conn, _connection_record):
+    """Load sqlite-vec extension onto the raw DB-API connection."""
+    dbapi_conn.enable_load_extension(True)
+    sqlite_vec.load(dbapi_conn)
+    dbapi_conn.enable_load_extension(False)
+
+
+def _create_sqlite_engine(db_path: str, **kwargs):
+    """Create a SQLite engine with sqlite-vec loaded on every connection."""
+    engine = create_engine(f"sqlite:///{db_path}", **kwargs)
+    event.listen(engine, "connect", _load_vec_extension)
+    return engine
+
 
 DATA_DIR = os.environ.get("DATA_DIR", "/app/data")
 
@@ -12,12 +31,15 @@ DATA_DIR = os.environ.get("DATA_DIR", "/app/data")
 # Global auth database
 # =============================================================================
 AUTH_DB_PATH = os.path.join(DATA_DIR, "auth.db")
-auth_engine = create_engine(f"sqlite:///{AUTH_DB_PATH}", connect_args={"check_same_thread": False})
+auth_engine = _create_sqlite_engine(
+    AUTH_DB_PATH, connect_args={"check_same_thread": False}
+)
 AuthSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=auth_engine)
 
 
 def init_auth_db():
     from models.user import User  # noqa: F401
+
     Base.metadata.create_all(bind=auth_engine, tables=[User.__table__])
 
 
@@ -37,9 +59,18 @@ _engines: dict[str, object] = {}
 
 def _get_or_create_engine(db_path: str):
     if db_path not in _engines:
-        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        engine = _create_sqlite_engine(
+            db_path, connect_args={"check_same_thread": False}
+        )
         Base.metadata.create_all(bind=engine)
         _engines[db_path] = engine
+
+        # Initialise RAG tables (vector + FTS5) for this user's database
+        from rag.vector_store import ensure_rag_tables
+
+        with Session(engine) as session:
+            ensure_rag_tables(session)
+
     return _engines[db_path]
 
 
@@ -52,8 +83,9 @@ def init_user_db(uuid: str) -> str:
 
 
 # =============================================================================
-# FastAPI dependency — auto-routes to user DB or demo DB
+# FastAPI dependency - auto-routes to user DB or demo DB
 # =============================================================================
+
 
 def _resolve_db(uuid: Optional[str]) -> str:
     if uuid:
@@ -63,6 +95,7 @@ def _resolve_db(uuid: Optional[str]) -> str:
 
 # AUTO-RESOLVING VERSION
 from auth import get_current_user_uuid
+
 
 def _get_db_auto(uuid: Optional[str] = Depends(get_current_user_uuid)):
     db_path = _resolve_db(uuid)
@@ -81,12 +114,15 @@ get_db = _get_db_auto
 # Stats database
 # =============================================================================
 STATS_DB_PATH = os.path.join(DATA_DIR, "stats.db")
-stats_engine = create_engine(f"sqlite:///{STATS_DB_PATH}", connect_args={"check_same_thread": False})
+stats_engine = create_engine(
+    f"sqlite:///{STATS_DB_PATH}", connect_args={"check_same_thread": False}
+)
 StatsSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=stats_engine)
 
 
 def init_stats_db():
     from models.stats import VisitLog  # noqa: F401
+
     Base.metadata.create_all(bind=stats_engine, tables=[VisitLog.__table__])
 
 
@@ -102,12 +138,15 @@ def get_stats_db():
 # Applications database (shared)
 # =============================================================================
 APPS_DB_PATH = os.path.join(DATA_DIR, "applications.db")
-apps_engine = create_engine(f"sqlite:///{APPS_DB_PATH}", connect_args={"check_same_thread": False})
+apps_engine = create_engine(
+    f"sqlite:///{APPS_DB_PATH}", connect_args={"check_same_thread": False}
+)
 AppsSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=apps_engine)
 
 
 def init_apps_db():
     from models.application import Application  # noqa: F401
+
     Base.metadata.create_all(bind=apps_engine, tables=[Application.__table__])
 
 

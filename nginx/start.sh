@@ -248,6 +248,10 @@ else
                             gen_https
                             nginx -s reload
                             break
+                        else
+                            echo "[start-nginx] Certificate still unavailable — restoring HTTP-only config"
+                            gen_http_only
+                            nginx -s reload
                         fi
                     done
                 ) &

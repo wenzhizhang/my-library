@@ -1,7 +1,7 @@
 .MyLibrary {
   position: relative;
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   text-align: center;
   background: url("https://zhangwenzhi-1315027057.cos.ap-guangzhou.myqcloud.com/media/background/bg4.jpg") no-repeat center center fixed;
   background-size: cover;

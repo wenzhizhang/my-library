@@ -5,7 +5,7 @@ set -e
 # Verify critical packages are importable
 python3 -c "
 import sys
-packages = ['jose', 'passlib', 'bcrypt']
+packages = ['jose', 'passlib', 'bcrypt', 'sqlite_vec', 'fastembed']
 for p in packages:
     try:
         __import__(p)
@@ -13,6 +13,7 @@ for p in packages:
     except ImportError as e:
         print(f'[entrypoint] ERROR: {p} not installed — {e}')
         sys.exit(1)
+print('[entrypoint] All packages OK')
 " || exit 1
 
 SEED_DB="/app/seed/demo.db"

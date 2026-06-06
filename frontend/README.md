@@ -1,70 +1,170 @@
-# Getting Started with Create React App
+# My Library — Semantic Search (RAG)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+基于 **sqlite-vec** + **BGE 嵌入模型**的混合检索系统，在个人图书管理基础上提供语义搜索能力。
 
-## Available Scripts
+## 架构
 
-In the project directory, you can run:
+```
+用户查询 (前端 React)
+    │  POST /api/rag/search
+    ▼
+FastAPI 后端
+    │
+    ├── BGE-small-zh-v1.5 (ONNX) → 512-dim 向量
+    │      ↑ fastembed / 惰性加载
+    │
+    ├── sqlite-vec kNN          ← 语义相似度
+    │
+    ├── FTS5 BM25               ← 关键词精确匹配
+    │
+    └── 加权合并 (α 可调)       ← 最终排序
+```
 
-### `npm start`
+**嵌入模型**：`BAAI/bge-small-zh-v1.5`（33MB, 512维, 中英双语, ONNX 推理）
+**向量存储**：`sqlite-vec`（SQLite 扩展，沿用每用户独立 DB 的多租户架构）
+**检索策略**：混合检索（向量 + FTS5 关键词），α 参数调节两路权重
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 快速开始
 
-### `npm test`
+### 1. 环境变量
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+首次运行需要下载嵌入模型（~33MB）。如果 HuggingFace 不可达，设置镜像：
 
-### `npm run build`
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 2. 安装依赖（后端）
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+pip install sqlite-vec fastembed
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Docker 部署时，确保 `Dockerfile` 中包含上述依赖并设置 `HF_ENDPOINT` 环境变量。
 
-### `npm run eject`
+### 3. 初始化索引
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+启动后端后，首次使用需要建立索引：
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+# 查看状态
+curl http://localhost:8080/api/rag/status
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# 全量重建（2616 本约 260 秒）
+curl -X POST http://localhost:8080/api/rag/reindex
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+索引会自动保持同步：创建/更新/删除图书时，后台自动调用索引钩子。
 
-## Learn More
+### 4. 前端搜索
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+导航栏点击 **AI Search** 进入语义搜索页面：
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. 输入自然语言查询（中英文均可）
+2. 拖拽 **Meaning** 滑块调节搜索模式（偏关键词 or 偏语义）
+3. 按 Enter 或点击 Search
+4. 点击结果卡片跳转图书详情
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## API 参考
 
-### Analyzing the Bundle Size
+### 混合搜索
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+POST /api/rag/search
+Content-Type: application/json
 
-### Making a Progressive Web App
+{
+  "query": "关于人工智能的科幻小说",
+  "top_k": 10,
+  "alpha": 0.5
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `query` | string | — | 搜索查询（中英文） |
+| `top_k` | int | 10 | 返回结果数量 (1-100) |
+| `alpha` | float | 0.5 | 向量权重 (0=纯FTS5, 1=纯向量) |
 
-### Advanced Configuration
+### 索引状态
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+GET /api/rag/status
+```
 
-### Deployment
+返回 `{ indexed_count, total_books, model_loaded }`。
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### 全量重索引
 
-### `npm run build` fails to minify
+```bash
+POST /api/rag/reindex
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+返回 `{ total, indexed, failed }`。
+
+---
+
+## 索引同步
+
+| 事件 | 行为 |
+|------|------|
+| 创建图书 | 自动生成嵌入 + FTS5 索引 |
+| 更新图书 | 重新生成嵌入并更新索引 |
+| 删除图书 | 清除对应向量和 FTS5 记录 |
+
+索引在业务事务外执行（异常不影响主流程），通过 `rag.pipeline.sync_book()` / `remove_book()` 注入。
+
+---
+
+## 已知限制
+
+| 限制 | 说明 |
+|------|------|
+| **FTS5 中文分词** | SQLite FTS5 默认 tokenizer 不支持中文分词。纯 FTS5 模式（alpha=0）对中文短语效果有限，建议使用混合模式（alpha≥0.5） |
+| **重索引速度** | 单条 ~100ms（含向量推理），2616 本全量约 260 秒。可分批执行或后台异步 |
+| **模型冷启动** | 首次搜索触发模型加载约 2-12 秒（含第一次下载），后续搜索正常 |
+
+---
+
+## 开发
+
+### 文件结构
+
+```
+backend/
+  rag/
+    __init__.py       模块入口
+    embedding.py      fastembed 封装（惰性加载 BGE 模型）
+    vector_store.py   vec0 + FTS5 表管理、CRUD、搜索
+    document.py       Book → 结构化文档构建
+    pipeline.py       索引同步（sync / remove / reindex）
+  routers/
+    rag.py            API 端点（search / reindex / status）
+  schemas/
+    rag.py            请求/响应模型
+
+frontend/
+  src/components/
+    RagSearch.js      搜索 UI 组件
+    RagSearch.css     搜索页样式
+```
+
+### 数据流
+
+```
+Book CRUD → pipeline.sync_book()
+    → build_book_document(book)     # 结构化文本
+    → embed_text(document)          # BGE 512-dim 向量
+    → upsert_book_vector()          # vec0 DELETE + INSERT
+    → upsert_book_fts()             # FTS5 contentless
+```
+
+---
+
+## RAG_DESIGN.md
+
+完整的方案设计文档见项目根目录 [`RAG_DESIGN.md`](../RAG_DESIGN.md)。

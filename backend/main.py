@@ -4,10 +4,11 @@ from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from routers import author_router, book_router, bookshelf_router, category_router, publisher_router, brand_router, series_router, application_router, user_router, stats_router
+from routers import author_router, book_router, bookshelf_router, category_router, publisher_router, brand_router, series_router, application_router, user_router, stats_router, rag_router
 from database import get_db
 from sqlalchemy.orm import Session
 from models import Author, Book, Bookshelf, Category, Publisher, Brand, BookSeries
+from rag.pipeline import sync_book
 from typing import List
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +41,7 @@ app.include_router(series_router)
 app.include_router(application_router)
 app.include_router(user_router)
 app.include_router(stats_router)
+app.include_router(rag_router)
 
 # Page-view middleware — logs frontend page visits (called from frontend)
 @app.middleware("http")
@@ -151,6 +153,8 @@ async def add_book(request: Request, isbn: str = Form(...), title_cn: str = Form
     db_book.translator = translator
     db.add(db_book)
     db.commit()
+    # Index for RAG search (best-effort)
+    sync_book(db, db_book.id)
     db.refresh(db_book)
 
     return templates.TemplateResponse("books_add.html", {"request": request, "message": "Book added successfully!"})

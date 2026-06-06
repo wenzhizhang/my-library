@@ -28,3 +28,5 @@ typing_extensions==4.15.0
 uvicorn==0.24.0
 watchfiles==1.1.1
 websockets==16.0
+sqlite-vec==0.1.9
+fastembed==0.8.0

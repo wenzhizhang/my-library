@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { createPortal } from 'react-dom';
 import './Books.css';
 import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
@@ -590,12 +591,36 @@ function SearchableSelect({
 }) {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on scroll outside the dropdown
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = (e) => {
+      if (dropdownRef.current && dropdownRef.current.contains(e.target)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, [isOpen]);
 
   const filteredOptions = options.filter(opt =>
     opt.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const selectedOption = options.find(opt => opt.id === value);
+
+  // Compute dropdown position from the wrapper's bounding rect
+  const dropdownPos = (() => {
+    if (!isOpen || !wrapperRef.current) return null;
+    const rect = wrapperRef.current.getBoundingClientRect();
+    return {
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    };
+  })();
 
   const labelStyle = {
     fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
@@ -627,16 +652,15 @@ function SearchableSelect({
 
   const dropdownStyle = {
     position: 'absolute',
-    top: '100%',
+    top: 0,
     left: 0,
-    right: 0,
     maxHeight: '200px',
     overflowY: 'auto',
     background: dark ? 'rgba(39, 39, 41, 0.95)' : 'rgba(255, 255, 255, 0.95)',
     backdropFilter: 'blur(8px)',
     borderRadius: '0 0 8px 8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    zIndex: 10,
+    zIndex: 9999,
   };
 
   const optionStyle = (isSelected) => ({
@@ -648,8 +672,32 @@ function SearchableSelect({
     background: isSelected ? (dark ? 'rgba(0,113,227,0.3)' : 'rgba(0,113,227,0.1)') : 'transparent',
   });
 
+  const dropdownPortal = isOpen && filteredOptions.length > 0 && dropdownPos && createPortal(
+    <div ref={dropdownRef} style={{
+      ...dropdownStyle,
+      top: dropdownPos.top,
+      left: dropdownPos.left,
+      width: dropdownPos.width,
+    }} onMouseDown={(e) => e.preventDefault()}>
+      {filteredOptions.map(opt => (
+        <div
+          key={opt.id}
+          style={optionStyle(opt.id === value)}
+          onClick={() => {
+            onChange(opt.id);
+            setSearch('');
+            setIsOpen(false);
+          }}
+        >
+          {opt.name}
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
+
   return (
-    <div style={{ marginBottom: '24px', width: '100%', position: 'relative' }}>
+    <div ref={wrapperRef} style={{ marginBottom: '24px', width: '100%' }}>
       <label style={labelStyle}>
         <span>
           {label}
@@ -684,29 +732,11 @@ function SearchableSelect({
           setIsOpen(true);
         }}
         onBlur={(e) => {
-          // Small delay to allow click on dropdown items
           setTimeout(() => setIsOpen(false), 150);
         }}
         placeholder={placeholder}
         style={inputStyle}
       />
-      {isOpen && filteredOptions.length > 0 && (
-        <div style={dropdownStyle} onMouseDown={(e) => e.preventDefault()}>
-          {filteredOptions.map(opt => (
-            <div
-              key={opt.id}
-              style={optionStyle(opt.id === value)}
-              onClick={() => {
-                onChange(opt.id);
-                setSearch('');
-                setIsOpen(false);
-              }}
-            >
-              {opt.name}
-            </div>
-          ))}
-        </div>
-      )}
       {error && (
         <div style={{
           fontFamily: TYPOGRAPHY.caption.fontFamily,
@@ -718,6 +748,7 @@ function SearchableSelect({
           {error}
         </div>
       )}
+      {dropdownPortal}
     </div>
   );
 }
@@ -938,8 +969,21 @@ function BookFormPage() {
   const [authorSearch, setAuthorSearch] = useState('');
   const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
   const [authorNameMap, setAuthorNameMap] = useState({});  // id → formatted name fallback
+  const authorWrapperRef = useRef(null);
+  const authorDropdownRef = useRef(null);
 
+  // Close author dropdown on scroll outside the dropdown
+  useEffect(() => {
+    if (!authorDropdownOpen) return;
+    const close = (e) => {
+      if (authorDropdownRef.current && authorDropdownRef.current.contains(e.target)) return;
+      setAuthorDropdownOpen(false);
+    };
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, [authorDropdownOpen]);
   const handleAuthorToggle = (authorId) => {
+
     setFormData(prev => {
       const current = prev.author_ids;
       const updated = current.includes(authorId)
@@ -976,6 +1020,16 @@ function BookFormPage() {
     (a.name.toLowerCase().includes(authorSearch.toLowerCase()) ||
      (a.name_en && a.name_en.toLowerCase().includes(authorSearch.toLowerCase())))
   );
+
+  const authorDropdownPos = (() => {
+    if (!authorDropdownOpen || !authorWrapperRef.current) return null;
+    const rect = authorWrapperRef.current.getBoundingClientRect();
+    return {
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    };
+  })();
 
   const handleTagAdd = (tag) => {
     if (tag.trim() && !formData.tags.includes(tag.trim())) {
@@ -1086,7 +1140,7 @@ function BookFormPage() {
             dark
           />
 
-          <div style={{ marginBottom: '24px', width: '100%', position: 'relative' }}>
+          <div ref={authorWrapperRef} style={{ marginBottom: '24px', width: '100%' }}>
             <label style={{
               fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
               fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
@@ -1160,20 +1214,21 @@ function BookFormPage() {
               }}
             />
 
-            {/* Dropdown */}
-            {authorDropdownOpen && filteredAuthors.length > 0 && (
-              <div style={{
+
+            {/* Dropdown via portal */}
+            {authorDropdownOpen && filteredAuthors.length > 0 && authorDropdownPos && createPortal(
+              <div ref={authorDropdownRef} style={{
                 position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
+                top: authorDropdownPos.top,
+                left: authorDropdownPos.left,
+                width: authorDropdownPos.width,
                 maxHeight: '200px',
                 overflowY: 'auto',
                 background: 'rgba(39, 39, 41, 0.95)',
                 backdropFilter: 'blur(8px)',
                 borderRadius: '0 0 8px 8px',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                zIndex: 10,
+                zIndex: 9999,
               }} onMouseDown={(e) => e.preventDefault()}>
                 {filteredAuthors.map(a => (
                   <div key={a.id} onClick={() => handleAuthorAdd(a.id)} style={{
@@ -1186,7 +1241,8 @@ function BookFormPage() {
                     {formatAuthorName(a)}
                   </div>
                 ))}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
 

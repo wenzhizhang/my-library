@@ -13,9 +13,6 @@ services:
     depends_on:
       - frontend
       - backend
-    environment:
-      - DOMAIN=${DOMAIN:-}
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-}
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
@@ -34,6 +31,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP:-localhost}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
     volumes:
       - my-library-data:/app/data
       - ./config/projects.json:/app/config/projects.json:ro

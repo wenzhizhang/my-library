@@ -85,6 +85,12 @@ const Header = () => {
           >
             Series
           </Link>
+          <Link 
+            to={getPath('/rag-search')} 
+            className={`nav-link ${isActive('/rag-search') ? 'active' : ''}`}
+          >
+            AI Search
+          </Link>
         </div>
         <div className="nav-auth">
           {isAuthenticated ? (

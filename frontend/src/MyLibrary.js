@@ -20,6 +20,7 @@ import BrandDetails from './components/BrandDetails';
 import SeriesDetails from './components/SeriesDetails';
 import Login from './components/Login';
 import Register from './components/Register';
+import RagSearch from './components/RagSearch';
 import './MyLibrary.css';
 
 function MyLibrary() {
@@ -56,6 +57,7 @@ function MyLibrary() {
 
             <Route path="series" element={<Series />} />
             <Route path="series/:id" element={<SeriesDetails />} />
+            <Route path="rag-search" element={<RagSearch />} />
           </Routes>
         </main>
       </div>

@@ -1,0 +1,22 @@
+/* React Bits Masonry — layout-only styles */
+.masonry-list {
+  position: relative;
+  width: 100%;
+  min-height: 100px;
+}
+
+.masonry-item-wrapper {
+  position: absolute;
+  will-change: transform, width, height, opacity;
+  padding: 6px;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.masonry-item-wrapper.no-pointer {
+  cursor: default;
+}
