@@ -832,13 +832,23 @@ function BookFormPage() {
             id: item.id,
             name: item.name_cn || item.name || item.path || item.title,
             ...(key === 'authors' ? { name_cn: item.name_cn, name_en: item.name, nation: item.nation, dynasty: item.dynasty } : {}),
+            // Keep raw fields for path resolution
+            ...(key === 'categories' ? { _path: item.path, _rawName: item.name } : {}),
           }));
           switch (key) {
             case 'authors': setAuthors(normalized); break;
             case 'publishers': setPublishers(normalized); break;
             case 'brands': setBrands(normalized); break;
             case 'series': setSeries(normalized); break;
-            case 'categories': setCategories(normalized); break;
+            case 'categories': {
+              // path is already "Parent > Child" from the backend
+              const withPath = normalized.map(c => {
+                const { _path, _rawName, ...rest } = c;
+                return { ...rest, name: c._path || c._rawName };
+              });
+              setCategories(withPath);
+              break;
+            }
             case 'bookshelves': setBookshelves(normalized); break;
             default: break;
           }
