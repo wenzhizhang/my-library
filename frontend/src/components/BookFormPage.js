@@ -1326,20 +1326,20 @@ function BookFormPage() {
           maxWidth: '800px',
           margin: '0 auto',
         }}>
-          <AppleCombobox
+          <SearchableSelect
             label="Binding Type"
             value={formData.binding_type}
             onChange={(v) => updateField('binding_type', v)}
-            options={BINDING_TYPES}
+            options={BINDING_TYPES.map(name => ({ id: name, name }))}
             placeholder="精装 / 平装..."
             dark
           />
 
-          <AppleCombobox
+          <SearchableSelect
             label="Paper Type"
             value={formData.paper_type}
             onChange={(v) => updateField('paper_type', v)}
-            options={PAPER_TYPES}
+            options={PAPER_TYPES.map(name => ({ id: name, name }))}
             placeholder="铜版纸 / 胶版纸..."
             dark
           />
@@ -1362,20 +1362,20 @@ function BookFormPage() {
             dark
           />
 
-          <AppleCombobox
+          <SearchableSelect
             label="Language"
             value={formData.language}
             onChange={(v) => updateField('language', v)}
-            options={LANGUAGES}
+            options={LANGUAGES.map(name => ({ id: name, name }))}
             placeholder="中文 / 英文..."
             dark
           />
 
-          <AppleCombobox
+          <SearchableSelect
             label="Compose Type"
             value={formData.compose_type}
             onChange={(v) => updateField('compose_type', v)}
-            options={COMPOSE_TYPES}
+            options={COMPOSE_TYPES.map(name => ({ id: name, name }))}
             placeholder="横排 / 竖排"
             dark
           />
@@ -1457,11 +1457,11 @@ function BookFormPage() {
             dark
           />
 
-          <AppleCombobox
+          <SearchableSelect
             label="Purchase Store"
             value={formData.purchase_store}
             onChange={(v) => updateField('purchase_store', v)}
-            options={PURCHASE_STORES}
+            options={PURCHASE_STORES.map(name => ({ id: name, name }))}
             placeholder="京东自营 / 当当..."
             dark
           />
