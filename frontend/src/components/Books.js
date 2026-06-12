@@ -192,9 +192,9 @@ const Books = () => {
           {/* Search */}
           <div className="toolbar-search">
             <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder="ISBN"
-                value={inputParams.isbn}
-                onChange={(e) => handleInputChange('isbn', e.target.value)}
+              <input className="toolbar-search-input" placeholder="Search title…"
+                value={inputParams.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
                 onKeyDown={handleKeyDown} />
               <button className="btn-pill-link" onClick={handleSearch}>Search</button>
               <button
@@ -207,10 +207,10 @@ const Books = () => {
             {showAdvanced && (
               <div className="toolbar-search-advanced">
                 <label className="search-label">
-                  <span>Title</span>
-                  <input placeholder="Search title…"
-                    value={inputParams.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)} />
+                  <span>ISBN</span>
+                  <input placeholder="Search ISBN…"
+                    value={inputParams.isbn}
+                    onChange={(e) => handleInputChange('isbn', e.target.value)} />
                 </label>
                 <label className="search-label">
                   <span>Author</span>
