@@ -1471,10 +1471,10 @@ function BookFormPage() {
             value={formData.douban_score ?? ''}
             onChange={(v) => updateField('douban_score', v ? Number(v) : null)}
             type="number"
-            step="0.1"
+            step="1"
             min="0"
-            max="10"
-            placeholder="0.0 - 10.0"
+            max="100"
+            placeholder="0 - 100"
             dark
           />
 
