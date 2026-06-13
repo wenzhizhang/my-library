@@ -1,0 +1,1626 @@
+openapi: "3.1.1"
+info:
+  title: My Library API
+  description: |
+    Book library management system.
+    All endpoints return JSON. Some endpoints require authentication
+    (Bearer token from `/api/auth/login`).
+  version: "0.2.35"
+  contact:
+    name: My Library
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development
+  - url: https://dingfengbo.top
+    description: Production
+
+tags:
+  - name: Auth
+  - name: Books
+  - name: Authors
+  - name: Publishers
+  - name: Brands
+  - name: Series
+  - name: Categories
+  - name: Bookshelves
+  - name: Book Collections
+  - name: Applications
+  - name: Stats
+  - name: RAG
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Auth ──
+    UserRegister:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string, minLength: 4 }
+    UserLogin:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, default: "bearer" }
+        user_id: { type: integer }
+        username: { type: string }
+        uuid: { type: string }
+    UserInfo:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        uuid: { type: string }
+
+    # ── Book ──
+    BookCreation:
+      type: object
+      required: [isbn, title]
+      properties:
+        isbn: { type: string }
+        title: { type: string }
+        title_cn: { type: string }
+        author_ids: { type: array, items: { type: integer } }
+        translator: { type: string, nullable: true }
+        publisher_id: { type: integer, nullable: true }
+        publish_date: { type: string, nullable: true }
+        brand_id: { type: integer, nullable: true }
+        book_series_id: { type: integer, nullable: true }
+        binding_type: { type: string, nullable: true }
+        paper_type: { type: string, nullable: true }
+        pages: { type: integer, nullable: true }
+        book_count: { type: integer, nullable: true }
+        language: { type: string, nullable: true }
+        compose_type: { type: string, nullable: true }
+        price: { type: number, nullable: true }
+        purchase_price: { type: number, nullable: true }
+        purchase_date: { type: string, nullable: true }
+        thumb_image: { type: string, nullable: true }
+        link: { type: string, nullable: true }
+        category_id: { type: integer, nullable: true }
+        bookshelf_id: { type: integer, nullable: true }
+        read_state: { type: string, nullable: true }
+        catalog: { type: string, nullable: true }
+        introduction: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        registered: { type: boolean, nullable: true }
+        edition: { type: string, nullable: true }
+        printing_info: { type: string, nullable: true }
+        printed_number: { type: integer, nullable: true }
+        douban_score: { type: number, nullable: true }
+        purchase_store: { type: string, nullable: true }
+        tags: { type: array, nullable: true, items: { type: string } }
+        in_wish: { type: boolean }
+    BookUpdate:
+      type: object
+      properties:
+        isbn: { type: string }
+        title: { type: string }
+        title_cn: { type: string }
+        author_ids: { type: array, items: { type: integer } }
+        translator: { type: string, nullable: true }
+        publisher_id: { type: integer, nullable: true }
+        publish_date: { type: string, nullable: true }
+        brand_id: { type: integer, nullable: true }
+        book_series_id: { type: integer, nullable: true }
+        binding_type: { type: string, nullable: true }
+        paper_type: { type: string, nullable: true }
+        pages: { type: integer, nullable: true }
+        book_count: { type: integer, nullable: true }
+        language: { type: string, nullable: true }
+        compose_type: { type: string, nullable: true }
+        price: { type: number, nullable: true }
+        purchase_price: { type: number, nullable: true }
+        purchase_date: { type: string, nullable: true }
+        thumb_image: { type: string, nullable: true }
+        link: { type: string, nullable: true }
+        category_id: { type: integer, nullable: true }
+        bookshelf_id: { type: integer, nullable: true }
+        read_state: { type: string, nullable: true }
+        catalog: { type: string, nullable: true }
+        introduction: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        registered: { type: boolean, nullable: true }
+        edition: { type: string, nullable: true }
+        printing_info: { type: string, nullable: true }
+        printed_number: { type: integer, nullable: true }
+        douban_score: { type: number, nullable: true }
+        purchase_store: { type: string, nullable: true }
+        tags: { type: array, nullable: true, items: { type: string } }
+        in_wish: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    BookResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        isbn: { type: string }
+        title: { type: string }
+        title_cn: { type: string }
+        authors:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+        translator: { type: string, nullable: true }
+        publisher: { $ref: "#/components/schemas/PublisherSimple", nullable: true }
+        publish_date: { type: string, format: date-time, nullable: true }
+        brand: { $ref: "#/components/schemas/BrandSimple", nullable: true }
+        book_series: { $ref: "#/components/schemas/SeriesSimple", nullable: true }
+        binding_type: { type: string, nullable: true }
+        paper_type: { type: string, nullable: true }
+        pages: { type: integer, nullable: true }
+        book_count: { type: integer, nullable: true }
+        language: { type: string, nullable: true }
+        compose_type: { type: string, nullable: true }
+        price: { type: number, nullable: true }
+        purchase_price: { type: number, nullable: true }
+        purchase_date: { type: string, format: date-time, nullable: true }
+        thumb_image: { type: string, nullable: true }
+        link: { type: string, nullable: true }
+        category: { $ref: "#/components/schemas/CategorySimple", nullable: true }
+        bookshelf: { $ref: "#/components/schemas/BookshelfSimple", nullable: true }
+        read_state: { type: string, nullable: true }
+        catalog: { type: string, nullable: true }
+        introduction: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        registered: { type: boolean, nullable: true }
+        edition: { type: string, nullable: true }
+        printing_info: { type: string, nullable: true }
+        printed_number: { type: integer, nullable: true }
+        douban_score: { type: number, nullable: true }
+        purchase_store: { type: string, nullable: true }
+        tags: { type: array, nullable: true, items: { type: string } }
+        in_wish: { type: boolean, nullable: true }
+
+    # ── Simple ref types ──
+    PublisherSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    BrandSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    SeriesSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    CategorySimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    BookshelfSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    # ── Author ──
+    AuthorCreation:
+      type: object
+      required: [name, name_cn, nation]
+      properties:
+        name: { type: string }
+        name_cn: { type: string }
+        nation: { type: string }
+        dynasty: { type: string }
+        intro: { type: string }
+        photo: { type: string }
+    AuthorUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        name_cn: { type: string }
+        nation: { type: string }
+        dynasty: { type: string }
+        intro: { type: string }
+        photo: { type: string }
+    AuthorResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        name_cn: { type: string }
+        nation: { type: string }
+        dynasty: { type: string, nullable: true }
+        intro: { type: string, nullable: true }
+        photo: { type: string, nullable: true }
+        books:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/BookSimple"
+
+    # ── Book Simple (used in collections/authors) ──
+    BookSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        title_cn: { type: string, nullable: true }
+        thumb_image: { type: string, nullable: true }
+        isbn: { type: string, nullable: true }
+        authors:
+          type: array
+          nullable: true
+          items: { type: string }
+
+    # ── Publisher ──
+    PublisherCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+        logo: { type: string }
+    PublisherUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+        logo: { type: string }
+    PublisherResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        logo: { type: string, nullable: true }
+
+    # ── Brand ──
+    BrandCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BrandUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BrandResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+
+    # ── Series ──
+    BookSeriesCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BookSeriesUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BookSeriesResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+
+    # ── Category ──
+    CategoryCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        parent: { type: integer, description: "Parent category ID" }
+        intro: { type: string }
+    CategoryUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        parent_id: { type: integer, description: "Parent category ID" }
+        intro: { type: string }
+    CategoryResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        parent_id: { type: integer, nullable: true }
+        intro: { type: string, nullable: true }
+        depth: { type: integer }
+        path: { type: string, nullable: true }
+
+    # ── Bookshelf ──
+    BookshelfCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BookshelfUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BookshelfResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+
+    # ── Book Collection ──
+    BookCollectionCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    BookCollectionUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+    AddBookToCollection:
+      type: object
+      required: [book_id]
+      properties:
+        book_id: { type: integer }
+    BatchAddBooks:
+      type: object
+      required: [book_ids]
+      properties:
+        book_ids: { type: array, items: { type: integer } }
+    BookCollectionSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        created_at: { type: string, nullable: true }
+        total_books: { type: integer }
+    BookCollectionResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        total_books: { type: integer, nullable: true }
+        books:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/BookSimple"
+    BookCollectionListResponse:
+      type: object
+      properties:
+        book_collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookCollectionSummary"
+        total_pages: { type: integer }
+        total_collections: { type: integer }
+
+    # ── Application ──
+    ApplicationCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        icon: { type: string }
+        link: { type: string }
+        sort_order: { type: integer }
+    ApplicationUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        icon: { type: string }
+        link: { type: string }
+        sort_order: { type: integer }
+    ApplicationResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        icon: { type: string, nullable: true }
+        link: { type: string, nullable: true }
+        sort_order: { type: integer, nullable: true }
+
+    # ── RAG ──
+    RagSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+        limit: { type: integer, default: 10 }
+        min_score: { type: number, default: 0.3 }
+
+    # ── Error ──
+    HTTPError:
+      type: object
+      properties:
+        detail: { type: string }
+
+paths:
+  # ═══════════════════════════════════════════════
+  # Auth
+  # ═══════════════════════════════════════════════
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegister"
+      responses:
+        "200":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive an access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLogin"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/auth/db-info:
+    get:
+      tags: [Auth]
+      summary: Get current user's database info
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: DB info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id: { type: integer }
+                  uuid: { type: string }
+                  db: { type: string }
+                  exists: { type: boolean }
+                  type: { type: string }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user info
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+
+  # ═══════════════════════════════════════════════
+  # Books
+  # ═══════════════════════════════════════════════
+  /api/books:
+    get:
+      tags: [Books]
+      summary: List books (paginated)
+      description: Returns books with in_wish=false only.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at] } }
+        - { name: isbn, in: query, schema: { type: string } }
+        - { name: title, in: query, schema: { type: string } }
+        - { name: author, in: query, schema: { type: string } }
+        - { name: publisher, in: query, schema: { type: string } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: min_price, in: query, schema: { type: number } }
+        - { name: max_price, in: query, schema: { type: number } }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  books:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BookResponse"
+                  total_pages: { type: integer }
+                  total_books: { type: integer }
+    post:
+      tags: [Books]
+      summary: Create a new book
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreation"
+      responses:
+        "200":
+          description: Created book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookResponse"
+
+  /api/books/search:
+    get:
+      tags: [Books]
+      summary: Search books with filters
+      description: Returns books with in_wish=false only.
+      parameters:
+        - { name: isbn, in: query, schema: { type: string } }
+        - { name: title, in: query, schema: { type: string } }
+        - { name: author, in: query, schema: { type: string } }
+        - { name: publisher, in: query, schema: { type: string } }
+        - { name: tag, in: query, schema: { type: string } }
+        - { name: min_price, in: query, schema: { type: number } }
+        - { name: max_price, in: query, schema: { type: number } }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookResponse"
+
+  /api/books/titles:
+    get:
+      tags: [Books]
+      summary: Get all book titles (lightweight, for dropdowns)
+      description: Returns {id, name} pairs for non-wishlist books.
+      responses:
+        "200":
+          description: Book title list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    name: { type: string }
+
+  /api/books/{book_id}:
+    get:
+      tags: [Books]
+      summary: Get book details
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Book details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookResponse"
+        "404":
+          description: Book not found
+    put:
+      tags: [Books]
+      summary: Update a book
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookUpdate"
+      responses:
+        "200":
+          description: Updated book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookResponse"
+    delete:
+      tags: [Books]
+      summary: Delete a book
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  /api/books/{book_id}/similar:
+    get:
+      tags: [Books]
+      summary: Get similar books
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+        - { name: limit, in: query, schema: { type: integer, default: 5 } }
+      responses:
+        "200":
+          description: Similar books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  similar_books:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BookSimple"
+                  total_similar_books: { type: integer }
+
+  # ═══════════════════════════════════════════════
+  # Authors
+  # ═══════════════════════════════════════════════
+  /api/authors:
+    get:
+      tags: [Authors]
+      summary: List authors (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, created_at] } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authors:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuthorResponse"
+                  total_pages: { type: integer }
+                  total_authors: { type: integer }
+    post:
+      tags: [Authors]
+      summary: Create an author
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorCreation"
+      responses:
+        "200":
+          description: Created author
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorResponse"
+
+  /api/authors/{author_id}:
+    get:
+      tags: [Authors]
+      summary: Get author details (with books)
+      parameters:
+        - { name: author_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Author with books
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorResponse"
+    put:
+      tags: [Authors]
+      summary: Update an author
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: author_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorUpdate"
+      responses:
+        "200":
+          description: Updated author
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorResponse"
+    delete:
+      tags: [Authors]
+      summary: Delete an author
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: author_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Publishers
+  # ═══════════════════════════════════════════════
+  /api/publishers:
+    get:
+      tags: [Publishers]
+      summary: List publishers (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publishers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublisherResponse"
+                  total_pages: { type: integer }
+                  total_publishers: { type: integer }
+    post:
+      tags: [Publishers]
+      summary: Create a publisher
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublisherCreation"
+      responses:
+        "200":
+          description: Created publisher
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublisherResponse"
+
+  /api/publishers/{publisher_id}:
+    get:
+      tags: [Publishers]
+      summary: Get publisher details
+      parameters:
+        - { name: publisher_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Publisher details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublisherResponse"
+    put:
+      tags: [Publishers]
+      summary: Update a publisher
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: publisher_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublisherUpdate"
+      responses:
+        "200":
+          description: Updated publisher
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublisherResponse"
+    delete:
+      tags: [Publishers]
+      summary: Delete a publisher
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: publisher_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Brands
+  # ═══════════════════════════════════════════════
+  /api/brands:
+    get:
+      tags: [Brands]
+      summary: List brands (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brands:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BrandResponse"
+                  total_pages: { type: integer }
+                  total_brands: { type: integer }
+    post:
+      tags: [Brands]
+      summary: Create a brand
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandCreation"
+      responses:
+        "200":
+          description: Created brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandResponse"
+
+  /api/brands/{brand_id}:
+    get:
+      tags: [Brands]
+      summary: Get brand details
+      parameters:
+        - { name: brand_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Brand details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandResponse"
+    put:
+      tags: [Brands]
+      summary: Update a brand
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: brand_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandUpdate"
+      responses:
+        "200":
+          description: Updated brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandResponse"
+    delete:
+      tags: [Brands]
+      summary: Delete a brand
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: brand_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Series
+  # ═══════════════════════════════════════════════
+  /api/series:
+    get:
+      tags: [Series]
+      summary: List series (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  series:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BookSeriesResponse"
+                  total_pages: { type: integer }
+                  total_series: { type: integer }
+    post:
+      tags: [Series]
+      summary: Create a series
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookSeriesCreation"
+      responses:
+        "200":
+          description: Created series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookSeriesResponse"
+
+  /api/series/{series_id}:
+    get:
+      tags: [Series]
+      summary: Get series details
+      parameters:
+        - { name: series_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Series details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookSeriesResponse"
+    put:
+      tags: [Series]
+      summary: Update a series
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: series_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookSeriesUpdate"
+      responses:
+        "200":
+          description: Updated series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookSeriesResponse"
+    delete:
+      tags: [Series]
+      summary: Delete a series
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: series_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Categories
+  # ═══════════════════════════════════════════════
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: List categories (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CategoryResponse"
+                  total_pages: { type: integer }
+                  total_categories: { type: integer }
+    post:
+      tags: [Categories]
+      summary: Create a category
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreation"
+      responses:
+        "200":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryResponse"
+
+  /api/categories/{category_id}:
+    get:
+      tags: [Categories]
+      summary: Get category details
+      parameters:
+        - { name: category_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryResponse"
+    put:
+      tags: [Categories]
+      summary: Update a category
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: category_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryResponse"
+    delete:
+      tags: [Categories]
+      summary: Delete a category
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: category_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Bookshelves
+  # ═══════════════════════════════════════════════
+  /api/bookshelves:
+    get:
+      tags: [Bookshelves]
+      summary: List bookshelves (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookshelves:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BookshelfResponse"
+                  total_pages: { type: integer }
+                  total_bookshelves: { type: integer }
+    post:
+      tags: [Bookshelves]
+      summary: Create a bookshelf
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookshelfCreation"
+      responses:
+        "200":
+          description: Created bookshelf
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookshelfResponse"
+
+  /api/bookshelves/{bookshelf_id}:
+    get:
+      tags: [Bookshelves]
+      summary: Get bookshelf details
+      parameters:
+        - { name: bookshelf_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Bookshelf details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookshelfResponse"
+    put:
+      tags: [Bookshelves]
+      summary: Update a bookshelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: bookshelf_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookshelfUpdate"
+      responses:
+        "200":
+          description: Updated bookshelf
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookshelfResponse"
+    delete:
+      tags: [Bookshelves]
+      summary: Delete a bookshelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: bookshelf_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Book Collections
+  # ═══════════════════════════════════════════════
+  /api/book-collections:
+    get:
+      tags: [Book Collections]
+      summary: List book collections (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, created_at] } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionListResponse"
+    post:
+      tags: [Book Collections]
+      summary: Create a book collection
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCollectionCreation"
+      responses:
+        "200":
+          description: Created collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+
+  /api/book-collections/{collection_id}:
+    get:
+      tags: [Book Collections]
+      summary: Get collection with books
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Collection with books
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+        "404":
+          description: Collection not found
+    put:
+      tags: [Book Collections]
+      summary: Update a book collection
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCollectionUpdate"
+      responses:
+        "200":
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+    delete:
+      tags: [Book Collections]
+      summary: Delete a book collection (books unaffected)
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  /api/book-collections/{collection_id}/books:
+    post:
+      tags: [Book Collections]
+      summary: Add a single book to collection
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddBookToCollection"
+      responses:
+        "200":
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+        "400":
+          description: Book already in collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "404":
+          description: Book or collection not found
+
+  /api/book-collections/{collection_id}/books/batch:
+    post:
+      tags: [Book Collections]
+      summary: Batch-add books to collection
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAddBooks"
+      responses:
+        "200":
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+        "400":
+          description: Books not found or already in collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/book-collections/{collection_id}/books/{book_id}:
+    delete:
+      tags: [Book Collections]
+      summary: Remove a book from collection
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookCollectionResponse"
+        "400":
+          description: Book not in collection
+
+  # ═══════════════════════════════════════════════
+  # Applications
+  # ═══════════════════════════════════════════════
+  /api/applications:
+    get:
+      tags: [Applications]
+      summary: List applications (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+        - { name: sort_by, in: query, schema: { type: string, default: sort_order } }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApplicationResponse"
+                  total: { type: integer }
+                  total_pages: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+    post:
+      tags: [Applications]
+      summary: Create an application
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationCreation"
+      responses:
+        "200":
+          description: Created application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationResponse"
+
+  /api/applications/{application_id}:
+    get:
+      tags: [Applications]
+      summary: Get application details
+      parameters:
+        - { name: application_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationResponse"
+    put:
+      tags: [Applications]
+      summary: Update an application
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: application_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationUpdate"
+      responses:
+        "200":
+          description: Updated application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationResponse"
+    delete:
+      tags: [Applications]
+      summary: Delete an application
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: application_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Stats
+  # ═══════════════════════════════════════════════
+  /api/stats/page-view:
+    post:
+      tags: [Stats]
+      summary: Log a frontend page view
+      responses:
+        "200":
+          description: Total visits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_visits: { type: integer }
+
+  /api/stats/summary:
+    get:
+      tags: [Stats]
+      summary: Get site statistics summary
+      responses:
+        "200":
+          description: Stats summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_books: { type: integer }
+                  total_authors: { type: integer }
+                  total_publishers: { type: integer }
+                  total_categories: { type: integer }
+                  total_visits: { type: integer }
+
+  # ═══════════════════════════════════════════════
+  # RAG
+  # ═══════════════════════════════════════════════
+  /api/rag/search:
+    post:
+      tags: [RAG]
+      summary: Semantic book search (RAG)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagSearchRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        book_id: { type: integer }
+                        title: { type: string }
+                        score: { type: number }
+                        excerpt: { type: string }
+                  total: { type: integer }
+
+  /api/rag/status:
+    get:
+      tags: [RAG]
+      summary: Get RAG indexing status
+      responses:
+        "200":
+          description: RAG status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  indexed_books: { type: integer }
+                  total_books: { type: integer }
+                  model: { type: string }
