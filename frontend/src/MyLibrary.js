@@ -8,6 +8,7 @@ import Authors from './components/Authors';
 import Publishers from './components/Publishers';
 import Categories from './components/Categories';
 import Bookshelves from './components/Bookshelves';
+import BookCollections from './components/BookCollections';
 import Brands from './components/Brands';
 import Series from './components/Series';
 import BookDetails from './components/BookDetails';
@@ -17,6 +18,7 @@ import PublisherDetails from './components/PublisherDetails';
 import CategoryDetails from './components/CategoryDetails';
 import BookshelfDetails from './components/BookshelfDetails';
 import BrandDetails from './components/BrandDetails';
+import BookCollectionDetails from './components/BookCollectionDetails';
 import SeriesDetails from './components/SeriesDetails';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -52,6 +54,9 @@ function MyLibrary() {
             <Route path="bookshelves" element={<Bookshelves />} />
             <Route path="bookshelves/:id" element={<BookshelfDetails />} />
 
+
+            <Route path="book-collections" element={<BookCollections />} />
+            <Route path="book-collections/:id" element={<BookCollectionDetails />} />
             <Route path="brands" element={<Brands />} />
             <Route path="brands/:id" element={<BrandDetails />} />
 

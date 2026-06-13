@@ -8,6 +8,7 @@ from .series import BookSeries
 from .application import Application
 from .user import User
 from .stats import VisitLog
+from .book_collection import BookCollection, book_collection_items
 
 __all__ = [
     "Base",
@@ -21,5 +22,6 @@ __all__ = [
     "book_authors",
     "Application",
     "User",
-    "VisitLog",
+    "BookCollection",
+    "book_collection_items",
 ]

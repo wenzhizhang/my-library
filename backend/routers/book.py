@@ -123,6 +123,20 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     }
 
 
+@router.get("/titles")
+def get_book_titles(db: Session = Depends(get_db)):
+    """Return all books as lightweight {id, name} pairs for dropdowns."""
+    rows = db.execute(
+        select(Book.id, Book.title_cn, Book.title)
+        .where(Book.in_wish == False)
+        .order_by(Book.title)
+    ).all()
+    return [
+        {"id": row[0], "name": row[1] or row[2]}
+        for row in rows
+    ]
+
+
 @router.get("/{book_id}/similar")
 def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db)):
     """Get similar books based on shared tags."""

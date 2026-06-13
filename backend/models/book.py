@@ -21,6 +21,7 @@ book_authors = Table(
 if TYPE_CHECKING:
     from .author import Author
     from .series import BookSeries
+    from .book_collection import BookCollection
 
 
 class Book(Base):
@@ -71,6 +72,8 @@ class Book(Base):
     bookshelf: Mapped[Optional["Bookshelf"]] = relationship(back_populates="books")
 
     authors: Mapped[list["Author"]] = relationship(secondary=book_authors, back_populates="books")
+
+    collections: Mapped[list["BookCollection"]] = relationship(secondary="book_collection_items", back_populates="books")
 
     def __repr__(self):
         return f"<Book(id={self.id}, title='{self.title}')>"

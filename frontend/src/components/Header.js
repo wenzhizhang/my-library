@@ -74,6 +74,12 @@ const Header = () => {
             Bookshelves
           </Link>
           <Link 
+            to={getPath('/book-collections')} 
+            className={`nav-link ${isActive('/book-collections') ? 'active' : ''}`}
+          >
+            Collections
+          </Link>
+          <Link 
             to={getPath('/brands')} 
             className={`nav-link ${isActive('/brands') ? 'active' : ''}`}
           >
