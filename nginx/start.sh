@@ -26,10 +26,12 @@ server {
     listen 80;
     server_name _;
 
-    access_log /var/log/nginx/my-library.access.log main;
-    error_log  /var/log/nginx/my-library.error.log warn;
-
     location / {
+        set $frontend_upstream "http://frontend:3000";
+        proxy_pass $frontend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
+    location /my-library/ {
         set $frontend_upstream "http://frontend:3000";
         proxy_pass $frontend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
@@ -39,13 +41,27 @@ server {
         proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
-    location /docs {
+    location /my-library/api/ {
         set $backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ $1 break;
         proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
-    location /openapi.json {
+    location /my-library/docs {
         set $backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ $1 break;
+        proxy_pass $backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
+    location /my-library/openapi.json {
+        set $backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ $1 break;
+        proxy_pass $backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
+    location /my-library/redoc {
+        set $backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ $1 break;
         proxy_pass $backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
@@ -99,8 +115,19 @@ server {
         proxy_pass \$frontend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
+    location /my-library/ {
+        set \$frontend_upstream "http://frontend:3000";
+        proxy_pass \$frontend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
     location /api/ {
         set \$backend_upstream "http://backend:8000";
+        proxy_pass \$backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
+    location /my-library/api/ {
+        set \$backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ \$1 break;
         proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
@@ -109,13 +136,21 @@ server {
         proxy_pass \$solar_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
-    location /docs {
+    location /my-library/docs {
         set \$backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ \$1 break;
         proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
-    location /openapi.json {
+    location /my-library/openapi.json {
         set \$backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ \$1 break;
+        proxy_pass \$backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+    }
+    location /my-library/redoc {
+        set \$backend_upstream "http://backend:8000";
+        rewrite ^/my-library(.*)$ \$1 break;
         proxy_pass \$backend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }

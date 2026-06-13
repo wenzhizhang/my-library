@@ -13,8 +13,16 @@ from typing import List
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app = FastAPI(title="My Library", description="A book library management system")
 
+app = FastAPI(title="My Library", description="A book library management system", root_path="/my-library")
+
+
+@app.get("/openapi.json", include_in_schema=False)
+def custom_openapi_json():
+    import yaml
+    spec_path = os.path.join(BASE_DIR, "spec", "openapi.yaml")
+    with open(spec_path, "r") as f:
+        return yaml.safe_load(f)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

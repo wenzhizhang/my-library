@@ -11,7 +11,11 @@ info:
 servers:
   - url: http://127.0.0.1:8000
     description: Local development
+<<<<<<< HEAD
   - url: https://dingfengbo.top
+=======
+  - url: https://dingfengbo.top/my-library
+>>>>>>> b237d57 (DOC: Add OpenAPI spec)
     description: Production
 
 tags:
