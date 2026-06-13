@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
@@ -12,6 +12,7 @@ const BookCollectionDetails = () => {
   const [loading, setLoading] = useState(true);
   const [allBooks, setAllBooks] = useState([]);
   const [pendingBooks, setPendingBooks] = useState([]);
+  const pendingIdsRef = useRef(new Set());
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
   const [removingBookId, setRemovingBookId] = useState(null);
@@ -21,9 +22,35 @@ const BookCollectionDetails = () => {
   }, [id]);
 
   useEffect(() => {
-    if (collection) fetchAllBooks();
-  }, [collection?.id]);
+    let cancelled = false;
+    const loadBooks = async () => {
+      try {
+        const response = await axios.get(
+          `${window.location.origin}${API_BASE_URL}/books/titles`
+        );
+        if (cancelled) return;
+        const allTitles = response.data || [];
+        const existingIds = new Set([
+          ...(collection?.books || []).map(b => b.id),
+          ...pendingIdsRef.current,
+        ]);
+        if (cancelled) return;
+        setAllBooks(allTitles.filter(b => !existingIds.has(b.id)));
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching book titles:', err);
+          setAllBooks([]);
+        }
+      }
+    };
+    if (collection) loadBooks();
+    return () => { cancelled = true; };
+  }, [collection?.id, collection?.books?.length]);
 
+  // Keep ref in sync so loadBooks never reads stale pending IDs
+  useEffect(() => {
+    pendingIdsRef.current = new Set(pendingBooks.map(b => b.id));
+  }, [pendingBooks]);
   const fetchCollection = async () => {
     setLoading(true);
     try {
@@ -36,23 +63,6 @@ const BookCollectionDetails = () => {
       setCollection(null);
     }
     setLoading(false);
-  };
-
-  const fetchAllBooks = async () => {
-    try {
-      const response = await axios.get(
-        `${window.location.origin}${API_BASE_URL}/books/titles`
-      );
-      const allTitles = response.data || [];
-      const existingIds = new Set([
-        ...(collection?.books || []).map(b => b.id),
-        ...pendingBooks.map(b => b.id),
-      ]);
-      setAllBooks(allTitles.filter(b => !existingIds.has(b.id)));
-    } catch (err) {
-      console.error("Error fetching book titles:", err);
-      setAllBooks([]);
-    }
   };
 
   const handleSelectBook = (bookId) => {
@@ -83,7 +93,6 @@ const BookCollectionDetails = () => {
       );
       setCollection(response.data);
       setPendingBooks([]);
-      fetchAllBooks();
     } catch (err) {
       const msg = err.response?.data?.detail || "Failed to add books";
       setError(msg);
@@ -99,7 +108,6 @@ const BookCollectionDetails = () => {
         `${window.location.origin}${API_BASE_URL}/book-collections/${id}/books/${bookId}`
       );
       setCollection(response.data);
-      fetchAllBooks();
     } catch (err) {
       const msg = err.response?.data?.detail || "Failed to remove book";
       setError(msg);

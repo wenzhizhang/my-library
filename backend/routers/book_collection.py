@@ -114,7 +114,12 @@ def delete_book_collection(collection_id: int, db: Session = Depends(get_db)):
     )
     if collection is None:
         raise HTTPException(status_code=404, detail="Book collection not found")
-    collection.books = []
+    # Explicitly delete association rows first — avoids any ORM cascade risk
+    db.execute(
+        book_collection_items.delete().where(
+            book_collection_items.c.collection_id == collection_id
+        )
+    )
     db.delete(collection)
     db.commit()
     return {"message": "Book collection deleted"}
