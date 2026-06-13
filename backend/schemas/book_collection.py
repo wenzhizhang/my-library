@@ -72,3 +72,22 @@ class BookCollectionResponse(BaseModel):
         if self.total_books is None and self.books is not None:
             self.total_books = len(self.books)
         return self
+
+
+
+class BookCollectionSummary(BaseModel):
+    """书单列表项（不含 books 详情）"""
+    id: int
+    name: str
+    intro: Optional[str] = None
+    created_at: Optional[str] = None
+    total_books: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BookCollectionListResponse(BaseModel):
+    """书单列表响应"""
+    book_collections: List[BookCollectionSummary]
+    total_pages: int
+    total_collections: int

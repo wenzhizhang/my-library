@@ -22,6 +22,7 @@ __all__ = [
     "book_authors",
     "Application",
     "User",
+    "VisitLog",
     "BookCollection",
     "book_collection_items",
 ]

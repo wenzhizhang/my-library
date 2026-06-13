@@ -15,6 +15,7 @@ const BookCollections = () => {
   const [goToPage, setGoToPage] = useState("");
   const [newName, setNewName] = useState("");
   const [newIntro, setNewIntro] = useState("");
+  const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const navigate = useNavigate();
@@ -30,11 +31,13 @@ const BookCollections = () => {
         `${window.location.origin}${API_BASE_URL}/book-collections/?page=${page}&limit=${limit}&sort_by=${sortBy}`
       );
       const data = response.data;
+      setError(null);
       setCollections(data.book_collections || []);
       setTotalPages(data.total_pages || 1);
       setTotalCollections(data.total_collections || 0);
     } catch (error) {
       console.error('Error fetching book collections:', error);
+      setError('Failed to load collections. Please try again.');
     }
     setLoading(false);
   };
@@ -189,6 +192,19 @@ const BookCollections = () => {
           </div>
         </div>
 
+        {error && (
+          <div style={{background: '#fff0f0', border: '1px solid #ffc0c0', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+            <span style={{color: '#cc0000'}}>{error}</span>
+            <div style={{display: 'flex', gap: '0.5rem'}}>
+              <button onClick={() => { setError(null); fetchCollections(); }} className="btn-pill-link" style={{padding: '0.25rem 0.75rem'}}>Retry</button>
+              <button onClick={() => setError(null)} className="btn-pill-link" style={{padding: '0.25rem 0.75rem'}}>Dismiss</button>
+            </div>
+          </div>
+        )}
+        {!error && collections.length === 0 && (
+          <p style={{textAlign: 'center', color: '#888', fontSize: '1.1rem', margin: '2rem 0'}}>No book collections yet.</p>
+        )}
+        {collections.length > 0 && (
         <div className="grid">
           {collections.map(collection => (
             <div key={collection.id} className="card">
@@ -212,6 +228,7 @@ const BookCollections = () => {
             </div>
           ))}
         </div>
+        )}
 
         {renderPagination()}
       </div>

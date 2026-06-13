@@ -9,3 +9,6 @@ migrate_data.py
 # Generated nginx config (keep template)
 backend/config/nginx.conf
 .deepseek/
+
+# Database files
+*.db

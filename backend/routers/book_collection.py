@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
-from models import BookCollection, Book
+from models import BookCollection, Book, book_collection_items
 from schemas.book_collection import (
     BookCollectionCreation,
     BookCollectionUpdate,
     BookCollectionResponse,
+    BookCollectionSummary,
+    BookCollectionListResponse,
     AddBookToCollection,
     BatchAddBooks,
 )
@@ -26,7 +28,7 @@ def create_book_collection(
     return db_collection
 
 
-@router.get("/")
+@router.get("/", response_model=BookCollectionListResponse)
 def read_book_collections(
     page: int = 1,
     limit: int = 10,
@@ -34,7 +36,7 @@ def read_book_collections(
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * limit
-    query = db.query(BookCollection)
+    query = db.query(BookCollection).options(selectinload(BookCollection.books))
     if sort_by == "name":
         query = query.order_by(BookCollection.name)
     elif sort_by == "created_at":
@@ -85,6 +87,7 @@ def update_book_collection(
 ):
     collection = (
         db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
         .filter(BookCollection.id == collection_id)
         .first()
     )
@@ -93,7 +96,12 @@ def update_book_collection(
     for key, value in collection_update.model_dump(exclude_unset=True).items():
         setattr(collection, key, value)
     db.commit()
-    db.refresh(collection)
+    collection = (
+        db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
+        .filter(BookCollection.id == collection_id)
+        .first()
+    )
     return collection
 
 
@@ -106,6 +114,7 @@ def delete_book_collection(collection_id: int, db: Session = Depends(get_db)):
     )
     if collection is None:
         raise HTTPException(status_code=404, detail="Book collection not found")
+    collection.books = []
     db.delete(collection)
     db.commit()
     return {"message": "Book collection deleted"}
@@ -121,6 +130,7 @@ def batch_add_books_to_collection(
 ):
     collection = (
         db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
         .filter(BookCollection.id == collection_id)
         .first()
     )
@@ -131,9 +141,9 @@ def batch_add_books_to_collection(
     found_ids = {b.id for b in books}
     missing = [bid for bid in body.book_ids if bid not in found_ids]
     if missing:
-        raise HTTPException(status_code=404, detail=f"Books not found: {missing}")
+        raise HTTPException(status_code=400, detail=f"Books not found: {missing}")
 
-    existing_ids = {b.id for b in collection.books}
+    existing_ids = set(r.book_id for r in db.query(book_collection_items.c.book_id).filter(book_collection_items.c.collection_id == collection_id, book_collection_items.c.book_id.in_(body.book_ids)).all())
     duplicates = [bid for bid in body.book_ids if bid in existing_ids]
     if duplicates:
         raise HTTPException(status_code=400, detail=f"Books already in collection: {duplicates}")
@@ -141,7 +151,12 @@ def batch_add_books_to_collection(
     for book in books:
         collection.books.append(book)
     db.commit()
-    db.refresh(collection)
+    collection = (
+        db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
+        .filter(BookCollection.id == collection_id)
+        .first()
+    )
     return collection
 @router.post("/{collection_id}/books", response_model=BookCollectionResponse)
 def add_book_to_collection(
@@ -151,6 +166,7 @@ def add_book_to_collection(
 ):
     collection = (
         db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
         .filter(BookCollection.id == collection_id)
         .first()
     )
@@ -161,12 +177,18 @@ def add_book_to_collection(
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if book in collection.books:
+    existing = db.query(book_collection_items).filter(book_collection_items.c.collection_id == collection_id, book_collection_items.c.book_id == body.book_id).first()
+    if existing:
         raise HTTPException(status_code=400, detail="Book already in collection")
 
     collection.books.append(book)
     db.commit()
-    db.refresh(collection)
+    collection = (
+        db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
+        .filter(BookCollection.id == collection_id)
+        .first()
+    )
     return collection
 
 
@@ -178,6 +200,7 @@ def remove_book_from_collection(
 ):
     collection = (
         db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
         .filter(BookCollection.id == collection_id)
         .first()
     )
@@ -188,10 +211,16 @@ def remove_book_from_collection(
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    if book not in collection.books:
+    existing = db.query(book_collection_items).filter(book_collection_items.c.collection_id == collection_id, book_collection_items.c.book_id == book_id).first()
+    if not existing:
         raise HTTPException(status_code=400, detail="Book not in collection")
 
     collection.books.remove(book)
     db.commit()
-    db.refresh(collection)
+    collection = (
+        db.query(BookCollection)
+        .options(joinedload(BookCollection.books).joinedload(Book.authors))
+        .filter(BookCollection.id == collection_id)
+        .first()
+    )
     return collection

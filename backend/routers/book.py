@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
@@ -124,12 +124,13 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
 
 
 @router.get("/titles")
-def get_book_titles(db: Session = Depends(get_db)):
-    """Return all books as lightweight {id, name} pairs for dropdowns."""
+def get_book_titles(limit: int = Query(default=500, ge=1, le=2000), db: Session = Depends(get_db)):
+    """Return books as lightweight {id, name} pairs for dropdowns, excluding wishlist items."""
     rows = db.execute(
         select(Book.id, Book.title_cn, Book.title)
         .where(Book.in_wish == False)
         .order_by(Book.title)
+        .limit(limit)
     ).all()
     return [
         {"id": row[0], "name": row[1] or row[2]}

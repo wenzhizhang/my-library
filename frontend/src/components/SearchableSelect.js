@@ -62,6 +62,7 @@ function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
   const dropdownRef = useRef(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -73,8 +74,14 @@ function SearchableSelect({
     return () => window.removeEventListener('scroll', close, true);
   }, [isOpen]);
 
+  useEffect(() => {
+    return () => {
+      clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const filteredOptions = options.filter(opt =>
-    opt.name.toLowerCase().includes(search.toLowerCase())
+    (opt.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const selectedOption = options.find(opt => opt.id === value);
@@ -149,6 +156,7 @@ function SearchableSelect({
       {filteredOptions.map(opt => (
         <div
           key={opt.id}
+          style={optionStyle(opt.id === value)}
           onClick={() => {
             onChange(opt.id);
             if (!keepSearchOnSelect) {
@@ -199,8 +207,8 @@ function SearchableSelect({
           if (!keepSearchOnSelect) setSearch('');
           setIsOpen(true);
         }}
-        onBlur={(e) => {
-          setTimeout(() => setIsOpen(false), 150);
+        onBlur={() => {
+          timerRef.current = setTimeout(() => setIsOpen(false), 150);
         }}
         placeholder={placeholder}
         style={inputStyle}

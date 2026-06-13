@@ -14,6 +14,7 @@ const BookCollectionDetails = () => {
   const [pendingBooks, setPendingBooks] = useState([]);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  const [removingBookId, setRemovingBookId] = useState(null);
 
   useEffect(() => {
     fetchCollection();
@@ -91,6 +92,7 @@ const BookCollectionDetails = () => {
   };
 
   const handleRemoveBook = async (bookId) => {
+    setRemovingBookId(bookId);
     setError("");
     try {
       const response = await axios.delete(
@@ -101,6 +103,8 @@ const BookCollectionDetails = () => {
     } catch (err) {
       const msg = err.response?.data?.detail || "Failed to remove book";
       setError(msg);
+    } finally {
+      setRemovingBookId(null);
     }
   };
 
@@ -213,9 +217,10 @@ const BookCollectionDetails = () => {
                   <button
                     className="btn-pill-link"
                     onClick={() => handleRemoveBook(book.id)}
+                    disabled={removingBookId === book.id}
                     style={{ marginTop: "0.5rem", color: "#ff3b30" }}
                   >
-                    Remove
+                    {removingBookId === book.id ? "Removing..." : "Remove"}
                   </button>
                 </div>
               ))
