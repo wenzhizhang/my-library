@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/books", tags=["books"])
 def search_books(filter_params: FilterParams = Depends(), db: Session = Depends(get_db)):
     # query = db.query(Book).options(joinedload(Book.authors))
 
-    stmt = select(Book).options(selectinload(Book.authors))
+    stmt = select(Book).options(selectinload(Book.authors)).where(Book.in_wish == False)
 
     filters_dict = filter_params.model_dump(exclude_unset=True)
     stmt = BookSearchStrategy.apply_filters(stmt, filters_dict)
@@ -83,7 +83,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     offset = (page - 1) * limit
 
     # ✅ 1. 基础 query（加 eager load，避免 N+1）
-    query = db.query(Book).options(selectinload(Book.authors))
+    query = db.query(Book).options(selectinload(Book.authors)).filter(Book.in_wish == False)
 
     # ✅ 2. 应用搜索条件
     filters_dict = filter_params.model_dump(exclude_unset=True)
