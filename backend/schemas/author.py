@@ -7,7 +7,7 @@ NATIONS = [
     "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
     "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
     "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
-    "以色列", "日本",
+    "以色列", "日本", "无",
 ]
 
 DYNASTIES = [
@@ -46,7 +46,7 @@ class AuthorCreation(BaseModel):
     name: str
     name_cn: str
     nation: str = "无"
-    dynasty: Optional[str] = "当代"
+    dynasty: Optional[str] = None
     intro: Optional[str] = None
     photo: Optional[str] = None
 
@@ -65,7 +65,6 @@ class AuthorCreation(BaseModel):
         if v not in DYNASTIES:
             raise ValueError(f"Invalid dynasty '{v}'. Must be one of: {', '.join(DYNASTIES)}")
         return v
-
 
 class AuthorUpdate(BaseModel):
     name: Optional[str] = None

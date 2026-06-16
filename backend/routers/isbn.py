@@ -49,7 +49,7 @@ async def get_isbn_info(isbn: str, db: Session = Depends(get_db)):
                 name=name,
                 name_cn=name,
                 nation="无",
-                dynasty="当代",
+                dynasty=None,
                 intro=info.author_intro or None,
             )
             db.add(new_author)

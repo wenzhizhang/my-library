@@ -13,17 +13,24 @@ const Series = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalSeries, setTotalSeries] = useState(0);
   const [goToPage, setGoToPage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchSeries();
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, submittedQuery]);
 
   const fetchSeries = async () => {
     setLoading(true);
     try {
+      const params = { page, limit, sort_by: sortBy };
+      if (submittedQuery.trim()) {
+        params.q = submittedQuery.trim();
+      }
       const response = await axios.get(
-        `${window.location.origin}${API_BASE_URL}/series/?page=${page}&limit=${limit}&sort_by=${sortBy}`
+        `${window.location.origin}${API_BASE_URL}/series/`,
+        { params }
       );
       const data = response.data;
       setSeries(data.series || []);
@@ -59,6 +66,19 @@ const Series = () => {
       handleGoToPage();
     }
   };
+
+  const handleSearch = () => {
+    setSubmittedQuery(searchQuery.trim());
+    setPage(1);
+    setGoToPage("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
 
   const renderPagination = () => {
     const pages = [];
@@ -145,32 +165,37 @@ const Series = () => {
       <div className="container">
         <h1 className="section-heading">Series</h1>
 
-        <div className="controls">
-          <div className="control-group">
-            <label htmlFor="sort">Sort by:</label>
-            <select
-              id="sort"
-              value={sortBy}
-              onChange={(e) => handleSortChange(e.target.value)}
-            >
-              <option value="name">Name</option>
-              <option value="created_at">Date Added</option>
-            </select>
-
-            <label htmlFor="limit">Items per page:</label>
-            <select
-              id="limit"
-              value={limit}
-              onChange={(e) => handleLimitChange(e.target.value)}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <div className="toolbar-search-row">
+              <input className="toolbar-search-input" placeholder="Search series…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown} />
+              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+            </div>
           </div>
-          <div className="page-info">
-            Page {page} of {totalPages} ({totalSeries} total series)
+          <div className="toolbar-actions">
+            <label className="control-label">
+              <span className="control-label-text">Sort</span>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="created_at">Date Added</option>
+              </select>
+            </label>
+            <label className="control-label">
+              <span className="control-label-text">Per page</span>
+              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+          <div className="toolbar-info">
+            Page {page} / {totalPages} ({totalSeries})
           </div>
         </div>
 

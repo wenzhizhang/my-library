@@ -14,7 +14,7 @@ class Author(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     name_cn: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     nation: Mapped[str] = mapped_column(String(100), nullable=False, default='无')
-    dynasty: Mapped[str] = mapped_column(String(100), nullable=False, default='当代')
+    dynasty: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, default=None)
     intro: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     photo: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     books: Mapped[List["Book"]] = relationship("Book", secondary="book_authors", back_populates="authors")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 
 from models import Category, Book
 from schemas.category import CategoryCreation, CategoryUpdate, CategoryResponse
@@ -21,13 +21,15 @@ def create_category(category: CategoryCreation, db: Session = Depends(get_db)):
     return db_category
 
 @router.get("/")
-def read_categories(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Session = Depends(get_db)):
+def read_categories(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Category)
     if sort_by == 'name':
         query = query.order_by(Category.name)
     elif sort_by == 'created_at':
         query = query.order_by(Category.created_at)
+    if q:
+        query = query.filter(Category.name.ilike(f'%{q}%'))
     categories = query.offset(offset).limit(limit).all()
     total_categories = db.query(Category).count()
     total_pages = (total_categories + limit - 1) // limit

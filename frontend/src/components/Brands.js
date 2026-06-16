@@ -14,18 +14,23 @@ const Brands = () => {
   const [totalBrands, setTotalBrands] = useState(0);
   const [goToPage, setGoToPage] = useState('');
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
 
   useEffect(() => {
     fetchBrands();
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, submittedQuery]);
 
   const fetchBrands = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/brands/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const params = { page, limit, sort_by: sortBy };
+      if (submittedQuery.trim()) {
+        params.q = submittedQuery.trim();
+      }
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/brands/`, { params });
       const data = response.data;
       setBrands(data.brands || []);
-      // Since the API might not have pagination, set defaults
       setTotalPages(data.total_pages || 1);
       setTotalBrands(data.total_brands || 0);
     } catch (error) {
@@ -53,6 +58,17 @@ const Brands = () => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleGoToPage();
+    }
+  };
+
+  const handleSearch = () => {
+    setSubmittedQuery(searchQuery.trim());
+    setPage(1);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -119,25 +135,37 @@ const Brands = () => {
       <div className="container">
         <h1 className="section-heading">Brands</h1>
 
-        <div className="controls">
-          <div className="control-group">
-            <label htmlFor="sort">Sort by:</label>
-            <select id="sort" value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-              <option value="id">ID</option>
-              <option value="name">Name</option>
-              <option value="created_at">Date Added</option>
-            </select>
-
-            <label htmlFor="limit">Items per page:</label>
-            <select id="limit" value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <div className="toolbar-search-row">
+              <input className="toolbar-search-input" placeholder="Search brands…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown} />
+              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+            </div>
           </div>
-          <div className="page-info">
-            Page {page} of {totalPages} ({totalBrands} total brands)
+          <div className="toolbar-actions">
+            <label className="control-label">
+              <span className="control-label-text">Sort</span>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="created_at">Date Added</option>
+              </select>
+            </label>
+            <label className="control-label">
+              <span className="control-label-text">Per page</span>
+              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+          <div className="toolbar-info">
+            Page {page} / {totalPages} ({totalBrands})
           </div>
         </div>
 

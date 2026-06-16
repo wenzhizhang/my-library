@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 
 from models import Bookshelf, Book
 from schemas.bookshelf import BookshelfCreation, BookshelfUpdate, BookshelfResponse
@@ -17,9 +17,11 @@ def create_bookshelf(bookshelf: BookshelfCreation, db: Session = Depends(get_db)
     return db_bookshelf
 
 @router.get("/")
-def read_bookshelves(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Session = Depends(get_db)):
+def read_bookshelves(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Bookshelf)
+    if q:
+        query = query.filter(Bookshelf.name.ilike(f'%{q}%'))
     if sort_by == 'name':
         query = query.order_by(Bookshelf.name)
     elif sort_by == 'created_at':

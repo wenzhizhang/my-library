@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_
 from typing import Optional
 
 from models import Author, Book
@@ -20,6 +21,7 @@ def read_authors(
     page: int = 1,
     limit: int = 10,
     sort_by: str = "name",
+    q: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * limit
@@ -28,6 +30,8 @@ def read_authors(
         query = query.order_by(Author.name)
     elif sort_by == "created_at":
         query = query.order_by(Author.created_at)
+    if q:
+        query = query.filter(or_(Author.name.ilike(f'%{q}%'), Author.name_cn.ilike(f'%{q}%')))
     authors = query.offset(offset).limit(limit).all()
     total_authors = db.query(Author).count()
     total_pages = (total_authors + limit - 1) // limit
@@ -38,7 +42,7 @@ def read_authors(
             "id": a.id,
             "name": a.name,
             "name_cn": a.name_cn,
-            "nation": a.nation,
+            "nation": a.nation or "无",
             "dynasty": a.dynasty,
             "intro": a.intro,
             "photo": a.photo,

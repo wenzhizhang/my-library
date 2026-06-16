@@ -11,7 +11,7 @@ const NATIONS = [
   "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
   "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
   "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
-  "以色列", "日本",
+  "以色列", "日本", "无",
 ];
 
 const DYNASTIES = [
@@ -41,18 +41,21 @@ const Authors = () => {
     name: '',
     name_cn: '',
     nation: '无',
-    dynasty: '当代',
+    dynasty: '',
     intro: '',
     photo: '',
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-
+  const [searchQuery, setSearchQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const fetchAuthors = useCallback(async () => {
     setLoading(true);
     try {
+      const params = { page, limit, sort_by: sortBy };
+      if (submittedQuery) params.q = submittedQuery;
       const res = await axios.get(
-        `${window.location.origin}${API_BASE_URL}/authors/?page=${page}&limit=${limit}&sort_by=${sortBy}`
+        `${window.location.origin}${API_BASE_URL}/authors/`, { params }
       );
       setAuthors(res.data.authors || []);
       setTotalPages(res.data.total_pages || 1);
@@ -61,7 +64,14 @@ const Authors = () => {
       console.error('Error fetching authors:', err);
     }
     setLoading(false);
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, submittedQuery]);
+
+  const handleSearch = () => {
+    setSubmittedQuery(searchQuery.trim());
+    setPage(1);
+  };
+
+  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
   useEffect(() => {
     fetchAuthors();
@@ -71,7 +81,7 @@ const Authors = () => {
 
   const openCreate = () => {
     setEditingAuthor(null);
-    setFormData({ name: '', name_cn: '', nation: '无', dynasty: '当代', intro: '', photo: '' });
+    setFormData({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
     setModalOpen(true);
   };
 
@@ -81,7 +91,7 @@ const Authors = () => {
       name: author.name || '',
       name_cn: author.name_cn || '',
       nation: author.nation || '无',
-      dynasty: author.dynasty || '当代',
+      dynasty: author.dynasty || '',
       intro: author.intro || '',
       photo: author.photo || '',
     });
@@ -92,16 +102,25 @@ const Authors = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     setSaving(true);
+
+    // Strip empty strings so Pydantic validators don't reject them
+    const payload = {};
+    for (const [k, v] of Object.entries(formData)) {
+      if (v !== '' && v !== null && v !== undefined) {
+        payload[k] = v;
+      }
+    }
+
     try {
       if (editingAuthor) {
         await axios.put(
           `${window.location.origin}${API_BASE_URL}/authors/${editingAuthor.id}`,
-          formData
+          payload
         );
       } else {
         await axios.post(
           `${window.location.origin}${API_BASE_URL}/authors/`,
-          formData
+          payload
         );
       }
       setModalOpen(false);
@@ -191,24 +210,38 @@ const Authors = () => {
           )}
         </div>
 
-        <div className="controls">
-          <div className="control-group">
-            <label htmlFor="sort">Sort by:</label>
-            <select id="sort" value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-              <option value="id">Id</option>
-              <option value="name">Name</option>
-              <option value="created_at">Date Added</option>
-            </select>
-            <label htmlFor="limit">Items per page:</label>
-            <select id="limit" value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
+        {/* Toolbar */}
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <div className="toolbar-search-row">
+              <input className="toolbar-search-input" placeholder="Search authors…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown} />
+              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+            </div>
           </div>
-          <div className="page-info">
-            Page {page} of {totalPages} ({totalAuthors} total authors)
+          <div className="toolbar-actions">
+            <label className="control-label">
+              <span className="control-label-text">Sort</span>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="created_at">Date Added</option>
+              </select>
+            </label>
+            <label className="control-label">
+              <span className="control-label-text">Per page</span>
+              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+          <div className="toolbar-info">
+            Page {page} / {totalPages} ({totalAuthors})
           </div>
         </div>
 
@@ -219,9 +252,8 @@ const Authors = () => {
                 <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={author.name_cn || author.name}
                   className="card-image authors-image hvr-float-shadow" />
               )}
-              <h3 className="card-title">{author.name_cn || author.name}</h3>
               <p className="caption">
-                {(author.dynasty && author.dynasty !== '当代' && author.nation === '中国')
+                {author.nation === '中国' && author.dynasty
                   ? `[${author.dynasty}] `
                   : `[${author.nation || '无'}] `}
                 {author.name}
@@ -231,21 +263,23 @@ const Authors = () => {
                   {author.intro.length > 80 ? author.intro.substring(0, 80) + '...' : author.intro}
                 </p>
               )}
-              <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
-                View Details
-              </button>
-              {isAuthenticated && (
-                <>
-                  <button className="btn-pill-link" onClick={() => openEdit(author)}>
-                    Edit
-                  </button>
-                  <button className="btn-pill-link"
-                    onClick={() => setConfirmDelete(author)}
-                    style={{ color: '#ff3b30' }}>
-                    Delete
-                  </button>
-                </>
-              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
+                  View
+                </button>
+                {isAuthenticated && (
+                  <>
+                    <button className="btn-pill-link" onClick={() => openEdit(author)}>
+                      Edit
+                    </button>
+                    <button className="btn-pill-link"
+                      onClick={() => setConfirmDelete(author)}
+                      style={{ color: '#ff3b30' }}>
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>

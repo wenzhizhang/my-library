@@ -13,16 +13,22 @@ const Categories = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCategories, setTotalCategories] = useState(0);
   const [goToPage, setGoToPage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchCategories();
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, submittedQuery]);
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/categories/?page=${page}&limit=${limit}&sort_by=${sortBy}`);
+      const params = { page, limit, sort_by: sortBy };
+      if (submittedQuery) {
+        params.q = submittedQuery;
+      }
+      const response = await axios.get(`${window.location.origin}${API_BASE_URL}/categories/`, { params });
       const data = response.data;
       setCategories(data.categories || []);
       setTotalPages(data.total_pages || 1);
@@ -52,6 +58,12 @@ const Categories = () => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleGoToPage();
+    }
+  };
+  const handleSearch = () => { setSubmittedQuery(searchQuery.trim()); setPage(1); };
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -109,6 +121,7 @@ const Categories = () => {
     );
   };
 
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -118,24 +131,37 @@ const Categories = () => {
       <div className="container">
         <h1 className="section-heading">Categories</h1>
 
-        <div className="controls">
-          <div className="control-group">
-            <label htmlFor="sort">Sort by:</label>
-            <select id="sort" value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-              <option value="name">Name</option>
-              <option value="created_at">Date Added</option>
-            </select>
-
-            <label htmlFor="limit">Items per page:</label>
-            <select id="limit" value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <div className="toolbar-search-row">
+              <input className="toolbar-search-input" placeholder="Search categories…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown} />
+              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+            </div>
           </div>
-          <div className="page-info">
-            Page {page} of {totalPages} ({totalCategories} total categories)
+          <div className="toolbar-actions">
+            <label className="control-label">
+              <span className="control-label-text">Sort</span>
+              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
+                <option value="name">Name</option>
+                <option value="created_at">Date Added</option>
+              </select>
+            </label>
+            <label className="control-label">
+              <span className="control-label-text">Per page</span>
+              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+          <div className="toolbar-info">
+            Page {page} / {totalPages} ({totalCategories} total categories)
           </div>
         </div>
 

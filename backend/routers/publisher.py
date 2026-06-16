@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 
 from models import Publisher, Brand, Book
 from schemas.publisher import PublisherCreation, PublisherUpdate, PublisherResponse, BrandCreation, BrandUpdate, BrandResponse
@@ -17,13 +17,15 @@ def create_publisher(publisher: PublisherCreation, db: Session = Depends(get_db)
     return db_publisher
 
 @publisher_router.get("/")
-def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Session = Depends(get_db)):
+def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Publisher)
     if sort_by == 'name':
         query = query.order_by(Publisher.name)
     elif sort_by == 'created_at':
         query = query.order_by(Publisher.created_at)
+    if q:
+        query = query.filter(Publisher.name.ilike(f'%{q}%'))
     publishers = query.offset(offset).limit(limit).all()
     total_publishers = db.query(Publisher).count()
     total_pages = (total_publishers + limit - 1) // limit
@@ -81,13 +83,15 @@ def create_brand(brand: BrandCreation, db: Session = Depends(get_db)):
     return db_brand
 
 @brand_router.get("/")
-def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', db: Session = Depends(get_db)):
+def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Brand)
     if sort_by == 'name':
         query = query.order_by(Brand.name)
     elif sort_by == 'created_at':
         query = query.order_by(Brand.created_at)
+    if q:
+        query = query.filter(Brand.name.ilike(f'%{q}%'))
     brands = query.offset(offset).limit(limit).all()
     total_brands = db.query(Brand).count()
     total_pages = (total_brands + limit - 1) // limit

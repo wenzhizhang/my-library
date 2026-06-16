@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
-from typing import List
+from typing import List, Optional
 
 from models import BookCollection, Book, book_collection_items
 from schemas.book_collection import (
@@ -33,6 +33,7 @@ def read_book_collections(
     page: int = 1,
     limit: int = 10,
     sort_by: str = "name",
+    q: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     offset = (page - 1) * limit
@@ -41,6 +42,9 @@ def read_book_collections(
         query = query.order_by(BookCollection.name)
     elif sort_by == "created_at":
         query = query.order_by(BookCollection.created_at.desc())
+    if q:
+        query = query.filter(BookCollection.name.ilike(f"%{q}%"))
+
     collections = query.offset(offset).limit(limit).all()
     total_collections = db.query(BookCollection).count()
     total_pages = (total_collections + limit - 1) // limit
