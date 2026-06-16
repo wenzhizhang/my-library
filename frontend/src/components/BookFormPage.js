@@ -579,6 +579,7 @@ function AppleCombobox({
 
 // --- Main Component ---
 
+
 function BookFormPage() {
   const { bookId } = useParams();
   const navigate = useNavigate();
@@ -623,6 +624,7 @@ function BookFormPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isbnLookupLoading, setIsbnLookupLoading] = useState(false);
 
   // --- API Data ---
   const [authors, setAuthors] = useState([]);
@@ -632,7 +634,6 @@ function BookFormPage() {
   const [categories, setCategories] = useState([]);
   const [bookshelves, setBookshelves] = useState([]);
 
-  // Fetch reference data on mount
   useEffect(() => {
     const fetchAll = async () => {
       const apis = [
@@ -650,13 +651,11 @@ function BookFormPage() {
         if (r.status === 'fulfilled') {
           const data = r.value.data;
           const key = apis[i].key;
-          // Normalize to { id, name, ... }
           const list = data[key] || data[key + 'Data'] || [];
           const normalized = list.map(item => ({
             id: item.id,
             name: item.name_cn || item.name || item.path || item.title,
             ...(key === 'authors' ? { name_cn: item.name_cn, name_en: item.name, nation: item.nation, dynasty: item.dynasty } : {}),
-            // Keep raw fields for path resolution
             ...(key === 'categories' ? { _path: item.path, _rawName: item.name } : {}),
           }));
           switch (key) {
@@ -665,7 +664,6 @@ function BookFormPage() {
             case 'brands': setBrands(normalized); break;
             case 'series': setSeries(normalized); break;
             case 'categories': {
-              // path is already "Parent > Child" from the backend
               const withPath = normalized.map(c => {
                 const { _path, _rawName, ...rest } = c;
                 return { ...rest, name: c._path || c._rawName };
@@ -692,6 +690,75 @@ function BookFormPage() {
       });
     }
   }, [errors]);
+
+  const handleLookupIsbn = useCallback(async () => {
+    const isbn = (formData.isbn || '').replace(/[^0-9Xx]/g, '');
+    if (isbn.length < 10) {
+      alert('Please enter a valid ISBN first');
+      return;
+    }
+    setIsbnLookupLoading(true);
+    try {
+      const res = await axios.get(`${window.location.origin}${API_BASE_URL}/isbn/${isbn}`);
+      const data = res.data;
+
+      setFormData(prev => {
+        const next = { ...prev };
+        const fill = (key, value) => {
+          if (value != null && value !== '' && !next[key]) {
+            next[key] = value;
+          }
+        };
+
+        fill('isbn', data.isbn);
+        fill('title', data.title);
+        fill('title_cn', data.title_cn);
+        fill('publish_date', data.publish_date);
+        fill('pages', data.pages);
+        fill('price', data.price);
+        fill('introduction', data.introduction);
+        fill('thumb_image', data.thumb_image);
+        fill('binding_type', data.binding_type);
+        fill('douban_score', data.douban_score);
+        fill('translator', data.translator);
+        fill('link', data.link);
+        fill('catalog', data.catalog);
+
+        // Tags: use the first tag returned from the API
+        const tagNames = data.tag_names || [];
+        if (tagNames.length > 0 && (!next.tags || next.tags.length === 0)) {
+          next.tags = [tagNames[0]];
+        }
+
+        // Publisher: try to match by name
+        if (data.publisher_name && !next.publisher_id) {
+          const match = publishers.find(
+            p => p.name === data.publisher_name
+          );
+          if (match) {
+            next.publisher_id = match.id;
+          }
+        }
+
+        // Authors: use IDs returned by backend (already found/created)
+        const authorIds = data.author_ids || [];
+        if (authorIds.length > 0) {
+          const current = next.author_ids || [];
+          const newIds = authorIds.filter(id => !current.includes(id));
+          if (newIds.length > 0) {
+            next.author_ids = [...current, ...newIds];
+          }
+        }
+
+        return next;
+      });
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to look up ISBN';
+      alert(msg);
+    } finally {
+      setIsbnLookupLoading(false);
+    }
+  }, [formData.isbn, publishers, authors]);
 
   const [loadingBook, setLoadingBook] = useState(mode === 'edit');
   
@@ -776,20 +843,32 @@ function BookFormPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
-    
+
+    // Build payload — strip null for creation (Pydantic rejects null for required fields)
+    let payload = formData;
+    if (mode === 'create') {
+      const clean = {};
+      for (const [key, value] of Object.entries(formData)) {
+        if (value !== null && value !== undefined) {
+          clean[key] = value;
+        }
+      }
+      payload = clean;
+    }
+
     try {
       if (mode === 'edit' && bookId) {
-        await axios.put(`${window.location.origin}/api/books/${bookId}`, formData);
+        await axios.put(`${window.location.origin}/api/books/${bookId}`, payload);
       } else {
-        await axios.post(`${window.location.origin}/api/books/`, formData);
+        await axios.post(`${window.location.origin}/api/books/`, payload);
       }
       setIsSubmitting(false);
       setSubmitSuccess(true);
-      
+
       setTimeout(() => {
         setSubmitSuccess(false);
         navigate('/my-library/books');
@@ -938,15 +1017,45 @@ function BookFormPage() {
           maxWidth: '800px',
           margin: '0 auto',
         }}>
-          <AppleInput
-            label="ISBN"
-            value={formData.isbn}
-            onChange={(v) => updateField('isbn', v)}
-            placeholder="978-7-..."
-            required
-            error={errors.isbn}
-            dark
-          />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <AppleInput
+                  label="ISBN"
+                  value={formData.isbn}
+                  onChange={(v) => updateField('isbn', v)}
+                  placeholder="978-7-..."
+                  required
+                  error={errors.isbn}
+                  dark
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleLookupIsbn}
+                disabled={isbnLookupLoading}
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  lineHeight: '1.4',
+                  letterSpacing: '-0.01em',
+                  padding: '12px 16px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: COLORS.appleBlue,
+                  color: COLORS.white,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  alignSelf: 'flex-end',
+                  marginBottom: '8px',
+                  opacity: isbnLookupLoading ? 0.6 : 1,
+                }}
+              >
+                {isbnLookupLoading ? '...' : 'Lookup'}
+              </button>
+            </div>
+          </div>
           
           <AppleInput
             label="Title (Chinese)"
@@ -1294,11 +1403,10 @@ function BookFormPage() {
             label="Douban Score"
             value={formData.douban_score ?? ''}
             onChange={(v) => updateField('douban_score', v ? Number(v) : null)}
-            type="number"
-            step="1"
+            step="0.1"
             min="0"
-            max="100"
-            placeholder="0 - 100"
+            max="10"
+            placeholder="0 - 10"
             dark
           />
 

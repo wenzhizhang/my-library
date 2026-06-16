@@ -32,6 +32,7 @@ services:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP:-localhost}
       - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - DOUBAN_KEY=${DOUBAN_KEY:-}
     volumes:
       - my-library-data:/app/data
       - ./config/projects.json:/app/config/projects.json:ro

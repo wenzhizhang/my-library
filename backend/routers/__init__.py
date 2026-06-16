@@ -8,6 +8,7 @@ from .series import router as series_router
 from .application import router as application_router
 from .user import router as user_router
 from .rag import router as rag_router
+from .isbn import router as isbn_router
 from .stats import router as stats_router
 
 __all__ = [
@@ -22,4 +23,6 @@ __all__ = [
     "user_router",
     "book_collection_router",
     "rag_router",
+    "stats_router",
+    "isbn_router",
 ]

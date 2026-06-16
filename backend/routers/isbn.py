@@ -1,0 +1,82 @@
+"""ISBN lookup router — queries external sources for book metadata."""
+
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from database import get_db
+from models import Author
+from schemas.isbn import IsbnLookupResponse
+from services.isbn_lookup import IsbnNotFoundError, lookup_isbn
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/isbn", tags=["isbn"])
+
+
+@router.get("/{isbn}", response_model=IsbnLookupResponse)
+async def get_isbn_info(isbn: str, db: Session = Depends(get_db)):
+    """Look up book metadata by ISBN.
+
+    Primary source: Douban (requires DOUBAN_KEY env var).
+    Fallbacks: Open Library, Google Books.
+
+    Authors are checked against the database — existing authors are linked
+    by ID, missing authors are created using author_intro from the source.
+    """
+    try:
+        info = await lookup_isbn(isbn)
+    except IsbnNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    # Resolve / create authors
+    author_ids = []
+    for name in info.author_names:
+        if not name:
+            continue
+        existing = (
+            db.query(Author)
+            .filter(
+                (Author.name_cn == name) | (Author.name == name)
+            )
+            .first()
+        )
+        if existing:
+            author_ids.append(existing.id)
+        else:
+            new_author = Author(
+                name=name,
+                name_cn=name,
+                nation="无",
+                dynasty="当代",
+                intro=info.author_intro or None,
+            )
+            db.add(new_author)
+            db.commit()
+            db.refresh(new_author)
+            author_ids.append(new_author.id)
+
+    return IsbnLookupResponse(
+        isbn=info.isbn,
+        title=info.title,
+        title_cn=info.title_cn,
+        publisher_name=info.publisher_name,
+        publish_date=info.publish_date,
+        pages=info.pages,
+        price=info.price,
+        summary=info.summary,
+        introduction=info.introduction,
+        thumb_image=info.thumb_image,
+        binding_type=info.binding_type,
+        douban_score=info.douban_score,
+        author_names=info.author_names,
+        author_ids=author_ids,
+        translator=info.translator,
+        language=info.language,
+        source=info.source,
+        link=info.link,
+        catalog=info.catalog,
+        tag_names=info.tag_names,
+        author_intro=info.author_intro,
+    )

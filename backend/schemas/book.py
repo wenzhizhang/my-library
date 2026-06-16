@@ -120,36 +120,35 @@ class BookCreation(BaseModel):
     author_ids: Optional[List[int]] = None
     translator: Optional[str] = None
     publisher_id: Optional[int] = None
-    publish_date: datetime
-    brand_id: int
-    book_series_id: int
-    binding_type: str
-    paper_type: str
-    pages: int
-    book_count: int
-    language: str
-    compose_type: str
-    price: float
-    purchase_price: float
-    purchase_date: datetime
-    thumb_image: str
-    category_id: int
-    bookshelf_id: int
-    read_state: str
-    catalog: str
-    introduction: str
-    summary: str
-    registered: bool
-    edition: str
-    printing_info: str
-    printed_number: int
-    douban_score: float
-    purchase_store: str
+    publish_date: Optional[datetime] = None
+    brand_id: Optional[int] = None
+    book_series_id: Optional[int] = None
+    binding_type: Optional[str] = None
+    paper_type: Optional[str] = None
+    pages: Optional[int] = None
+    book_count: int = 1
+    language: str = "zh-CN"
+    compose_type: Optional[str] = None
+    price: Optional[float] = None
+    purchase_price: Optional[float] = None
+    purchase_date: Optional[datetime] = None
+    thumb_image: str = ""
+    category_id: Optional[int] = None
+    bookshelf_id: Optional[int] = None
+    read_state: str = "unread"
+    catalog: str = ""
+    introduction: str = ""
+    summary: str = ""
+    registered: bool = False
+    edition: str = ""
+    printing_info: str = ""
+    printed_number: Optional[int] = None
+    douban_score: Optional[float] = None
+    purchase_store: str = ""
     tags: Optional[List[str]] = None
-    in_wish: bool
-    created_at: datetime
-    updated_at: datetime
-
+    in_wish: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class BookUpdate(BaseModel):
     """

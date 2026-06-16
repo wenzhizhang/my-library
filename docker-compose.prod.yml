@@ -30,6 +30,7 @@ services:
       - SERVER_IP=${SERVER_IP}
       - DATA_DIR=/app/data
       - HF_ENDPOINT=https://hf-mirror.com
+      - DOUBAN_KEY=${DOUBAN_KEY:-}
     restart: unless-stopped
     volumes:
       - backend-data:/app/data

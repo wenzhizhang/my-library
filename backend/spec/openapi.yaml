@@ -28,6 +28,7 @@ tags:
   - name: Stats
   - name: RAG
 
+  - name: ISBN
 components:
   securitySchemes:
     BearerAuth:
@@ -457,6 +458,29 @@ components:
         query: { type: string }
         limit: { type: integer, default: 10 }
         min_score: { type: number, default: 0.3 }
+
+    # ── ISBN Lookup ──
+    IsbnLookupResponse:
+      type: object
+      required: [isbn, source]
+      properties:
+        isbn: { type: string }
+        title: { type: string }
+        title_cn: { type: string }
+        publisher_name: { type: string }
+        publish_date: { type: string }
+        pages: { type: integer, nullable: true }
+        price: { type: number, nullable: true }
+        summary: { type: string }
+        introduction: { type: string }
+        thumb_image: { type: string }
+        binding_type: { type: string }
+        douban_score: { type: number, nullable: true }
+        author_names: { type: array, items: { type: string } }
+        translator: { type: string }
+        language: { type: string }
+        source: { type: string }
+        link: { type: string }
 
     # ── Error ──
     HTTPError:
@@ -1624,3 +1648,31 @@ paths:
                   indexed_books: { type: integer }
                   total_books: { type: integer }
                   model: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # ISBN Lookup
+  # ═══════════════════════════════════════════════
+  /api/isbn/{isbn}:
+    get:
+      tags: [ISBN]
+      summary: Look up book metadata by ISBN
+      description: Queries external sources (Open Library, Douban, Google Books) and returns merged book metadata.
+      parameters:
+        - name: isbn
+          in: path
+          required: true
+          schema: { type: string }
+          description: ISBN-10 or ISBN-13 (hyphens optional)
+      responses:
+        "200":
+          description: Book metadata found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IsbnLookupResponse"
+        "404":
+          description: ISBN not found or no source returned data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
