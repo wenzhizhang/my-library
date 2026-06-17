@@ -275,7 +275,7 @@ const Books = () => {
 
         <div className="grid">
           {books.map(book => (
-            <BookCard key={book.id} book={book} />
+            <BookCard key={book.id} book={book} onDelete={fetchBooks} />
           ))}
         </div>
 

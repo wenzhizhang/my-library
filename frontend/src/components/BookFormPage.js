@@ -6,6 +6,7 @@ import './Books.css';
 import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 import SearchableSelect from './SearchableSelect';
+import { useAuth } from '../AuthContext';
 
 // ============================================================
 // Apple Design System - Book Creation/Update Page (JavaScript)
@@ -22,6 +23,22 @@ const PURCHASE_STORES = [
   '摩点众筹', '当当自营', '孔夫子旧书网', '淘宝', '拼多多',
   '抖音', '微店', '小红书', '西西弗书店', '中图网',
   '快团团', '齐鲁书社', '浙江古籍出版社', '纸上声音',
+];
+
+const NATIONS = [
+  "中国", "俄罗斯", "前苏联", "希腊", "美国", "英国", "法国", "德国",
+  "古巴", "西班牙", "古罗马", "加拿大", "爱尔兰", "澳大利亚", "瑞士",
+  "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
+  "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
+  "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
+  "以色列", "日本", "无",
+];
+
+const DYNASTIES = [
+  "上古", "夏", "商", "西周", "东周", "春秋", "战国",
+  "秦", "西汉", "东汉", "魏", "蜀", "吴", "西晋", "东晋",
+  "南北朝", "隋", "唐", "五代", "北宋", "南宋",
+  "元", "明", "清", "民国", "现代", "当代",
 ];
 
 // --- Design Tokens ---
@@ -584,6 +601,7 @@ function BookFormPage() {
   const { bookId } = useParams();
   const navigate = useNavigate();
   const mode = bookId ? 'edit' : 'create';
+  const { isAuthenticated } = useAuth();
 
   const [formData, setFormData] = useState({
     isbn: '',
@@ -632,12 +650,30 @@ function BookFormPage() {
   const [brands, setBrands] = useState([]);
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [showSeriesModal, setShowSeriesModal] = useState(false);
+  const [seriesFormData, setSeriesFormData] = useState({ name: '', intro: '' });
+  const [seriesSaving, setSeriesSaving] = useState(false);
+  const [showPublisherModal, setShowPublisherModal] = useState(false);
+  const [publisherFormData, setPublisherFormData] = useState({ name: '', intro: '', logo: '' });
+  const [publisherSaving, setPublisherSaving] = useState(false);
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const [brandFormData, setBrandFormData] = useState({ name: '', intro: '' });
+  const [brandSaving, setBrandSaving] = useState(false);
   const [bookshelves, setBookshelves] = useState([]);
+  const [showBookshelfModal, setShowBookshelfModal] = useState(false);
+  const [bookshelfFormData, setBookshelfFormData] = useState({ name: '', intro: '' });
+  const [bookshelfSaving, setBookshelfSaving] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryFormData, setCategoryFormData] = useState({ name: '', intro: '', parent: '' });
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [showAuthorModal, setShowAuthorModal] = useState(false);
+  const [authorFormData, setAuthorFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
+  const [authorSaving, setAuthorSaving] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
       const apis = [
-        { key: 'authors', url: `${window.location.origin}${API_BASE_URL}/authors/?limit=1000` },
+        { key: 'authors', url: `${window.location.origin}${API_BASE_URL}/authors/?limit=10000` },
         { key: 'publishers', url: `${window.location.origin}${API_BASE_URL}/publishers/?limit=1000` },
         { key: 'brands', url: `${window.location.origin}${API_BASE_URL}/brands/?limit=1000` },
         { key: 'series', url: `${window.location.origin}${API_BASE_URL}/series/?limit=1000` },
@@ -882,6 +918,134 @@ function BookFormPage() {
       setIsSubmitting(false);
     }
   };
+  const handleAddNewPublisher = useCallback(() => {
+    setPublisherFormData({ name: '', intro: '', logo: '' });
+    setShowPublisherModal(true);
+  }, []);
+  const handleSavePublisher = useCallback(async () => {
+    if (!publisherFormData.name.trim()) return;
+    setPublisherSaving(true);
+    try {
+      const res = await axios.post(`${window.location.origin}/api/publishers/`, publisherFormData);
+      const newItem = { id: res.data.id, name: res.data.name };
+      setPublishers(prev => [...prev, newItem]);
+      updateField('publisher_id', newItem.id);
+      setShowPublisherModal(false);
+      setPublisherFormData({ name: '', intro: '', logo: '' });
+    } catch (err) {
+      console.error('Error creating publisher:', err);
+    } finally {
+      setPublisherSaving(false);
+    }
+  }, [publisherFormData, updateField]);
+  const handleAddNewBrand = useCallback(() => {
+    setBrandFormData({ name: '', intro: '' });
+    setShowBrandModal(true);
+  }, []);
+  const handleSaveBrand = useCallback(async () => {
+    if (!brandFormData.name.trim()) return;
+    setBrandSaving(true);
+    try {
+      const res = await axios.post(`${window.location.origin}/api/brands/`, brandFormData);
+      const newItem = { id: res.data.id, name: res.data.name };
+      setBrands(prev => [...prev, newItem]);
+      updateField('brand_id', newItem.id);
+      setShowBrandModal(false);
+      setBrandFormData({ name: '', intro: '' });
+    } catch (err) {
+      console.error('Error creating brand:', err);
+    } finally {
+      setBrandSaving(false);
+    }
+  }, [brandFormData, updateField]);
+
+  const handleAddNewBookshelf = useCallback(() => {
+    setBookshelfFormData({ name: '', intro: '' });
+    setShowBookshelfModal(true);
+  }, []);
+
+  const handleSaveBookshelf = useCallback(async () => {
+    if (!bookshelfFormData.name.trim()) return;
+    setBookshelfSaving(true);
+    try {
+      const res = await axios.post(`${window.location.origin}${API_BASE_URL}/bookshelves/`, bookshelfFormData);
+      const newItem = { id: res.data.id, name: res.data.name };
+      setBookshelves(prev => [...prev, newItem]);
+      updateField('bookshelf_id', newItem.id);
+      setShowBookshelfModal(false);
+    } catch (err) {
+      alert('Failed to create bookshelf');
+      setBookshelfSaving(false);
+    }
+  }, [bookshelfFormData, updateField]);
+
+  const handleAddNewAuthor = useCallback(() => {
+    setAuthorFormData({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
+    setShowAuthorModal(true);
+  }, []);
+
+  const handleSaveAuthor = useCallback(async () => {
+    if (!authorFormData.name.trim()) return;
+    setAuthorSaving(true);
+    try {
+      const res = await axios.post(`${window.location.origin}/api/authors/`, authorFormData);
+      const newItem = { id: res.data.id, name: res.data.name, name_cn: res.data.name_cn };
+      setAuthors(prev => [...prev, newItem]);
+      updateField('author_ids', [...(formData.author_ids || []), newItem.id]);
+      setShowAuthorModal(false);
+      setAuthorFormData({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
+    } catch (err) {
+      console.error('Error creating author:', err);
+    } finally {
+      setAuthorSaving(false);
+    }
+  }, [authorFormData, updateField, formData.author_ids]);
+
+  const handleAddNewCategory = useCallback(() => {
+    setCategoryFormData({ name: '', intro: '' });
+    setShowCategoryModal(true);
+  }, []);
+
+  const handleSaveCategory = useCallback(async () => {
+    if (!categoryFormData.name.trim()) return;
+    setCategorySaving(true);
+    try {
+      const payload = { name: categoryFormData.name, intro: categoryFormData.intro };
+      if (categoryFormData.parent) payload.parent = parseInt(categoryFormData.parent);
+      const res = await axios.post(`${window.location.origin}/api/categories/`, payload);
+      const newItem = { id: res.data.id, name: res.data.path || res.data.name };
+      setCategories(prev => [...prev, newItem]);
+      updateField('category_id', newItem.id);
+      setShowCategoryModal(false);
+      setCategoryFormData({ name: '', intro: '', parent: '' });
+    } catch (err) {
+      console.error('Error creating category:', err);
+    } finally {
+      setCategorySaving(false);
+    }
+  }, [categoryFormData, updateField]);
+
+  const handleAddNewSeries = useCallback(() => {
+    setSeriesFormData({ name: '', intro: '' });
+    setShowSeriesModal(true);
+  }, []);
+
+  const handleSaveSeries = useCallback(async () => {
+    if (!seriesFormData.name.trim()) return;
+    setSeriesSaving(true);
+    try {
+      const res = await axios.post(`${window.location.origin}/api/series/`, seriesFormData);
+      const newItem = { id: res.data.id, name: res.data.name };
+      setSeries(prev => [...prev, newItem]);
+      updateField('book_series_id', newItem.id);
+      setShowSeriesModal(false);
+      setSeriesFormData({ name: '', intro: '' });
+    } catch (err) {
+      console.error('Error creating series:', err);
+    } finally {
+      setSeriesSaving(false);
+    }
+  }, [seriesFormData, updateField]);
 
   const [authorSearch, setAuthorSearch] = useState('');
   const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
@@ -1101,10 +1265,12 @@ function BookFormPage() {
               alignItems: 'center',
             }}>
               <span>Authors {errors.author_ids && <span style={{ color: '#ff3b30', fontWeight: 400 }}>({errors.author_ids})</span>}</span>
-              <a href={`${LIBRARY_PATH}/authors`} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: '12px', color: COLORS.brightBlue, textDecoration: 'none' }}>
-                + New Author
-              </a>
+              {isAuthenticated && (
+                <button type="button" onClick={handleAddNewAuthor}
+                  style={{ fontSize: '12px', color: COLORS.brightBlue, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  + New Author
+                </button>
+              )}
             </label>
 
             {/* Selected author pills */}
@@ -1200,8 +1366,7 @@ function BookFormPage() {
             options={publishers}
             placeholder="Search and select publisher..."
             dark
-            addNewLink={`${LIBRARY_PATH}/publishers`}
-            addNewLabel="+ New Publisher"
+            onAddNew={handleAddNewPublisher}
           />
 
           <AppleInput
@@ -1220,7 +1385,10 @@ function BookFormPage() {
             placeholder="Search and select category..."
             dark
             error={errors.category_id}
-            addNewLink={`${LIBRARY_PATH}/categories`}
+            onAddNew={() => {
+              setCategoryFormData({ name: '', intro: '' });
+              setShowCategoryModal(true);
+            }}
             addNewLabel="+ New Category"
           />
 
@@ -1231,7 +1399,7 @@ function BookFormPage() {
             options={bookshelves}
             placeholder="Search and select location..."
             dark
-            addNewLink={`${LIBRARY_PATH}/bookshelves`}
+            onAddNew={handleAddNewBookshelf}
             addNewLabel="+ New Bookshelf"
           />
         </div>
@@ -1323,7 +1491,7 @@ function BookFormPage() {
             options={brands}
             placeholder="Search and select brand..."
             dark
-            addNewLink={`${LIBRARY_PATH}/brands`}
+            onAddNew={handleAddNewBrand}
             addNewLabel="+ New Brand"
           />
 
@@ -1334,7 +1502,7 @@ function BookFormPage() {
             options={series}
             placeholder="Search and select series..."
             dark
-            addNewLink={`${LIBRARY_PATH}/series`}
+            onAddNew={handleAddNewSeries}
             addNewLabel="+ New Series"
           />
         </div>
@@ -1729,6 +1897,529 @@ function BookFormPage() {
         {contentSection}
         {submitSection}
       </form>
+
+      {showPublisherModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowPublisherModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Publisher</h3>
+
+            <AppleInput
+              label="Publisher Name"
+              value={publisherFormData.name}
+              onChange={(v) => setPublisherFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter publisher name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Introduction"
+              value={publisherFormData.intro}
+              onChange={(v) => setPublisherFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Logo URL"
+              value={publisherFormData.logo}
+              onChange={(v) => setPublisherFormData(prev => ({ ...prev, logo: v }))}
+              placeholder="https://example.com/logo.png"
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowPublisherModal(false)}
+                disabled={publisherSaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSavePublisher}
+                disabled={publisherSaving || !publisherFormData.name.trim()}
+              >
+                {publisherSaving ? 'Saving...' : 'Create Publisher'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showBookshelfModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowBookshelfModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Bookshelf</h3>
+
+            <AppleInput
+              label="Bookshelf Name"
+              value={bookshelfFormData.name}
+              onChange={(v) => setBookshelfFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter bookshelf name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Introduction"
+              value={bookshelfFormData.intro}
+              onChange={(v) => setBookshelfFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowBookshelfModal(false)}
+                disabled={bookshelfSaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSaveBookshelf}
+                disabled={bookshelfSaving || !bookshelfFormData.name.trim()}
+              >
+                {bookshelfSaving ? 'Saving...' : 'Create Bookshelf'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showCategoryModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowCategoryModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Category</h3>
+
+            <AppleInput
+              label="Category Name"
+              value={categoryFormData.name}
+              onChange={(v) => setCategoryFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter category name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <SearchableSelect
+              label="Parent Category"
+              value={categoryFormData.parent ? parseInt(categoryFormData.parent) : null}
+              onChange={(v) => setCategoryFormData(prev => ({ ...prev, parent: v || '' }))}
+              options={categories.map(c => ({ id: c.id, name: c.name }))}
+              placeholder="None (root category)"
+              dark
+            />
+
+            <AppleInput
+              label="Introduction"
+              value={categoryFormData.intro}
+              onChange={(v) => setCategoryFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowCategoryModal(false)}
+                disabled={categorySaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSaveCategory}
+                disabled={categorySaving || !categoryFormData.name.trim()}
+              >
+                {categorySaving ? 'Saving...' : 'Create Category'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showBrandModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowBrandModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Brand</h3>
+
+            <AppleInput
+              label="Brand Name"
+              value={brandFormData.name}
+              onChange={(v) => setBrandFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter brand name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Introduction"
+              value={brandFormData.intro}
+              onChange={(v) => setBrandFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowBrandModal(false)}
+                disabled={brandSaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSaveBrand}
+                disabled={brandSaving || !brandFormData.name.trim()}
+              >
+                {brandSaving ? 'Saving...' : 'Create Brand'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showAuthorModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowAuthorModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Author</h3>
+
+            <AppleInput
+              label="Author Name (Required)"
+              value={authorFormData.name}
+              onChange={(v) => setAuthorFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter author name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Chinese Name"
+              value={authorFormData.name_cn}
+              onChange={(v) => setAuthorFormData(prev => ({ ...prev, name_cn: v }))}
+              placeholder="中文名"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <div style={{ marginBottom: '16px', width: '100%' }}>
+              <label style={{
+                fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
+                fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
+                fontWeight: TYPOGRAPHY.bodyEmphasis.fontWeight,
+                lineHeight: TYPOGRAPHY.bodyEmphasis.lineHeight,
+                letterSpacing: TYPOGRAPHY.bodyEmphasis.letterSpacing,
+                color: COLORS.nearBlack,
+                marginBottom: '8px',
+                display: 'block',
+              }}>Nation</label>
+              <select
+                value={authorFormData.nation}
+                onChange={(e) => setAuthorFormData(prev => ({ ...prev, nation: e.target.value }))}
+                style={{
+                  fontFamily: TYPOGRAPHY.body.fontFamily,
+                  fontSize: TYPOGRAPHY.body.fontSize,
+                  fontWeight: TYPOGRAPHY.body.fontWeight,
+                  lineHeight: TYPOGRAPHY.body.lineHeight,
+                  letterSpacing: TYPOGRAPHY.body.letterSpacing,
+                  color: COLORS.nearBlack,
+                  background: 'rgba(255,255,255,0.55)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%231d1d1f' stroke-width='1.5'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 16px center',
+                  paddingRight: '40px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {NATIONS.map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '16px', width: '100%' }}>
+              <label style={{
+                fontFamily: TYPOGRAPHY.bodyEmphasis.fontFamily,
+                fontSize: TYPOGRAPHY.bodyEmphasis.fontSize,
+                fontWeight: TYPOGRAPHY.bodyEmphasis.fontWeight,
+                lineHeight: TYPOGRAPHY.bodyEmphasis.lineHeight,
+                letterSpacing: TYPOGRAPHY.bodyEmphasis.letterSpacing,
+                color: COLORS.nearBlack,
+                marginBottom: '8px',
+                display: 'block',
+              }}>Dynasty</label>
+              <select
+                value={authorFormData.dynasty}
+                onChange={(e) => setAuthorFormData(prev => ({ ...prev, dynasty: e.target.value }))}
+                style={{
+                  fontFamily: TYPOGRAPHY.body.fontFamily,
+                  fontSize: TYPOGRAPHY.body.fontSize,
+                  fontWeight: TYPOGRAPHY.body.fontWeight,
+                  lineHeight: TYPOGRAPHY.body.lineHeight,
+                  letterSpacing: TYPOGRAPHY.body.letterSpacing,
+                  color: COLORS.nearBlack,
+                  background: 'rgba(255,255,255,0.55)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%231d1d1f' stroke-width='1.5'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 16px center',
+                  paddingRight: '40px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="">None</option>
+                {DYNASTIES.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <AppleInput
+              label="Introduction"
+              value={authorFormData.intro}
+              onChange={(v) => setAuthorFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Photo URL"
+              value={authorFormData.photo}
+              onChange={(v) => setAuthorFormData(prev => ({ ...prev, photo: v }))}
+              placeholder="https://example.com/photo.jpg"
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowAuthorModal(false)}
+                disabled={authorSaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSaveAuthor}
+                disabled={authorSaving || !authorFormData.name.trim()}
+              >
+                {authorSaving ? 'Saving...' : 'Create Author'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showSeriesModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={() => setShowSeriesModal(false)}>
+          <div style={{
+            background: 'rgba(255,255,255,0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: '20px',
+            padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '80vh',
+            overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{
+              fontFamily: TYPOGRAPHY.tileHeading.fontFamily,
+              fontSize: TYPOGRAPHY.tileHeading.fontSize,
+              fontWeight: TYPOGRAPHY.tileHeading.fontWeight,
+              lineHeight: TYPOGRAPHY.tileHeading.lineHeight,
+              color: COLORS.nearBlack,
+              margin: '0 0 24px 0',
+            }}>New Series</h3>
+
+            <AppleInput
+              label="Series Name"
+              value={seriesFormData.name}
+              onChange={(v) => setSeriesFormData(prev => ({ ...prev, name: v }))}
+              required
+              placeholder="Enter series name"
+              style={{ marginBottom: '16px' }}
+            />
+
+            <AppleInput
+              label="Introduction"
+              value={seriesFormData.intro}
+              onChange={(v) => setSeriesFormData(prev => ({ ...prev, intro: v }))}
+              placeholder="Brief introduction"
+              multiline
+              rows={3}
+              style={{ marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <AppleButton
+                variant="pill-outline"
+                onClick={() => setShowSeriesModal(false)}
+                disabled={seriesSaving}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="pill"
+                onClick={handleSaveSeries}
+                disabled={seriesSaving || !seriesFormData.name.trim()}
+              >
+                {seriesSaving ? 'Saving...' : 'Create Series'}
+              </AppleButton>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
 
       <footer style={{
         background: COLORS.pureBlack,

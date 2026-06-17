@@ -91,9 +91,10 @@ async def _rate_limit():
     async with _RATE_LOCK:
         elapsed = time.monotonic() - _LAST_REQUEST_TIME
         if elapsed < RATE_LIMIT_INTERVAL:
+            wait = RATE_LIMIT_INTERVAL - elapsed
+            logger.debug("Rate limiting: waiting %.1fs", wait)
             await asyncio.sleep(wait)
         _LAST_REQUEST_TIME = time.monotonic()
-
 
 # ---------------------------------------------------------------------------
 # Source: Douban (PRIMARY)
@@ -159,10 +160,11 @@ async def _fetch_douban(client: httpx.AsyncClient, isbn: str) -> Optional[BookIn
         except (ValueError, TypeError):
             pass
 
-    for name in data.get("author", []):
-        if name:
-            info.author_names.append(str(name))
-
+    for raw_name in data.get("author", []):
+        if raw_name:
+            name = _clean_author_name(str(raw_name))
+            if name:
+                info.author_names.append(name)
     translators = data.get("translator", [])
     if translators:
         info.translator = ", ".join(str(t) for t in translators)
@@ -438,6 +440,15 @@ def _normalize_pubdate(raw: str) -> str:
     return raw
 
 
+
+def _clean_author_name(raw: str) -> str:
+    """Strip dynasty/nation prefix like [宋], (日), etc. from author names."""
+    name = raw.strip()
+    # Remove [xxx] prefix: [宋] 苏轼 → 苏轼
+    name = re.sub(r"^\[[^\]]+\]\s*", "", name)
+    # Remove (xxx) prefix: (日) 村上春树 → 村上春树
+    name = re.sub(r"^\([^\)]+\)\s*", "", name)
+    return name.strip()
 def _guess_language(title: str, subjects: list[str]) -> str:
     """Rough language guess from title content and subjects."""
     if re.search(r"[\u4e00-\u9fff]", title):

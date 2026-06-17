@@ -55,7 +55,8 @@ function SearchableSelect({
   dark = false,
   error,
   addNewLink,
-  addNewLabel = '+ New',
+  addNewLabel,
+  onAddNew,
   keepSearchOnSelect = false,
 }) {
   const [search, setSearch] = useState('');
@@ -179,21 +180,38 @@ function SearchableSelect({
           {label}
           {required && <span style={{ color: COLORS.appleBlue, marginLeft: '4px' }}>*</span>}
         </span>
-        {addNewLink && (
-          <a
-            href={addNewLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              fontSize: '12px',
-              color: COLORS.appleBlue,
-              textDecoration: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {addNewLabel}
-          </a>
+        {(addNewLink || onAddNew) && (
+          addNewLink ? (
+            <a
+              href={addNewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                fontSize: '12px',
+                color: COLORS.appleBlue,
+                textDecoration: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {addNewLabel}
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddNew(); }}
+              style={{
+                fontSize: '12px',
+                color: COLORS.appleBlue,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              {addNewLabel}
+            </button>
+          )
         )}
       </label>
       <input

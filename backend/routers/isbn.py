@@ -37,9 +37,7 @@ async def get_isbn_info(isbn: str, db: Session = Depends(get_db)):
             continue
         existing = (
             db.query(Author)
-            .filter(
-                (Author.name_cn == name) | (Author.name == name)
-            )
+            .filter((Author.name == name) | (Author.name_cn == name))
             .first()
         )
         if existing:

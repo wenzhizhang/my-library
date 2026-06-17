@@ -4,9 +4,10 @@ import { useAuth } from '../AuthContext';
 import { MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
-const BookCard = ({ book }) => {
+const BookCard = ({ book, onDelete }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const [showConfirm, setShowConfirm] = React.useState(false);
 
   const handleViewDetails = () => {
     navigate(`${LIBRARY_PATH}/books/${book.id}`);
@@ -17,8 +18,20 @@ const BookCard = ({ book }) => {
     navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
   };
 
+  const handleDelete = async () => {
+    try {
+      const axios = (await import('axios')).default;
+      await axios.delete(`${window.location.origin}/api/books/${book.id}`);
+      setShowConfirm(false);
+      if (onDelete) onDelete(book.id);
+    } catch (err) {
+      console.error('Error deleting book:', err);
+    }
+  };
+
   return (
-    <div key={book.id} className="card">
+    <>
+    <div className="card">
       {book.thumb_image && (
         <img 
           src={`${MEDIA_BASE_URL}/${book.thumb_image}`}
@@ -29,12 +42,46 @@ const BookCard = ({ book }) => {
       <h3 className="card-title">{book.title_cn || book.title}</h3>
       <p className="caption">ISBN: {book.isbn}</p>
       <p className="caption">Authors: {book.authors ? book.authors.join(', ') : 'Unknown'}</p>
-      <button className="btn-pill-link" onClick={handleViewDetails}>View Details</button>
-      {isAuthenticated && (
-        <button className="btn-pill-link" onClick={handleEdit}>Edit</button>
-      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <button className="btn-pill-link" onClick={handleViewDetails}>View</button>
+        {isAuthenticated && (
+          <>
+            <button className="btn-pill-link" onClick={handleEdit}>Edit</button>
+            <button className="btn-pill-link" onClick={() => setShowConfirm(true)} style={{ color: '#ff3b30' }}>Delete</button>
+          </>
+        )}
+      </div>
     </div>
+
+    {showConfirm && (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 10001,
+        background: 'rgba(29,29,31,0.6)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }} onClick={() => setShowConfirm(false)}>
+        <div style={{
+          background: 'rgba(255,255,255,0.6)',
+          backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+          borderRadius: 20, padding: '24px 28px',
+          width: Math.min(380, window.innerWidth - 32),
+          boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+          textAlign: 'center',
+        }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ margin: '0 0 8px', fontSize: 18 }}>
+            Delete "{book.title_cn || book.title}"?
+          </h3>
+          <p style={{ color: '#86868b', margin: '0 0 20px', fontSize: 15 }}>
+            This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button className="btn-pill-link" onClick={() => setShowConfirm(false)}>Cancel</button>
+            <button className="btn-pill-link" onClick={handleDelete} style={{ color: '#ff3b30' }}>Delete</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
-
 export default BookCard;
