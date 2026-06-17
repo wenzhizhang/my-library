@@ -30,7 +30,7 @@ def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Op
     if q:
         query = query.filter(Publisher.name.ilike(f'%{q}%'))
     publishers = query.offset(offset).limit(limit).all()
-    total_publishers = db.query(Publisher).count()
+    total_publishers = query.count()
     total_pages = (total_publishers + limit - 1) // limit
 
     publishers_data = []
@@ -102,7 +102,7 @@ def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Option
     if q:
         query = query.filter(Brand.name.ilike(f'%{q}%'))
     brands = query.offset(offset).limit(limit).all()
-    total_brands = db.query(Brand).count()
+    total_brands = query.count()
     total_pages = (total_brands + limit - 1) // limit
 
     brands_data = []

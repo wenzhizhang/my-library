@@ -31,7 +31,7 @@ def read_series(page: int = 1, limit: int = 10, q: Optional[str] = None, sort_by
     elif sort_by == 'created_at':
         query = query.order_by(BookSeries.created_at)
     series = query.offset(offset).limit(limit).all()
-    total_series = db.query(BookSeries).count()
+    total_series = query.count()
     total_pages = (total_series + limit - 1) // limit
 
     series_data = []

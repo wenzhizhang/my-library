@@ -34,7 +34,7 @@ def read_categories(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Op
     if q:
         query = query.filter(Category.name.ilike(f'%{q}%'))
     categories = query.offset(offset).limit(limit).all()
-    total_categories = db.query(Category).count()
+    total_categories = query.count()
     total_pages = (total_categories + limit - 1) // limit
 
     categories_data = []

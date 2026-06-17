@@ -30,7 +30,7 @@ def read_bookshelves(page: int = 1, limit: int = 10, sort_by: str = 'name', q: O
     elif sort_by == 'created_at':
         query = query.order_by(Bookshelf.created_at)
     bookshelves = query.offset(offset).limit(limit).all()
-    total_bookshelves = db.query(Bookshelf).count()
+    total_bookshelves = query.count()
     total_pages = (total_bookshelves + limit - 1) // limit
 
     bookshelves_data = []

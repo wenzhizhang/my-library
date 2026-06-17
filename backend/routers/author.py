@@ -33,7 +33,7 @@ def read_authors(
     if q:
         query = query.filter(or_(Author.name.ilike(f'%{q}%'), Author.name_cn.ilike(f'%{q}%')))
     authors = query.offset(offset).limit(limit).all()
-    total_authors = db.query(Author).count()
+    total_authors = query.count()
     total_pages = (total_authors + limit - 1) // limit
 
     authors_data = []

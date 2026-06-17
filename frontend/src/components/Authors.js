@@ -27,9 +27,15 @@ const Authors = () => {
 
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState('name');
+  const [page, setPage] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).page || 1; } catch { return 1; }
+  });
+  const [limit, setLimit] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).limit || 10; } catch { return 10; }
+  });
+  const [sortBy, setSortBy] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).sortBy || 'name'; } catch { return 'name'; }
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [totalAuthors, setTotalAuthors] = useState(0);
   const [goToPage, setGoToPage] = useState('');
@@ -37,18 +43,17 @@ const Authors = () => {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAuthor, setEditingAuthor] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    name_cn: '',
-    nation: '无',
-    dynasty: '',
-    intro: '',
-    photo: '',
-  });
+  const [formData, setFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).searchQuery || ''; } catch { return ''; }
+  });
+  const [submittedQuery, setSubmittedQuery] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).submittedQuery || ''; } catch { return ''; }
+  });
+  // Clear after reading
+  try { if (sessionStorage.getItem('authorsPageState')) sessionStorage.removeItem('authorsPageState'); } catch {}
   const fetchAuthors = useCallback(async () => {
     setLoading(true);
     try {
@@ -263,7 +268,7 @@ const Authors = () => {
                 </p>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
+                <button className="btn-pill-link" onClick={() => { sessionStorage.setItem('authorsPageState', JSON.stringify({ page, limit, sortBy, searchQuery, submittedQuery })); navigate(`${author.id}`); }}>
                   View
                 </button>
                 {isAuthenticated && (

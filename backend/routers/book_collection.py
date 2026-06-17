@@ -46,7 +46,7 @@ def read_book_collections(
         query = query.filter(BookCollection.name.ilike(f"%{q}%"))
 
     collections = query.offset(offset).limit(limit).all()
-    total_collections = db.query(BookCollection).count()
+    total_collections = query.count()
     total_pages = (total_collections + limit - 1) // limit
 
     collections_data = []

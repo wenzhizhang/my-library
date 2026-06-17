@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -31,6 +31,7 @@ const AuthorDetails = () => {
   // Edit modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -104,7 +105,7 @@ const AuthorDetails = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <h1 className="section-heading" style={{ margin: 0 }}>{displayName}</h1>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary-blue" onClick={() => window.history.back()}>
+            <button className="btn-primary-blue" onClick={() => navigate('/my-library/authors')}>
               Back to Authors
             </button>
             {isAuthenticated && (
