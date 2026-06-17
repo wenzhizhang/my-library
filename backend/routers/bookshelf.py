@@ -5,11 +5,14 @@ from typing import List, Optional
 from models import Bookshelf, Book
 from schemas.bookshelf import BookshelfCreation, BookshelfUpdate, BookshelfResponse
 from database import get_db
+from auth import get_current_user_id
 
 router = APIRouter(prefix="/api/bookshelves", tags=["bookshelves"])
 
 @router.post("/", response_model=BookshelfResponse)
-def create_bookshelf(bookshelf: BookshelfCreation, db: Session = Depends(get_db)):
+def create_bookshelf(bookshelf: BookshelfCreation, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     db_bookshelf = Bookshelf(**bookshelf.model_dump())
     db.add(db_bookshelf)
     db.commit()
@@ -52,10 +55,12 @@ def read_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
     return bookshelf
 
 @router.put("/{bookshelf_id}", response_model=BookshelfResponse)
-def update_bookshelf(bookshelf_id: int, bookshelf_update: BookshelfUpdate, db: Session = Depends(get_db)):
+def update_bookshelf(bookshelf_id: int, bookshelf_update: BookshelfUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
     bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     for key, value in bookshelf_update.dict(exclude_unset=True).items():
         setattr(bookshelf, key, value)
     db.commit()
@@ -63,7 +68,9 @@ def update_bookshelf(bookshelf_id: int, bookshelf_update: BookshelfUpdate, db: S
     return bookshelf
 
 @router.delete("/{bookshelf_id}")
-def delete_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
+def delete_bookshelf(bookshelf_id: int, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")

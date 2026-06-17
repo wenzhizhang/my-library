@@ -5,11 +5,14 @@ from typing import List, Optional
 from models import Publisher, Brand, Book
 from schemas.publisher import PublisherCreation, PublisherUpdate, PublisherResponse, BrandCreation, BrandUpdate, BrandResponse
 from database import get_db
+from auth import get_current_user_id
 
 publisher_router = APIRouter(prefix="/api/publishers", tags=["publishers"])
 
 @publisher_router.post("/", response_model=PublisherResponse)
-def create_publisher(publisher: PublisherCreation, db: Session = Depends(get_db)):
+def create_publisher(publisher: PublisherCreation, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     db_publisher = Publisher(**publisher.dict())
     db.add(db_publisher)
     db.commit()
@@ -53,7 +56,9 @@ def read_publisher(publisher_id: int, db: Session = Depends(get_db)):
     return publisher
 
 @publisher_router.put("/{publisher_id}", response_model=PublisherResponse)
-def update_publisher(publisher_id: int, publisher_update: PublisherUpdate, db: Session = Depends(get_db)):
+def update_publisher(publisher_id: int, publisher_update: PublisherUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     publisher = db.query(Publisher).filter(Publisher.id == publisher_id).first()
     if publisher is None:
         raise HTTPException(status_code=404, detail="Publisher not found")
@@ -64,7 +69,9 @@ def update_publisher(publisher_id: int, publisher_update: PublisherUpdate, db: S
     return publisher
 
 @publisher_router.delete("/{publisher_id}")
-def delete_publisher(publisher_id: int, db: Session = Depends(get_db)):
+def delete_publisher(publisher_id: int, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     publisher = db.query(Publisher).filter(Publisher.id == publisher_id).first()
     if publisher is None:
         raise HTTPException(status_code=404, detail="Publisher not found")
@@ -75,7 +82,9 @@ def delete_publisher(publisher_id: int, db: Session = Depends(get_db)):
 brand_router = APIRouter(prefix="/api/brands", tags=["brands"])
 
 @brand_router.post("/", response_model=BrandResponse)
-def create_brand(brand: BrandCreation, db: Session = Depends(get_db)):
+def create_brand(brand: BrandCreation, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     db_brand = Brand(**brand.dict())
     db.add(db_brand)
     db.commit()
@@ -118,7 +127,9 @@ def read_brand(brand_id: int, db: Session = Depends(get_db)):
     return brand
 
 @brand_router.put("/{brand_id}", response_model=BrandResponse)
-def update_brand(brand_id: int, brand_update: BrandUpdate, db: Session = Depends(get_db)):
+def update_brand(brand_id: int, brand_update: BrandUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if brand is None:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -129,7 +140,9 @@ def update_brand(brand_id: int, brand_update: BrandUpdate, db: Session = Depends
     return brand
 
 @brand_router.delete("/{brand_id}")
-def delete_brand(brand_id: int, db: Session = Depends(get_db)):
+def delete_brand(brand_id: int, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if brand is None:
         raise HTTPException(status_code=404, detail="Brand not found")

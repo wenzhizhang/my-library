@@ -291,12 +291,17 @@ const Authors = () => {
       {modalOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(29,29,31,0.92)',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }} onClick={() => setModalOpen(false)}>
           <div style={{
-            background: '#fff', borderRadius: 20, padding: '24px 28px',
-            width: Math.min(480, window.innerWidth - 32),
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: 20, padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
             maxHeight: '90vh', overflow: 'auto',
             boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
           }} onClick={(e) => e.stopPropagation()}>
@@ -366,12 +371,17 @@ const Authors = () => {
       {confirmDelete && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10001,
-          background: 'rgba(29,29,31,0.92)',
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }} onClick={() => setConfirmDelete(null)}>
           <div style={{
-            background: '#fff', borderRadius: 20, padding: '24px 28px',
-            width: Math.min(380, window.innerWidth - 32),
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(30px)',
+            WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: 20, padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
             boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
             textAlign: 'center',
           }} onClick={(e) => e.stopPropagation()}>

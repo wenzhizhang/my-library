@@ -17,8 +17,9 @@ from typing import Any, Optional
 
 import httpx
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
 
+logger = logging.getLogger(__name__)
 SOURCE_TIMEOUT = 5.0
 RATE_LIMIT_INTERVAL = 2.0  # seconds between requests to external APIs
 
@@ -90,8 +91,6 @@ async def _rate_limit():
     async with _RATE_LOCK:
         elapsed = time.monotonic() - _LAST_REQUEST_TIME
         if elapsed < RATE_LIMIT_INTERVAL:
-            wait = RATE_LIMIT_INTERVAL - elapsed
-            logger.debug("Rate limiting: waiting %.1fs", wait)
             await asyncio.sleep(wait)
         _LAST_REQUEST_TIME = time.monotonic()
 
@@ -112,6 +111,7 @@ async def _fetch_douban(client: httpx.AsyncClient, isbn: str) -> Optional[BookIn
 
     await _rate_limit()
     url = f"{DOUBAN_BASE}/book/isbn/{isbn}?apikey={DOUBAN_KEY}"
+
     try:
         r = await client.get(url)
         if r.status_code == 403:
@@ -177,15 +177,6 @@ async def _fetch_douban(client: httpx.AsyncClient, isbn: str) -> Optional[BookIn
 
     # Catalog (table of contents)
     info.catalog = str(data.get("catalog", ""))
-
-    # Tags — take the first tag name
-    tags = data.get("tags") or []
-    if tags and isinstance(tags, list):
-        first = tags[0]
-        if isinstance(first, dict):
-            tag_name = str(first.get("name", ""))
-            if tag_name:
-                info.tag_names = [tag_name]
 
     return info
 

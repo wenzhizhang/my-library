@@ -4,12 +4,16 @@ from typing import List, Optional
 
 from models import BookSeries, Book
 from schemas.series import BookSeriesCreation, BookSeriesUpdate, BookSeriesResponse
+
+from auth import get_current_user_id
 from database import get_db
 
 router = APIRouter(prefix="/api/series", tags=["series"])
 
 @router.post("/", response_model=BookSeriesResponse)
-def create_series(series: BookSeriesCreation, db: Session = Depends(get_db)):
+def create_series(series: BookSeriesCreation, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     db_series = BookSeries(**series.dict())
     db.add(db_series)
     db.commit()
@@ -52,7 +56,9 @@ def read_series_item(series_id: int, db: Session = Depends(get_db)):
     return series
 
 @router.put("/{series_id}", response_model=BookSeriesResponse)
-def update_series(series_id: int, series_update: BookSeriesUpdate, db: Session = Depends(get_db)):
+def update_series(series_id: int, series_update: BookSeriesUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     series = db.query(BookSeries).filter(BookSeries.id == series_id).first()
     if series is None:
         raise HTTPException(status_code=404, detail="Series not found")
@@ -63,7 +69,9 @@ def update_series(series_id: int, series_update: BookSeriesUpdate, db: Session =
     return series
 
 @router.delete("/{series_id}")
-def delete_series(series_id: int, db: Session = Depends(get_db)):
+def delete_series(series_id: int, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     series = db.query(BookSeries).filter(BookSeries.id == series_id).first()
     if series is None:
         raise HTTPException(status_code=404, detail="Series not found")

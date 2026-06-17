@@ -5,11 +5,14 @@ from typing import List, Optional
 from models import Category, Book
 from schemas.category import CategoryCreation, CategoryUpdate, CategoryResponse
 from database import get_db
+from auth import get_current_user_id
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 @router.post("/", response_model=CategoryResponse)
-def create_category(category: CategoryCreation, db: Session = Depends(get_db)):
+def create_category(category: CategoryCreation, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     db_category = Category(
         name=category.name,
         parent_id=category.parent,
@@ -59,7 +62,9 @@ def read_category(category_id: int, db: Session = Depends(get_db)):
     return category
 
 @router.put("/{category_id}", response_model=CategoryResponse)
-def update_category(category_id: int, category_update: CategoryUpdate, db: Session = Depends(get_db)):
+def update_category(category_id: int, category_update: CategoryUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     category = db.query(Category).filter(Category.id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -73,7 +78,9 @@ def update_category(category_id: int, category_update: CategoryUpdate, db: Sessi
     return category
 
 @router.delete("/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(category_id: int, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Login required")
     category = db.query(Category).filter(Category.id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
