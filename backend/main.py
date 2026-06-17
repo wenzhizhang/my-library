@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from routers import author_router, book_router, bookshelf_router, category_router, publisher_router, brand_router, series_router, application_router, user_router, stats_router, rag_router, book_collection_router, isbn_router
+from routers import author_router, book_router, bookshelf_router, category_router, publisher_router, brand_router, series_router, application_router, user_router, stats_router, rag_router, book_collection_router, isbn_router, config_router
 from database import get_db
 from sqlalchemy.orm import Session
 from models import Author, Book, Bookshelf, Category, Publisher, Brand, BookSeries
@@ -52,6 +52,7 @@ app.include_router(user_router)
 app.include_router(stats_router)
 app.include_router(rag_router)
 app.include_router(isbn_router)
+app.include_router(config_router)
 
 # Page-view middleware — logs frontend page visits (called from frontend)
 @app.middleware("http")

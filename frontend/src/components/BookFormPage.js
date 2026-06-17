@@ -716,6 +716,13 @@ function BookFormPage() {
     fetchAll();
   }, []);
 
+  const [purchaseStores, setPurchaseStores] = useState(PURCHASE_STORES);
+  useEffect(() => {
+    axios.get(`${window.location.origin}${API_BASE_URL}/config/purchase-stores`)
+      .then(res => setPurchaseStores(res.data.purchase_stores || PURCHASE_STORES))
+      .catch(() => {});
+  }, []);
+
   const updateField = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -1367,6 +1374,7 @@ function BookFormPage() {
             placeholder="Search and select publisher..."
             dark
             onAddNew={handleAddNewPublisher}
+            addNewLabel="+ New Publisher"
           />
 
           <AppleInput
@@ -1565,7 +1573,7 @@ function BookFormPage() {
             label="Purchase Store"
             value={formData.purchase_store}
             onChange={(v) => updateField('purchase_store', v)}
-            options={PURCHASE_STORES.map(name => ({ id: name, name }))}
+            options={purchaseStores.map(name => ({ id: name, name }))}
             placeholder="京东自营 / 当当..."
             dark
           />

@@ -10,6 +10,7 @@ from .user import router as user_router
 from .rag import router as rag_router
 from .isbn import router as isbn_router
 from .stats import router as stats_router
+from .config_router import router as config_router
 
 __all__ = [
     "author_router",
@@ -24,5 +25,6 @@ __all__ = [
     "book_collection_router",
     "rag_router",
     "stats_router",
+    "config_router",
     "isbn_router",
 ]

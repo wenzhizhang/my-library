@@ -55,7 +55,7 @@ function SearchableSelect({
   dark = false,
   error,
   addNewLink,
-  addNewLabel,
+  addNewLabel = '+ New',
   onAddNew,
   keepSearchOnSelect = false,
 }) {
