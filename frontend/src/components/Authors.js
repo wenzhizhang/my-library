@@ -227,7 +227,6 @@ const Authors = () => {
               <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
                 <option value="id">ID</option>
                 <option value="name">Name</option>
-                <option value="created_at">Date Added</option>
               </select>
             </label>
             <label className="control-label">

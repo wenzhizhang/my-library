@@ -4,11 +4,34 @@ import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { useAuth } from '../AuthContext';
+
+const NATIONS = [
+  "中国", "俄罗斯", "前苏联", "希腊", "美国", "英国", "法国", "德国",
+  "古巴", "西班牙", "古罗马", "加拿大", "爱尔兰", "澳大利亚", "瑞士",
+  "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
+  "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
+  "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
+  "以色列", "日本", "无",
+];
+
+const DYNASTIES = [
+  "上古", "夏", "商", "西周", "东周", "春秋", "战国",
+  "秦", "西汉", "东汉", "魏", "蜀", "吴", "西晋", "东晋",
+  "南北朝", "隋", "唐", "五代", "北宋", "南宋",
+  "元", "明", "清", "民国", "现代", "当代",
+];
 
 const AuthorDetails = () => {
   const { id } = useParams();
+  const { isAuthenticated } = useAuth();
   const [author, setAuthor] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Edit modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchAuthor();
@@ -27,11 +50,49 @@ const AuthorDetails = () => {
     setLoading(false);
   };
 
+  const openEdit = () => {
+    setFormData({
+      name: author.name || '',
+      name_cn: author.name_cn || '',
+      nation: author.nation || '无',
+      dynasty: author.dynasty || '',
+      intro: author.intro || '',
+      photo: author.photo || '',
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+    setSaving(true);
+
+    const payload = {};
+    for (const [k, v] of Object.entries(formData)) {
+      if (v !== '' && v !== null && v !== undefined) {
+        payload[k] = v;
+      }
+    }
+
+    try {
+      await axios.put(
+        `${window.location.origin}${API_BASE_URL}/authors/${id}`,
+        payload
+      );
+      setModalOpen(false);
+      fetchAuthor();
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Save failed';
+      alert(msg);
+    }
+    setSaving(false);
+  };
+
   if (loading) return <div className="loading">Loading...</div>;
   if (!author) return <div className="error">Author not found</div>;
 
   const displayName = author.name_cn || author.name;
-  const nationLabel = author.dynasty && author.dynasty !== '当代' && author.nation === '中国'
+  const nationLabel = author.dynasty && author.nation === '中国'
     ? `[${author.dynasty}]`
     : author.nation
       ? `[${author.nation}]`
@@ -40,27 +101,39 @@ const AuthorDetails = () => {
   return (
     <section className="section light">
       <div className="container">
-        <h1 className="section-heading">{displayName}</h1>
-        <button className="btn-primary-blue" onClick={() => window.history.back()}>
-          Back to Authors
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <h1 className="section-heading" style={{ margin: 0 }}>{displayName}</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-primary-blue" onClick={() => window.history.back()}>
+              Back to Authors
+            </button>
+            {isAuthenticated && (
+              <button className="btn-primary-blue" onClick={openEdit}>
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="details-content" style={{ marginTop: 24 }}>
           <h2>Author Information</h2>
 
-          <div style={infoGridStyle}>
-            <div style={infoItemStyle}>
-              <span style={infoLabelStyle}>Name</span>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: 12, marginTop: 12,
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</span>
               <span>{author.name}</span>
             </div>
             {author.name_cn && author.name_cn !== author.name && (
-              <div style={infoItemStyle}>
-                <span style={infoLabelStyle}>Chinese Name</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Chinese Name</span>
                 <span>{author.name_cn}</span>
               </div>
             )}
-            <div style={infoItemStyle}>
-              <span style={infoLabelStyle}>Nation / Dynasty</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nation / Dynasty</span>
               <span>{nationLabel ? `${nationLabel} ` : ''}{author.nation || '无'}</span>
             </div>
           </div>
@@ -94,29 +167,98 @@ const AuthorDetails = () => {
           </>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {modalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(29,29,31,0.6)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={() => setModalOpen(false)}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.6)',
+            backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+            borderRadius: 20, padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '90vh', overflow: 'auto',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 600 }}>Edit Author</h2>
+            <form onSubmit={handleSave}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Name <span style={{ color: '#ff3b30' }}>*</span></label>
+                <input type="text" value={formData.name} required
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={inputStyle} placeholder="e.g. 东野圭吾" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Name (Chinese)</label>
+                <input type="text" value={formData.name_cn}
+                  onChange={(e) => setFormData({ ...formData, name_cn: e.target.value })}
+                  style={inputStyle} placeholder="e.g. 东野圭吾" />
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Nation</label>
+                  <select value={formData.nation}
+                    onChange={(e) => setFormData({ ...formData, nation: e.target.value })}
+                    style={inputStyle}>
+                    {NATIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Dynasty</label>
+                  <select value={formData.dynasty}
+                    onChange={(e) => setFormData({ ...formData, dynasty: e.target.value })}
+                    style={inputStyle}>
+                    <option value="">None</option>
+                    {DYNASTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Introduction</label>
+                <textarea value={formData.intro} rows={4}
+                  onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
+                  style={{ ...inputStyle, resize: 'vertical' }} placeholder="Author biography..." />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>Photo URL</label>
+                <input type="text" value={formData.photo}
+                  onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+                  style={inputStyle} placeholder="https://..." />
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn-pill-link"
+                  onClick={() => setModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn-pill-link" disabled={saving}
+                  style={saving ? { opacity: 0.6 } : {}}>
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
 
-const infoGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-  gap: 12,
-  marginTop: 12,
+const labelStyle = {
+  display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
 };
 
-const infoItemStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-};
-
-const infoLabelStyle = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#86868b',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  border: 'none',
+  borderRadius: 8,
+  padding: '12px 16px',
+  background: 'rgba(0,0,0,0.04)',
+  fontSize: 16,
+  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+  outline: 'none',
 };
 
 export default AuthorDetails;

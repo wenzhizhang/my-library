@@ -123,12 +123,12 @@ class BookCreation(BaseModel):
     publish_date: Optional[datetime] = None
     brand_id: Optional[int] = None
     book_series_id: Optional[int] = None
-    binding_type: Optional[str] = None
-    paper_type: Optional[str] = None
-    pages: Optional[int] = None
+    binding_type: str = "精装"
+    paper_type: str = "胶版纸"
+    pages: int = 1
     book_count: int = 1
-    language: str = "zh-CN"
-    compose_type: Optional[str] = None
+    language: str = "中文"
+    compose_type: str = "横排"
     price: Optional[float] = None
     purchase_price: Optional[float] = None
     purchase_date: Optional[datetime] = None

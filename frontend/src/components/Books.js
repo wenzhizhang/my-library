@@ -182,7 +182,7 @@ const Books = () => {
       <div className="container">
         <h1 className="section-heading">Books</h1>
 
-        <button className="btn-primary-blue" onClick={() => navigate(`${LIBRARY_PATH}/books/create`)}>
+        <button className="btn-primary-blue" onClick={() => { sessionStorage.setItem('booksPageState', window.location.search); navigate(`${LIBRARY_PATH}/books/create`); }}>
           Add New Book
         </button>
 
@@ -241,7 +241,6 @@ const Books = () => {
               <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
                 <option value="id">ID</option>
                 <option value="title">Title</option>
-                <option value="created_at">Date Added</option>
               </select>
             </label>
             <label className="control-label">

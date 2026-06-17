@@ -13,6 +13,7 @@ const BookCard = ({ book }) => {
   };
 
   const handleEdit = () => {
+    sessionStorage.setItem('booksPageState', window.location.search);
     navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
   };
 

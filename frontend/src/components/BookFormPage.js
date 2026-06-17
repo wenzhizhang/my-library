@@ -595,15 +595,14 @@ function BookFormPage() {
     publish_date: '',
     brand_id: null,
     book_series_id: null,
-    binding_type: '',
-    paper_type: '',
-    pages: null,
+    binding_type: '精装',
+    paper_type: '胶版纸',
+    pages: 1,
     book_count: 1,
-    language: 'zh-CN',
-    compose_type: '',
-    price: null,
+    language: '中文',
+    compose_type: '横排',
     purchase_price: null,
-    purchase_date: '',
+    purchase_date: new Date().toISOString().split('T')[0],
     thumb_image: '',
     link: '',
     category_id: null,
@@ -626,6 +625,7 @@ function BookFormPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isbnLookupLoading, setIsbnLookupLoading] = useState(false);
 
+  const [apiThumbUrl, setApiThumbUrl] = useState('');
   // --- API Data ---
   const [authors, setAuthors] = useState([]);
   const [publishers, setPublishers] = useState([]);
@@ -721,6 +721,7 @@ function BookFormPage() {
         fill('binding_type', data.binding_type);
         fill('douban_score', data.douban_score);
         fill('translator', data.translator);
+        if (data.thumb_image) setApiThumbUrl(data.thumb_image);
         fill('link', data.link);
         fill('catalog', data.catalog);
 
@@ -833,10 +834,6 @@ function BookFormPage() {
     if (!formData.isbn.trim()) {
       newErrors.isbn = 'ISBN is required';
     }
-    if (!formData.category_id) {
-      newErrors.category_id = 'Category is required';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -871,7 +868,14 @@ function BookFormPage() {
 
       setTimeout(() => {
         setSubmitSuccess(false);
-        navigate('/my-library/books');
+        // Restore previous page state if available, otherwise default
+        const prevState = sessionStorage.getItem('booksPageState');
+        if (prevState) {
+          navigate(`/my-library/books${prevState}`);
+          sessionStorage.removeItem('booksPageState');
+        } else {
+          navigate('/my-library/books');
+        }
       }, 1500);
     } catch (error) {
       console.error('Error saving book:', error);
@@ -1214,7 +1218,6 @@ function BookFormPage() {
             onChange={(v) => updateField('category_id', v)}
             options={categories}
             placeholder="Search and select category..."
-            required
             dark
             error={errors.category_id}
             addNewLink={`${LIBRARY_PATH}/categories`}
@@ -1463,6 +1466,18 @@ function BookFormPage() {
             placeholder="https://..."
             dark
           />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 16, fontSize: 14, color: '#86868b', cursor: 'pointer' }}>
+            <input type="checkbox" checked={formData.thumb_image === `/books/${formData.isbn}.png`}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  updateField('thumb_image', `/books/${formData.isbn}.png`);
+                } else {
+                  updateField('thumb_image', apiThumbUrl || '');
+                }
+              }}
+            />
+            Use Default (/books/{formData.isbn || 'ISBN'}.png)
+          </label>
 
           <AppleInput
             label="External Link"

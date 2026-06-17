@@ -38,8 +38,7 @@ def create_book(book: BookCreation, db: Session = Depends(get_db)):
     
     db.add(db_book)
     db.commit()
-    # Index for RAG search (best-effort, never blocks the response)
-    sync_book(db, db_book.id)
+    # sync_book(db, db_book.id)  # RAG disabled
     db.refresh(db_book)
     return {
         "id": db_book.id,
@@ -249,8 +248,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
         setattr(book, key, value)
     db.commit()
     db.refresh(book)
-    # Re-index for RAG search (best-effort)
-    sync_book(db, book.id)
+    # sync_book(db, book.id)  # RAG disabled
     return {
         "id": book.id,
         "isbn": book.isbn,
@@ -294,8 +292,6 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    # Remove from RAG index (best-effort)
-    remove_book(db, book_id)
-    db.delete(book)
+    # remove_book(db, book_id)  # RAG disabled
     db.commit()
     return {"message": "Book deleted"}

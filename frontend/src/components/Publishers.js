@@ -226,8 +226,8 @@ const Publishers = () => {
             <label className="control-label">
               <span className="control-label-text">Sort</span>
               <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+                <option value="id">ID</option>
                 <option value="name">Name</option>
-                <option value="created_at">Date Added</option>
               </select>
             </label>
             <label className="control-label">
@@ -250,7 +250,8 @@ const Publishers = () => {
             <div key={publisher.id} className="card">
               <h3 className="card-title">{publisher.name}</h3>
               {publisher.logo && (
-                <img src={`${MEDIA_BASE_URL}/${publisher.logo}`} alt={publisher.name}
+                <img src={publisher.logo.startsWith('http') ? publisher.logo : `${MEDIA_BASE_URL}/${publisher.logo}`}
+                  alt={publisher.name}
                   className="card-image" style={{ maxHeight: 120, objectFit: 'contain' }} />
               )}
               {publisher.intro && <p className="caption">{publisher.intro.length > 100 ? publisher.intro.substring(0, 100) + '...' : publisher.intro}</p>}
