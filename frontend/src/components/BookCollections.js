@@ -1,21 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import { API_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 
 const BookCollections = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+
+  const page = parseInt(searchParams.get('collectionsPage')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 10;
+  const sortBy = searchParams.get('sort_by') || 'name';
+
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState("name");
   const [totalPages, setTotalPages] = useState(1);
   const [totalCollections, setTotalCollections] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
+
   const [goToPage, setGoToPage] = useState("");
   const [newName, setNewName] = useState("");
   const [newIntro, setNewIntro] = useState("");
@@ -27,13 +33,8 @@ const BookCollections = () => {
   const [editIntro, setEditIntro] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchCollections();
-  }, [page, limit, sortBy, submittedQuery]);
-
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit, sort_by: sortBy };
@@ -53,6 +54,39 @@ const BookCollections = () => {
       setError('Failed to load collections. Please try again.');
     }
     setLoading(false);
+  }, [page, limit, sortBy, submittedQuery]);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
+
+  // Sync submittedQuery from URL on mount
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    if (q !== submittedQuery) {
+      setSubmittedQuery(q);
+      setSearchQuery(q);
+    }
+  }, []); // eslint-disable-line
+
+  const setPageParam = (p) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('collectionsPage', String(p));
+    setSearchParams(next, { replace: true });
+  };
+
+  const setSortByParam = (s) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('sort_by', s);
+    next.set('collectionsPage', '1');
+    setSearchParams(next, { replace: true });
+  };
+
+  const setLimitParam = (l) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('limit', String(l));
+    next.set('collectionsPage', '1');
+    setSearchParams(next, { replace: true });
   };
 
   const handleCreate = async (e) => {
@@ -67,7 +101,7 @@ const BookCollections = () => {
       );
       setNewName("");
       setNewIntro("");
-      setPage(1);
+      setPageParam(1);
       fetchCollections();
     } catch (err) {
       setCreateError(err.response?.data?.detail || "Failed to create collection");
@@ -97,6 +131,7 @@ const BookCollections = () => {
       setError(err.response?.data?.detail || "Failed to update collection");
     }
   };
+
   const handleDelete = async (collection) => {
     setConfirmDelete(collection);
   };
@@ -117,24 +152,26 @@ const BookCollections = () => {
   };
 
   const handleSortChange = (newSortBy) => {
-    setSortBy(newSortBy);
-    setPage(1);
+    setSortByParam(newSortBy);
   };
 
   const handleLimitChange = (newLimit) => {
-    setLimit(parseInt(newLimit));
-    setPage(1);
+    setLimitParam(parseInt(newLimit));
   };
 
   const handleGoToPage = () => {
     const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPage(pageNum);
+    setPageParam(pageNum);
     setGoToPage('');
   };
 
   const handleSearch = () => {
-    setSubmittedQuery(searchQuery.trim());
-    setPage(1);
+    const q = searchQuery.trim();
+    setSubmittedQuery(q);
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q); else next.delete('q');
+    next.set('collectionsPage', '1');
+    setSearchParams(next, { replace: true });
   };
 
   const handleKeyDown = (e) => {
@@ -143,59 +180,22 @@ const BookCollections = () => {
     }
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
+  // ── Pagination ─────────────────────────────────────────────
+  const pages = [];
+  const startPage = Math.max(1, page - 2);
+  const endPage = Math.min(totalPages, page + 2);
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`btn-pill-link ${i === page ? 'active' : ''}`}
-          onClick={() => setPage(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return (
-      <div className="pagination">
-        <div className="pagination-links">
-          {page > 1 && (
-            <>
-              <button className="btn-pill-link" onClick={() => setPage(1)}>First</button>
-              <button className="btn-pill-link" onClick={() => setPage(page - 1)}>Previous</button>
-            </>
-          )}
-
-          {pages}
-
-          {page < totalPages && (
-            <>
-              <button className="btn-pill-link" onClick={() => setPage(page + 1)}>Next</button>
-              <button className="btn-pill-link" onClick={() => setPage(totalPages)}>Last</button>
-            </>
-          )}
-        </div>
-
-        <div className="pagination-input">
-          <label htmlFor="page-input">Go to page:</label>
-          <input
-            type="number"
-            id="page-input"
-            min="1"
-            max={totalPages}
-            value={goToPage}
-            onChange={(e) => setGoToPage(e.target.value)}
-            onKeyPress={handleKeyDown}
-          />
-        </div>
-      </div>
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(
+      <button
+        key={i}
+        className={`btn-pill-link ${i === page ? 'active' : ''}`}
+        onClick={() => setPageParam(i)}
+      >
+        {i}
+      </button>
     );
-  };
-
+  }
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -347,7 +347,38 @@ const BookCollections = () => {
         </div>
         )}
 
-        {renderPagination()}
+        <div className="pagination">
+          <div className="pagination-links">
+            {page > 1 && (
+              <>
+                <button className="btn-pill-link" onClick={() => setPageParam(1)}>First</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>Previous</button>
+              </>
+            )}
+
+            {pages}
+
+            {page < totalPages && (
+              <>
+                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>Next</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>Last</button>
+              </>
+            )}
+          </div>
+
+          <div className="pagination-input">
+            <label htmlFor="page-input">Go to page:</label>
+            <input
+              type="number"
+              id="page-input"
+              min="1"
+              max={totalPages}
+              value={goToPage}
+              onChange={(e) => setGoToPage(e.target.value)}
+              onKeyPress={handleKeyDown}
+            />
+          </div>
+        </div>
       </div>
 
         {confirmDelete && (

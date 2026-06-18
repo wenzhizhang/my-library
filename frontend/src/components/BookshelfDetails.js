@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -7,6 +7,7 @@ import { API_BASE_URL } from './Config';
 
 const BookshelfDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [bookshelf, setBookshelf] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,9 +40,8 @@ const BookshelfDetails = () => {
     <section className="section light">
       <div className="container">
         <h1 className="section-heading">{bookshelf.name}</h1>
-        <button
-          className="btn-primary-blue"
-          onClick={() => window.history.back()}
+        <button className="btn-primary-blue"
+          onClick={() => navigate('/my-library/bookshelves')}
         >
           Back to Bookshelves
         </button>

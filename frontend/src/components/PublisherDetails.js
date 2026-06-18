@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -7,6 +7,7 @@ import { API_BASE_URL } from './Config';
 
 const PublisherDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [publisher, setPublisher] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +42,7 @@ const PublisherDetails = () => {
         <h1 className="section-heading">{publisher.name}</h1>
         <button
           className="btn-primary-blue"
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/my-library/publishers')}
         >
           Back to Publishers
         </button>

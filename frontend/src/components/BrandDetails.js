@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import BookCard from './BookCard';
@@ -7,6 +7,7 @@ import { API_BASE_URL } from './Config';
 
 const BrandDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +38,7 @@ const BrandDetails = () => {
     <section className="section light">
       <div className="container">
         <h1 className="section-heading">{brand.name}</h1>
-        <button className="btn-primary-blue" onClick={() => window.history.back()}>Back to Brands</button>
+        <button className="btn-primary-blue" onClick={() => navigate('/my-library/brands')}>Back to Brands</button>
 
         <div className="details-content">
           <h2>Brand Information</h2>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -7,6 +7,7 @@ import { API_BASE_URL } from './Config';
 
 const SeriesDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [series, setSeries] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +38,7 @@ const SeriesDetails = () => {
     <section className="section light">
       <div className="container">
         <h1 className="section-heading">{series.name}</h1>
-        <button className="btn-primary-blue" onClick={() => window.history.back()}>
+        <button className="btn-primary-blue" onClick={() => navigate('/my-library/series')}>
           Back to Series
         </button>
 

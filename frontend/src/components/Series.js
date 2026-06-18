@@ -1,23 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import { API_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 
 const Series = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const page = parseInt(searchParams.get('page')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 10;
+  const sortBy = searchParams.get('sort_by') || 'name';
+
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState("name");
   const [totalPages, setTotalPages] = useState(1);
   const [totalSeries, setTotalSeries] = useState(0);
   const [goToPage, setGoToPage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,6 +29,7 @@ const Series = () => {
   const [formData, setFormData] = useState({ name: '', intro: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+
   const fetchSeries = useCallback(async () => {
     setLoading(true);
     try {
@@ -50,15 +55,39 @@ const Series = () => {
     fetchSeries();
   }, [fetchSeries]);
 
+  // Sync submittedQuery from URL on mount
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    if (q !== submittedQuery) {
+      setSubmittedQuery(q);
+      setSearchQuery(q);
+    }
+  }, []); // eslint-disable-line
+
+  const setPageParam = (p) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(p));
+    setSearchParams(next, { replace: true });
+  };
+  const setSortByParam = (s) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('sort_by', s);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+  const setLimitParam = (l) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('limit', String(l));
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
 
   const handleSortChange = (newSortBy) => {
-    setSortBy(newSortBy);
-    setPage(1);
+    setSortByParam(newSortBy);
   };
 
   const handleLimitChange = (newLimit) => {
-    setLimit(parseInt(newLimit));
-    setPage(1);
+    setLimitParam(parseInt(newLimit));
   };
 
   const handleGoToPage = () => {
@@ -66,7 +95,7 @@ const Series = () => {
       Math.max(parseInt(goToPage) || 1, 1),
       totalPages
     );
-    setPage(pageNum);
+    setPageParam(pageNum);
     setGoToPage("");
   };
 
@@ -77,9 +106,12 @@ const Series = () => {
   };
 
   const handleSearch = () => {
-    setSubmittedQuery(searchQuery.trim());
-    setPage(1);
-    setGoToPage("");
+    const q = searchQuery.trim();
+    setSubmittedQuery(q);
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q); else next.delete('q');
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
   };
 
   const handleKeyDown = (e) => {
@@ -147,6 +179,7 @@ const Series = () => {
     }
   };
 
+  // ── Pagination ─────────────────────────────────────────────
 
   const renderPagination = () => {
     const pages = [];
@@ -158,7 +191,7 @@ const Series = () => {
         <button
           key={i}
           className={`btn-pill-link ${i === page ? "active" : ""}`}
-          onClick={() => setPage(i)}
+          onClick={() => setPageParam(i)}
         >
           {i}
         </button>
@@ -172,13 +205,13 @@ const Series = () => {
             <>
               <button
                 className="btn-pill-link"
-                onClick={() => setPage(1)}
+                onClick={() => setPageParam(1)}
               >
                 First
               </button>
               <button
                 className="btn-pill-link"
-                onClick={() => setPage(page - 1)}
+                onClick={() => setPageParam(page - 1)}
               >
                 Previous
               </button>
@@ -191,13 +224,13 @@ const Series = () => {
             <>
               <button
                 className="btn-pill-link"
-                onClick={() => setPage(page + 1)}
+                onClick={() => setPageParam(page + 1)}
               >
                 Next
               </button>
               <button
                 className="btn-pill-link"
-                onClick={() => setPage(totalPages)}
+                onClick={() => setPageParam(totalPages)}
               >
                 Last
               </button>
@@ -404,4 +437,3 @@ const Series = () => {
 };
 
 export default Series;
-

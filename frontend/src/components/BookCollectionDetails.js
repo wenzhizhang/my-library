@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -8,6 +8,7 @@ import SearchableSelect from './SearchableSelect';
 
 const BookCollectionDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allBooks, setAllBooks] = useState([]);
@@ -150,7 +151,7 @@ const BookCollectionDetails = () => {
         <h1 className="section-heading">{collection.name}</h1>
         <button
           className="btn-primary-blue"
-          onClick={() => window.history.back()}
+          onClick={() => navigate('/my-library/book-collections')}
         >
           Back to Collections
         </button>

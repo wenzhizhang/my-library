@@ -1,40 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import { API_BASE_URL } from './Config';
-
 import { useAuth } from '../AuthContext';
+
+const labelStyle = {
+  display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
+};
+
+const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  border: 'none',
+  borderRadius: 8,
+  padding: '12px 16px',
+  background: 'rgba(0,0,0,0.04)',
+  fontSize: 16,
+  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+  outline: 'none',
+};
+
 const Brands = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const page = parseInt(searchParams.get('page')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 10;
+  const sortBy = searchParams.get('sort_by') || 'name';
+
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [sortBy, setSortBy] = useState('name');
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrands, setTotalBrands] = useState(0);
-  const [goToPage, setGoToPage] = useState('');
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const { isAuthenticated } = useAuth();
-  const [submittedQuery, setSubmittedQuery] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
+
+  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [formData, setFormData] = useState({ name: '', intro: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  useEffect(() => {
-    fetchBrands();
-  }, [page, limit, sortBy, submittedQuery]);
+  const [goToPage, setGoToPage] = useState('');
 
-  const fetchBrands = async () => {
+  const fetchBrands = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit, sort_by: sortBy };
-      if (submittedQuery.trim()) {
-        params.q = submittedQuery.trim();
-      }
+      if (submittedQuery.trim()) params.q = submittedQuery.trim();
       const response = await axios.get(`${window.location.origin}${API_BASE_URL}/brands/`, { params });
       const data = response.data;
       setBrands(data.brands || []);
@@ -44,21 +60,53 @@ const Brands = () => {
       console.error('Error fetching brands:', error);
     }
     setLoading(false);
+  }, [page, limit, sortBy, submittedQuery]);
+
+  useEffect(() => {
+    fetchBrands();
+  }, [fetchBrands]);
+
+  // Sync submittedQuery from URL on mount
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null) {
+      setSubmittedQuery(q);
+      setSearchQuery(q);
+    }
+  }, []); // eslint-disable-line
+
+  const setPageParam = (p) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(p));
+    setSearchParams(next, { replace: true });
+  };
+  const setSortByParam = (s) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('sort_by', s);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+  const setLimitParam = (l) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('limit', String(l));
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
   };
 
-  const handleSortChange = (newSortBy) => {
-    setSortBy(newSortBy);
-    setPage(1);
+  const handleSearch = () => {
+    const q = searchQuery.trim();
+    setSubmittedQuery(q);
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q); else next.delete('q');
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
   };
 
-  const handleLimitChange = (newLimit) => {
-    setLimit(parseInt(newLimit));
-    setPage(1);
-  };
+  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
   const handleGoToPage = () => {
     const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPage(pageNum);
+    setPageParam(pageNum);
     setGoToPage('');
   };
 
@@ -68,27 +116,17 @@ const Brands = () => {
     }
   };
 
-  const handleSearch = () => {
-    setSubmittedQuery(searchQuery.trim());
-    setPage(1);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
   // ── Modal helpers ──────────────────────────────────────────
 
   const openCreate = () => {
-    setEditingBrand(null);
     setFormData({ name: '', intro: '' });
+    setEditingBrand(null);
     setModalOpen(true);
   };
 
   const openEdit = (brand) => {
+    setFormData({ name: brand.name, intro: brand.intro || '' });
     setEditingBrand(brand);
-    setFormData({ name: brand.name || '', intro: brand.intro || '' });
     setModalOpen(true);
   };
 
@@ -96,24 +134,15 @@ const Brands = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     setSaving(true);
-    // Strip empty strings so Pydantic validators don't reject them
     const payload = {};
     for (const [k, v] of Object.entries(formData)) {
-      if (v !== '' && v !== null && v !== undefined) {
-        payload[k] = v;
-      }
+      if (v !== '' && v !== null && v !== undefined) payload[k] = v;
     }
     try {
       if (editingBrand) {
-        await axios.put(
-          `${window.location.origin}${API_BASE_URL}/brands/${editingBrand.id}`,
-          payload
-        );
+        await axios.put(`${window.location.origin}${API_BASE_URL}/brands/${editingBrand.id}`, payload);
       } else {
-        await axios.post(
-          `${window.location.origin}${API_BASE_URL}/brands/`,
-          payload
-        );
+        await axios.post(`${window.location.origin}${API_BASE_URL}/brands/`, payload);
       }
       setModalOpen(false);
       fetchBrands();
@@ -135,63 +164,19 @@ const Brands = () => {
     }
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`btn-pill-link ${i === page ? 'active' : ''}`}
-          onClick={() => setPage(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return (
-      <div className="pagination">
-        <div className="pagination-links">
-          {page > 1 && (
-            <>
-              <button className="btn-pill-link" onClick={() => setPage(1)}>First</button>
-              <button className="btn-pill-link" onClick={() => setPage(page - 1)}>Previous</button>
-            </>
-          )}
-
-          {pages}
-
-          {page < totalPages && (
-            <>
-              <button className="btn-pill-link" onClick={() => setPage(page + 1)}>Next</button>
-              <button className="btn-pill-link" onClick={() => setPage(totalPages)}>Last</button>
-            </>
-          )}
-        </div>
-
-        <div className="pagination-input">
-          <label htmlFor="page-input">Go to page:</label>
-          <input
-            type="number"
-            id="page-input"
-            min="1"
-            max={totalPages}
-            value={goToPage}
-            onChange={(e) => setGoToPage(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <button className="btn-pill-link" onClick={handleGoToPage}>Go</button>
-        </div>
-      </div>
+  // ── Pagination ─────────────────────────────────────────────
+  const pages = [];
+  const startPage = Math.max(1, page - 2);
+  const endPage = Math.min(totalPages, page + 2);
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(
+      <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPageParam(i)}>
+        {i}
+      </button>
     );
-  };
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
   }
+
+  if (loading) return <div className="loading">Loading...</div>;
 
   return (
     <section className="section light">
@@ -218,14 +203,14 @@ const Brands = () => {
           <div className="toolbar-actions">
             <label className="control-label">
               <span className="control-label-text">Sort</span>
-              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
+              <select value={sortBy} onChange={(e) => setSortByParam(e.target.value)}>
                 <option value="id">ID</option>
                 <option value="name">Name</option>
               </select>
             </label>
             <label className="control-label">
               <span className="control-label-text">Per page</span>
-              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
+              <select value={limit} onChange={(e) => setLimitParam(e.target.value)}>
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="20">20</option>
@@ -244,12 +229,12 @@ const Brands = () => {
               <h3 className="card-title">{brand.name}</h3>
               {brand.intro && <p className="caption">{brand.intro.length > 100 ? brand.intro.substring(0, 100) + '...' : brand.intro}</p>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${brand.id}`)}>
+                <button className="btn-pill-link" onClick={() => { navigate(`${brand.id}`); }}>
                   View
                 </button>
                 {isAuthenticated && (
                   <>
-                    <button className="btn-pill-link" onClick={() => openEdit(brand)}>
+                    <button className="btn-pill-link" onClick={() => { openEdit(brand); }}>
                       Edit
                     </button>
                     <button className="btn-pill-link"
@@ -264,7 +249,39 @@ const Brands = () => {
           ))}
         </div>
 
-        {renderPagination()}
+        <div className="pagination" style={{ marginTop: 24 }}>
+          <div className="pagination-links">
+            {page > 1 && (
+              <>
+                <button className="btn-pill-link" onClick={() => setPageParam(1)}>First</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>Previous</button>
+              </>
+            )}
+
+            {pages}
+
+            {page < totalPages && (
+              <>
+                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>Next</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>Last</button>
+              </>
+            )}
+          </div>
+
+          <div className="pagination-input">
+            <label htmlFor="page-input">Go to page:</label>
+            <input
+              type="number"
+              id="page-input"
+              min="1"
+              max={totalPages}
+              value={goToPage}
+              onChange={(e) => setGoToPage(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+            <button className="btn-pill-link" onClick={handleGoToPage}>Go</button>
+          </div>
+        </div>
       </div>
       {/* ── Create / Edit Modal ─────────────────────────────── */}
       {modalOpen && (
@@ -349,20 +366,4 @@ const Brands = () => {
   );
 };
 
-
-const labelStyle = {
-  display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  border: 'none',
-  borderRadius: 8,
-  padding: '12px 16px',
-  background: 'rgba(0,0,0,0.04)',
-  fontSize: 16,
-  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-  outline: 'none',
-};
 export default Brands;

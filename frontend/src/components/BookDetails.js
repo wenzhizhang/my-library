@@ -323,6 +323,13 @@ const BookDetails = () => {
                 value={book.price ? `¥ ${Number(book.price).toFixed(2)}` : null}
                 className="price"
               />
+              {book.price && book.purchase_price && book.price > 0 && (
+                <InfoItem
+                  label="折扣"
+                  value={`${(book.purchase_price / book.price * 100).toFixed(1)}%`}
+                  className={book.purchase_price / book.price < 0.5 ? 'highlight' : ''}
+                />
+              )}
               <InfoItem
                 label="购入价"
                 value={`¥ ${Number(book.purchase_price).toFixed(2)}`}
