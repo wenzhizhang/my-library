@@ -2,8 +2,6 @@
 
 个人图书管理系统，支持 ISBN 扫码入库、豆瓣数据自动填充、多维度统计与可视化。
 
-![Version](https://img.shields.io/badge/version-0.2.55-blue)
-
 ---
 
 ## 功能
@@ -51,16 +49,10 @@ echo "DOUBAN_KEY=你的豆瓣API密钥" >> .env
 ### 4. 构建并启动
 
 ```bash
-# 本地开发
 ./build.sh up
-
-# 生产环境
-./build.sh production up
 ```
 
-访问：
-- **本地**: `http://localhost/my-library`
-- **生产**: `https://你的域名/my-library`
+访问 `http://localhost/my-library`。
 
 ### 5. 创建用户
 
@@ -73,6 +65,14 @@ curl -X POST http://localhost:8000/api/auth/register \
 ```
 
 然后在前端登录页使用该账号登录。
+
+### 其他命令
+
+```bash
+./build.sh up --no-cache   # 强制全量重建
+./build.sh push             # 构建并推送镜像到腾讯云 CCR（自动递增版本号）
+./build.sh help             # 查看帮助
+```
 
 ---
 
@@ -101,7 +101,7 @@ my-library/
 │   ├── services/              # 业务逻辑
 │   │   └── isbn_lookup.py     # ISBN 多源查询 (豆瓣+OpenLibrary+Google)
 │   ├── spec/                  # OpenAPI 文档
-│   ├── tests/                 # 后端测试 (pytest)
+│   ├── tests/                 # 后端测试 (pytest, 88 用例)
 │   ├── main.py                # 应用入口
 │   └── Dockerfile
 ├── frontend/                  # React 前端
@@ -119,7 +119,7 @@ my-library/
 │   │   │   ├── BookCollection*.js # 书单
 │   │   │   ├── StatsPage.js      # 统计看板
 │   │   │   └── SearchableSelect.js # 可搜索下拉
-│   │   ├── __tests__/            # 前端测试 (Jest)
+│   │   ├── __tests__/            # 前端测试 (Jest, 40 用例)
 │   │   └── AuthContext.js        # 认证上下文
 │   └── Dockerfile
 ├── nginx/                     # Nginx 反向代理
@@ -162,7 +162,7 @@ DOUBAN_KEY=0ac44ae01...
 }
 ```
 
-该文件通过 Docker Volume 挂载，修改后无需重建容器。
+该文件通过 Docker Volume 挂载，修改后 `docker compose restart backend` 即可生效，无需重建容器。
 
 ### ISBN 查询源
 
@@ -218,13 +218,19 @@ DOUBAN_KEY=你的密钥
 SERVER_IP=你的服务器IP
 ```
 
-### 2. 构建并启动
+### 2. 构建并推送镜像
 
 ```bash
-./build.sh production up
+./build.sh push
 ```
 
-### 3. TLS 证书
+### 3. 在服务器上拉取并启动
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### 4. TLS 证书
 
 Nginx 容器内置 Certbot，首次启动会自动申请 Let's Encrypt 证书并配置 HTTPS。
 
