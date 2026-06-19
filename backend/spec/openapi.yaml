@@ -27,8 +27,8 @@ tags:
   - name: Applications
   - name: Stats
   - name: RAG
-
   - name: ISBN
+  - name: Config
 components:
   securitySchemes:
     BearerAuth:
@@ -1676,3 +1676,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPError"
+
+  # ═══════════════════════════════════════════════
+  # Config
+  # ═══════════════════════════════════════════════
+  /api/config/purchase-stores:
+    get:
+      tags: [Config]
+      summary: List purchase store options
+      responses:
+        "200":
+          description: Purchase store list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purchase_stores:
+                    type: array
+                    items: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Stats — Books
+  # ═══════════════════════════════════════════════
+  /api/stats/books:
+    get:
+      tags: [Stats]
+      summary: Comprehensive book library statistics
+      responses:
+        "200":
+          description: Statistics data
+
+  # ═══════════════════════════════════════════════
+  # Authors — nations/dynasties
+  # ═══════════════════════════════════════════════
+  /api/authors/nations:
+    get:
+      tags: [Authors]
+      summary: List valid nation values
+      responses:
+        "200":
+          description: Nation list
+  /api/authors/dynasties:
+    get:
+      tags: [Authors]
+      summary: List valid dynasty values
+      responses:
+        "200":
+          description: Dynasty list
