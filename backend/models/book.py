@@ -1,6 +1,6 @@
 from typing import List, Optional, TYPE_CHECKING, Dict, Any
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON, or_
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON, or_, extract
 from sqlalchemy.orm import relationship, Mapped, mapped_column, Query
 from datetime import datetime
 
@@ -121,6 +121,16 @@ class BookSearchStrategy:
 
         if filters.get("max_price"):
             conditions.append(Book.price <= filters["max_price"])
+
+        if filters.get("purchase_year"):
+            conditions.append(
+                extract("year", Book.purchase_date) == filters["purchase_year"]
+            )
+
+        if filters.get("purchase_month"):
+            conditions.append(
+                extract("month", Book.purchase_date) == filters["purchase_month"]
+            )
 
         if conditions:
             query = query.filter(*conditions)

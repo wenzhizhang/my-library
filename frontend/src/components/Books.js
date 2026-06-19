@@ -30,17 +30,20 @@ const Books = () => {
     title: searchParams.get('title') || '',
     author: searchParams.get('author') || '',
     publisher: searchParams.get('publisher') || '',
-    tag: searchParams.get('tag') || ''
+    tag: searchParams.get('tag') || '',
+    purchase_year: searchParams.get('purchase_year') || '',
+    purchase_month: searchParams.get('purchase_month') || '',
   });
-
-  // Sync input state when URL changes externally (e.g. tag link from BookDetails)
+  // Sync input state when URL changes externally
   useEffect(() => {
     setInputParams({
       isbn: searchParams.get('isbn') || '',
       title: searchParams.get('title') || '',
       author: searchParams.get('author') || '',
       publisher: searchParams.get('publisher') || '',
-      tag: searchParams.get('tag') || ''
+      tag: searchParams.get('tag') || '',
+      purchase_year: searchParams.get('purchase_year') || '',
+      purchase_month: searchParams.get('purchase_month') || '',
     });
   }, [searchParams]);
 
@@ -54,7 +57,7 @@ const Books = () => {
       };
 
       // Add non-empty filter params
-      for (const key of ['isbn', 'title', 'author', 'publisher', 'tag']) {
+      for (const key of ['isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
         const val = searchParams.get(key);
         if (val) params[key] = val;
       }
@@ -76,7 +79,7 @@ const Books = () => {
 
   const handleSearch = () => {
     const newParams = new URLSearchParams(searchParams);
-    for (const key of ['isbn', 'title', 'author', 'publisher', 'tag']) {
+    for (const key of ['isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
       if (inputParams[key]) {
         newParams.set(key, inputParams[key]);
       } else {
@@ -229,6 +232,18 @@ const Books = () => {
                   <input placeholder="Search tag…"
                     value={inputParams.tag}
                     onChange={(e) => handleInputChange('tag', e.target.value)} />
+                </label>
+                <label className="search-label">
+                  <span>Purchase Year</span>
+                  <input type="number" min="2000" max="2099" step="1" placeholder="YYYY"
+                    value={inputParams.purchase_year}
+                    onChange={(e) => handleInputChange('purchase_year', e.target.value)} />
+                </label>
+                <label className="search-label">
+                  <span>Purchase Month</span>
+                  <input type="number" min="1" max="12" step="1" placeholder="MM"
+                    value={inputParams.purchase_month}
+                    onChange={(e) => handleInputChange('purchase_month', e.target.value)} />
                 </label>
               </div>
             )}
