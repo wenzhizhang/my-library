@@ -1,10 +1,19 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+
+backend/venv/
+backend/.venv/
+node_modules/
+frontend/node_modules/
+
 backend/static/images
 frontend/static/images
 backend/static/images/authors backend/static/images/background backend/static/images/books backend/static/images/screenshots
 .idea
 update_thumb_images.py
 migrate_data.py
-*.pyc
 
 # Generated nginx config (keep template)
 backend/config/nginx.conf
