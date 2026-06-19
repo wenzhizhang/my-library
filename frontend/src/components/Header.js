@@ -91,6 +91,12 @@ const Header = () => {
           >
             Series
           </Link>
+          <Link 
+            to={getPath('/stats')} 
+            className={`nav-link ${isActive('/stats') ? 'active' : ''}`}
+          >
+            Stats
+          </Link>
         </div>
         <div className="nav-auth">
           {isAuthenticated ? (

@@ -22,6 +22,7 @@ import BookCollectionDetails from './components/BookCollectionDetails';
 import SeriesDetails from './components/SeriesDetails';
 import Login from './components/Login';
 import Register from './components/Register';
+import StatsPage from './components/StatsPage';
 import './MyLibrary.css';
 
 function MyLibrary() {
@@ -61,6 +62,7 @@ function MyLibrary() {
 
             <Route path="series" element={<Series />} />
             <Route path="series/:id" element={<SeriesDetails />} />
+            <Route path="stats" element={<StatsPage />} />
           </Routes>
         </main>
       </div>
