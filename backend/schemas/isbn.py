@@ -12,6 +12,7 @@ class IsbnLookupResponse(BaseModel):
     title: str = ""
     title_cn: str = ""
     publisher_name: str = ""
+    publisher_id: Optional[int] = None
     publish_date: str = ""
     pages: Optional[int] = None
     price: Optional[float] = None

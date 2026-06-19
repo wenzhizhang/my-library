@@ -70,11 +70,12 @@ class FilterParams(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     publisher: Optional[str] = None
+    tag: Optional[str] = None
+    q: Optional[str] = None
     min_price: Optional[float] = None
     max_price: Optional[float] = None
     purchase_year: Optional[int] = None
     purchase_month: Optional[int] = None
-
 
 class BookCreation(BaseModel):
     """

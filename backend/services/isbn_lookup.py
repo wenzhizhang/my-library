@@ -441,13 +441,47 @@ def _normalize_pubdate(raw: str) -> str:
 
 
 
+async def fetch_publisher_intro(publisher_name: str) -> str:
+    """Fetch publisher introduction from Baidu Baike."""
+    await _rate_limit()
+    url = f"https://baike.baidu.com/item/{publisher_name}"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        async with httpx.AsyncClient(timeout=SOURCE_TIMEOUT, follow_redirects=True) as client:
+            r = await client.get(url, headers=headers)
+            if r.status_code != 200:
+                logger.info("Baidu Baike returned %d for %s", r.status_code, publisher_name)
+                return ""
+            # Extract intro from .lemma-summary div
+            from bs4 import BeautifulSoup as _BS
+            try:
+                soup = _BS(r.text, "html.parser")
+                summary = soup.select_one(".lemma-summary > div")
+                if summary:
+                    return summary.text.strip()[:2000]
+            except Exception:
+                pass
+            return ""
+    except Exception as exc:
+        logger.info("Baidu Baike lookup failed for %s: %s", publisher_name, exc)
+        return ""
+
+
 def _clean_author_name(raw: str) -> str:
-    """Strip dynasty/nation prefix like [宋], (日), etc. from author names."""
+    """Clean author names from Douban.
+
+    - Strip [宋] / (日) prefixes
+    - If name has spaces: drop trailing Chinese segment (著/编/etc.)
+    - Western names with spaces kept as-is
+    """
     name = raw.strip()
-    # Remove [xxx] prefix: [宋] 苏轼 → 苏轼
     name = re.sub(r"^\[[^\]]+\]\s*", "", name)
-    # Remove (xxx) prefix: (日) 村上春树 → 村上春树
     name = re.sub(r"^\([^\)]+\)\s*", "", name)
+    # Space-containing names: if last segment is Chinese, drop it
+    if " " in name:
+        parts = name.rsplit(" ", 1)
+        if re.search(r"[\u4e00-\u9fff]", parts[-1]):
+            name = parts[0]
     return name.strip()
 def _guess_language(title: str, subjects: list[str]) -> str:
     """Rough language guess from title content and subjects."""

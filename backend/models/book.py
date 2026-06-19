@@ -86,6 +86,16 @@ class BookSearchStrategy:
         joined = set()
         conditions = []
 
+        if filters.get("q"):
+            q = filters["q"]
+            conditions.append(
+                or_(
+                    Book.title.ilike(f"%{q}%"),
+                    Book.title_cn.ilike(f"%{q}%"),
+                    Book.isbn.ilike(f"%{q}%"),
+                )
+            )
+
         if filters.get("isbn"):
             conditions.append(Book.isbn.ilike(f"%{filters['isbn']}%"))
 
@@ -93,7 +103,6 @@ class BookSearchStrategy:
             conditions.append(
                 or_(Book.title.ilike(f"%{filters['title']}%"), Book.title_cn.ilike(f"%{filters['title']}%"))
             )
-
         if filters.get("author"):
             author_cls = Book.authors.property.mapper.class_
 

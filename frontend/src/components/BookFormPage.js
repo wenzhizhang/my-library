@@ -774,14 +774,9 @@ function BookFormPage() {
           next.tags = [tagNames[0]];
         }
 
-        // Publisher: try to match by name
-        if (data.publisher_name && !next.publisher_id) {
-          const match = publishers.find(
-            p => p.name === data.publisher_name
-          );
-          if (match) {
-            next.publisher_id = match.id;
-          }
+        // Publisher: use ID from API (already found/created on backend)
+        if (data.publisher_id && !next.publisher_id) {
+          next.publisher_id = data.publisher_id;
         }
 
         // Authors: use IDs returned by backend (already found/created)
@@ -870,9 +865,6 @@ function BookFormPage() {
     
     if (!formData.title_cn.trim() && !formData.title.trim()) {
       newErrors.title = 'Title (CN or EN) is required';
-    }
-    if (formData.author_ids.length === 0) {
-      newErrors.author_ids = 'At least one author is required';
     }
     if (!formData.isbn.trim()) {
       newErrors.isbn = 'ISBN is required';

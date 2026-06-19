@@ -26,6 +26,7 @@ const Books = () => {
 
   // Input state for form fields (not yet committed)
   const [inputParams, setInputParams] = useState({
+    q: searchParams.get('q') || '',
     isbn: searchParams.get('isbn') || '',
     title: searchParams.get('title') || '',
     author: searchParams.get('author') || '',
@@ -37,6 +38,7 @@ const Books = () => {
   // Sync input state when URL changes externally
   useEffect(() => {
     setInputParams({
+      q: searchParams.get('q') || '',
       isbn: searchParams.get('isbn') || '',
       title: searchParams.get('title') || '',
       author: searchParams.get('author') || '',
@@ -57,7 +59,7 @@ const Books = () => {
       };
 
       // Add non-empty filter params
-      for (const key of ['isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
+      for (const key of ['q', 'isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
         const val = searchParams.get(key);
         if (val) params[key] = val;
       }
@@ -79,7 +81,7 @@ const Books = () => {
 
   const handleSearch = () => {
     const newParams = new URLSearchParams(searchParams);
-    for (const key of ['isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
+    for (const key of ['q', 'isbn', 'title', 'author', 'publisher', 'tag', 'purchase_year', 'purchase_month']) {
       if (inputParams[key]) {
         newParams.set(key, inputParams[key]);
       } else {
@@ -195,9 +197,9 @@ const Books = () => {
           {/* Search */}
           <div className="toolbar-search">
             <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder="Search title…"
-                value={inputParams.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+              <input className="toolbar-search-input" placeholder="Search title, title_cn, ISBN…"
+                value={inputParams.q}
+                onChange={(e) => handleInputChange('q', e.target.value)}
                 onKeyDown={handleKeyDown} />
               <button className="btn-pill-link" onClick={handleSearch}>Search</button>
               <button
