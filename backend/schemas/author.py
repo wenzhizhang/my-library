@@ -1,21 +1,27 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+"""Author Pydantic schemas.  Nation/dynasty values loaded from config files."""
+
+import json
+from pathlib import Path
 from typing import Optional, List
 
-NATIONS = [
-    "中国", "俄罗斯", "前苏联", "希腊", "美国", "英国", "法国", "德国",
-    "古巴", "西班牙", "古罗马", "加拿大", "爱尔兰", "澳大利亚", "瑞士",
-    "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
-    "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
-    "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
-    "以色列", "日本", "无",
-]
+from pydantic import BaseModel, ConfigDict, field_validator
 
-DYNASTIES = [
-    "上古", "夏", "商", "西周", "东周", "春秋", "战国",
-    "秦", "西汉", "东汉", "魏", "蜀", "吴", "西晋", "东晋",
-    "南北朝", "隋", "唐", "五代", "北宋", "南宋",
-    "元", "明", "清", "民国", "现代", "当代",
-]
+
+def _load_config(filename: str) -> list[str]:
+    """Load a JSON list from the config directory."""
+    config_dir = Path(__file__).parent.parent / "config"
+    path = config_dir / filename
+    key = filename.replace(".json", "")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    result = data.get(key)
+    if not result:
+        raise ValueError(f"Config file {filename} missing key '{key}'")
+    return result
+
+
+NATIONS: list[str] = _load_config("nations.json")
+DYNASTIES: list[str] = _load_config("dynasties.json")
 
 
 class BookSimple(BaseModel):
@@ -65,6 +71,7 @@ class AuthorCreation(BaseModel):
         if v not in DYNASTIES:
             raise ValueError(f"Invalid dynasty '{v}'. Must be one of: {', '.join(DYNASTIES)}")
         return v
+
 
 class AuthorUpdate(BaseModel):
     name: Optional[str] = None

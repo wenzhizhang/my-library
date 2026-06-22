@@ -6,26 +6,12 @@ import BookCard from './BookCard';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 
-const NATIONS = [
-  "中国", "俄罗斯", "前苏联", "希腊", "美国", "英国", "法国", "德国",
-  "古巴", "西班牙", "古罗马", "加拿大", "爱尔兰", "澳大利亚", "瑞士",
-  "阿根廷", "哥伦比亚", "奥地利", "挪威", "瑞典", "意大利", "比利时",
-  "墨西哥", "荷兰", "巴西", "波兰", "伊朗", "波斯", "智利", "南非",
-  "马来西亚", "捷克", "毛里求斯", "丹麦", "葡萄牙", "黎巴嫩", "冰岛",
-  "以色列", "日本", "无",
-];
-
-const DYNASTIES = [
-  "上古", "夏", "商", "西周", "东周", "春秋", "战国",
-  "秦", "西汉", "东汉", "魏", "蜀", "吴", "西晋", "东晋",
-  "南北朝", "隋", "唐", "五代", "北宋", "南宋",
-  "元", "明", "清", "民国", "现代", "当代",
-];
-
 const AuthorDetails = () => {
   const { id } = useParams();
   const { isAuthenticated } = useAuth();
   const [author, setAuthor] = useState(null);
+  const [nations, setNations] = useState(['无']);
+  const [dynasties, setDynasties] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Edit modal state
@@ -37,6 +23,14 @@ const AuthorDetails = () => {
   useEffect(() => {
     fetchAuthor();
   }, [id]);
+  useEffect(() => {
+    axios.get(`${window.location.origin}${API_BASE_URL}/authors/nations`)
+      .then(res => setNations(res.data.nations))
+      .catch(() => {});
+    axios.get(`${window.location.origin}${API_BASE_URL}/authors/dynasties`)
+      .then(res => setDynasties(res.data.dynasties))
+      .catch(() => {});
+  }, []);
 
   const fetchAuthor = async () => {
     setLoading(true);
@@ -205,7 +199,7 @@ const AuthorDetails = () => {
                   <select value={formData.nation}
                     onChange={(e) => setFormData({ ...formData, nation: e.target.value })}
                     style={inputStyle}>
-                    {NATIONS.map(n => <option key={n} value={n}>{n}</option>)}
+                    {nations.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -214,7 +208,7 @@ const AuthorDetails = () => {
                     onChange={(e) => setFormData({ ...formData, dynasty: e.target.value })}
                     style={inputStyle}>
                     <option value="">None</option>
-                    {DYNASTIES.map(d => <option key={d} value={d}>{d}</option>)}
+                    {dynasties.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
               </div>
