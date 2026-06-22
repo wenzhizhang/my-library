@@ -56,13 +56,12 @@ const BookCard = ({ book, onDelete }) => {
     {showConfirm && (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 10001,
-        background: 'rgba(29,29,31,0.6)',
-        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(0,0,0,0.4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }} onClick={() => setShowConfirm(false)}>
         <div style={{
-          background: 'rgba(255,255,255,0.6)',
-          backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+          background: '#fff',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
           borderRadius: 20, padding: '24px 28px',
           width: Math.min(380, window.innerWidth - 32),
           boxShadow: '0 25px 50px rgba(0,0,0,0.25)',

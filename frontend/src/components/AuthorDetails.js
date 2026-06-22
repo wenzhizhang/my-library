@@ -86,18 +86,16 @@ const AuthorDetails = () => {
   if (loading) return <div className="loading">Loading...</div>;
   if (!author) return <div className="error">Author not found</div>;
 
-  const displayName = author.name_cn || author.name;
-  const nationLabel = author.dynasty && author.nation === '中国'
-    ? `[${author.dynasty}]`
-    : author.nation
-      ? `[${author.nation}]`
-      : '';
+  // Build heading: [Nation/Dynasty] 中文名 | 原名   or   [Nation/Dynasty] 原名
+  const heading = author.name_cn && author.name_cn !== author.name
+    ? `${author.nation === '中国' && author.dynasty ? `[${author.dynasty}] ` : author.nation ? `[${author.nation}] ` : ''}${author.name_cn} | ${author.name}`
+    : `${author.nation === '中国' && author.dynasty ? `[${author.dynasty}] ` : author.nation ? `[${author.nation}] ` : ''}${author.name}`;
 
   return (
     <section className="section light">
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <h1 className="section-heading" style={{ margin: 0 }}>{displayName}</h1>
+          <h1 className="section-heading" style={{ margin: 0 }}>{heading}</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-primary-blue" onClick={() => navigate('/my-library/authors')}>
               Back to Authors
@@ -111,27 +109,6 @@ const AuthorDetails = () => {
         </div>
 
         <div className="details-content" style={{ marginTop: 24 }}>
-          <h2>Author Information</h2>
-
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: 12, marginTop: 12,
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</span>
-              <span>{author.name}</span>
-            </div>
-            {author.name_cn && author.name_cn !== author.name && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Chinese Name</span>
-                <span>{author.name_cn}</span>
-              </div>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nation / Dynasty</span>
-              <span>{nationLabel ? `${nationLabel} ` : ''}{author.nation || '无'}</span>
-            </div>
-          </div>
 
           {author.intro && (
             <div style={{ marginTop: 20 }}>
@@ -145,7 +122,7 @@ const AuthorDetails = () => {
           {author.photo && (
             <div style={{ marginTop: 20 }}>
               <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>Photo</h3>
-              <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={displayName}
+              <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={author.name_cn || author.name}
                 style={{ maxWidth: 200, borderRadius: 8 }} />
             </div>
           )}
@@ -167,13 +144,11 @@ const AuthorDetails = () => {
       {modalOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }} onClick={() => setModalOpen(false)}>
           <div style={{
             background: 'rgba(255, 255, 255, 0.6)',
-            backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
             borderRadius: 20, padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
             maxHeight: '90vh', overflow: 'auto',

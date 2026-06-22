@@ -23,16 +23,12 @@ const BookCollections = () => {
   const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
 
   const [goToPage, setGoToPage] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newIntro, setNewIntro] = useState("");
   const [error, setError] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editName, setEditName] = useState("");
-  const [editIntro, setEditIntro] = useState("");
-  const [deletingId, setDeletingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [formData, setFormData] = useState({ name: '', intro: '' });
+  const [saving, setSaving] = useState(false);
 
   const fetchCollections = useCallback(async () => {
     setLoading(true);
@@ -89,66 +85,58 @@ const BookCollections = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const handleCreate = async (e) => {
+  const openCreate = () => {
+    setEditingItem(null);
+    setFormData({ name: '', intro: '' });
+    setModalOpen(true);
+  };
+
+  const openEdit = (collection) => {
+    setEditingItem(collection);
+    setFormData({ name: collection.name || '', intro: collection.intro || '' });
+    setModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
-    setCreating(true);
-    setCreateError("");
+    if (!formData.name.trim()) return;
+    setSaving(true);
+    const payload = {};
+    for (const [k, v] of Object.entries(formData)) {
+      if (v !== '' && v !== null && v !== undefined) {
+        payload[k] = v;
+      }
+    }
     try {
-      await axios.post(
-        `${window.location.origin}${API_BASE_URL}/book-collections/`,
-        { name: newName.trim(), intro: newIntro.trim() || null }
-      );
-      setNewName("");
-      setNewIntro("");
-      setPageParam(1);
+      if (editingItem) {
+        await axios.put(
+          `${window.location.origin}${API_BASE_URL}/book-collections/${editingItem.id}`,
+          payload
+        );
+      } else {
+        await axios.post(
+          `${window.location.origin}${API_BASE_URL}/book-collections/`,
+          payload
+        );
+      }
+      setModalOpen(false);
       fetchCollections();
     } catch (err) {
-      setCreateError(err.response?.data?.detail || "Failed to create collection");
+      const msg = err.response?.data?.detail || 'Save failed';
+      alert(msg);
     }
-    setCreating(false);
+    setSaving(false);
   };
 
-  const startEdit = (collection) => {
-    setEditingId(collection.id);
-    setEditName(collection.name);
-    setEditIntro(collection.intro || "");
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-  };
-
-  const saveEdit = async (collectionId) => {
+  const handleDelete = async (collectionId) => {
     try {
-      await axios.put(
-        `${window.location.origin}${API_BASE_URL}/book-collections/${collectionId}`,
-        { name: editName.trim(), intro: editIntro.trim() || null }
-      );
-      setEditingId(null);
+      await axios.delete(`${window.location.origin}${API_BASE_URL}/book-collections/${collectionId}`);
+      setConfirmDelete(null);
       fetchCollections();
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to update collection");
+      const msg = err.response?.data?.detail || 'Delete failed';
+      alert(msg);
     }
-  };
-
-  const handleDelete = async (collection) => {
-    setConfirmDelete(collection);
-  };
-
-  const confirmDeleteAction = async () => {
-    if (!confirmDelete) return;
-    setDeletingId(confirmDelete.id);
-    setConfirmDelete(null);
-    try {
-      await axios.delete(
-        `${window.location.origin}${API_BASE_URL}/book-collections/${confirmDelete.id}`
-      );
-      fetchCollections();
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to delete collection");
-    }
-    setDeletingId(null);
   };
 
   const handleSortChange = (newSortBy) => {
@@ -204,33 +192,14 @@ const BookCollections = () => {
   return (
     <section className="section light">
       <div className="container">
-        <h1 className="section-heading">Book Collections</h1>
-
-        {isAuthenticated && (
-        <div className="toolbar" style={{ marginBottom: "1rem" }}>
-          <form onSubmit={handleCreate} style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-            <input
-              type="text"
-              placeholder="Collection name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              required
-              style={{ flex: "1 1 200px", padding: "7px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#1d1d1f", fontFamily: "'SF Pro Text', sans-serif", fontSize: "14px", outline: "none" }}
-            />
-            <input
-              type="text"
-              placeholder="Description (optional)"
-              value={newIntro}
-              onChange={(e) => setNewIntro(e.target.value)}
-              style={{ flex: "2 1 300px", padding: "7px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#1d1d1f", fontFamily: "'SF Pro Text', sans-serif", fontSize: "14px", outline: "none" }}
-            />
-            <button type="submit" className="btn-primary-blue" disabled={creating || !newName.trim()}>
-              {creating ? "Creating..." : "Create Collection"}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="section-heading">Book Collections</h1>
+          {isAuthenticated && (
+            <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
+              + Create Collection
             </button>
-          </form>
-          {createError && <p style={{ color: "#ff3b30", marginTop: "0.5rem" }}>{createError}</p>}
+          )}
         </div>
-        )}
 
         <div className="toolbar">
           <div className="toolbar-search">
@@ -281,67 +250,37 @@ const BookCollections = () => {
         <div className="grid">
           {collections.map(collection => (
             <div key={collection.id} className="card">
-              {editingId === collection.id ? (
-                <>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    style={{ width: "100%", padding: "4px 8px", marginBottom: "6px", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.18)", color: "#1d1d1f", fontFamily: "'SF Pro Text', sans-serif", fontSize: "16px", fontWeight: "600" }}
-                  />
-                  <input
-                    type="text"
-                    value={editIntro}
-                    onChange={(e) => setEditIntro(e.target.value)}
-                    placeholder="Description (optional)"
-                    style={{ width: "100%", padding: "4px 8px", marginBottom: "8px", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.18)", color: "#1d1d1f", fontFamily: "'SF Pro Text', sans-serif", fontSize: "13px" }}
-                  />
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button className="btn-pill-link" onClick={() => saveEdit(collection.id)} disabled={!editName.trim()}>Save</button>
-                    <button className="btn-pill-link" onClick={cancelEdit} style={{ color: "#8e8e93" }}>Cancel</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="card-title">{collection.name}</h3>
-                  {collection.intro && (
-                    <p className="caption">
-                      {collection.intro.length > 100
-                        ? collection.intro.substring(0, 100) + '...'
-                        : collection.intro}
-                    </p>
-                  )}
-                  {collection.total_books !== undefined && (
-                    <p className="caption">{collection.total_books} books</p>
-                  )}
-                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                    <button
-                      className="btn-pill-link"
-                      onClick={() => navigate(`${collection.id}`)}
-                    >
-                      View
-                    </button>
-                    {isAuthenticated && (
-                    <button
-                      className="btn-pill-link"
-                      onClick={() => startEdit(collection)}
-                    >
+              <h3 className="card-title">{collection.name}</h3>
+              {collection.intro && (
+                <p className="caption">
+                  {collection.intro.length > 100
+                    ? collection.intro.substring(0, 100) + '...'
+                    : collection.intro}
+                </p>
+              )}
+              {collection.total_books !== undefined && (
+                <p className="caption">{collection.total_books} books</p>
+              )}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <button
+                  className="btn-pill-link"
+                  onClick={() => navigate(`${collection.id}`)}
+                >
+                  View
+                </button>
+                {isAuthenticated && (
+                  <>
+                    <button className="btn-pill-link" onClick={() => openEdit(collection)}>
                       Edit
                     </button>
-                    )}
-                    {isAuthenticated && (
-                    <button
-                      className="btn-pill-link"
-                      onClick={() => handleDelete(collection)}
-                      disabled={deletingId === collection.id}
-                      style={{ color: "#ff3b30" }}
-                    >
-                      {deletingId === collection.id ? "Deleting..." : "Remove"}
+                    <button className="btn-pill-link"
+                      onClick={() => setConfirmDelete(collection)}
+                      style={{ color: '#ff3b30' }}>
+                      Delete
                     </button>
-                    )}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -381,55 +320,96 @@ const BookCollections = () => {
         </div>
       </div>
 
-        {confirmDelete && (
+      {/* ── Create / Edit Modal ─────────────────────────────── */}
+      {modalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={() => setModalOpen(false)}>
           <div style={{
-            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 1000,
-          }}>
-            <div
-              onClick={() => setConfirmDelete(null)}
-              style={{
-                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)",
-                WebkitBackdropFilter: "blur(4px)",
-              }}
-            />
-            <div style={{
-              position: "relative",
-              background: "rgba(255,255,255,0.60)", backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              borderRadius: "16px", border: "1px solid rgba(255,255,255,0.5)",
-              padding: "28px 32px", maxWidth: "420px", width: "90%",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-            }}>
-              <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "600", color: "#1d1d1f" }}>
-                Delete "{confirmDelete.name}"?
-              </h3>
-              <p style={{ margin: "0 0 24px", fontSize: "14px", color: "#cc0000", lineHeight: "1.5", fontWeight: "500" }}>
-                This cannot be undone. The collection and all book associations will be permanently removed.
-              </p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button
-                  className="btn-pill-link"
-                  onClick={() => setConfirmDelete(null)}
-                  style={{ color: "#6e6e73" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn-pill-link"
-                  onClick={confirmDeleteAction}
-                  style={{ color: "#ff3b30", fontWeight: "600" }}
-                >
-                  Delete
+            background: '#fff',
+            borderRadius: 20, padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            maxHeight: '90vh', overflow: 'auto',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 600 }}>
+              {editingItem ? 'Edit Collection' : 'Create Collection'}
+            </h2>
+            <form onSubmit={handleSave}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>
+                  Name <span style={{ color: '#ff3b30' }}>*</span>
+                </label>
+                <input type="text" value={formData.name} required
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={inputStyle} placeholder="Collection name" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Description</label>
+                <textarea value={formData.intro} rows={4}
+                  onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
+                  style={{ ...inputStyle, resize: 'vertical' }} placeholder="Optional description..." />
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn-pill-link"
+                  onClick={() => setModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn-pill-link" disabled={saving}
+                  style={saving ? { opacity: 0.6 } : {}}>
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10001,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        }} onClick={() => setConfirmDelete(null)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 20, padding: '24px 28px',
+            width: Math.min(560, window.innerWidth - 32),
+            boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+            textAlign: 'center',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18 }}>
+              Delete "{confirmDelete.name}"?
+            </h3>
+            <p style={{ color: '#86868b', margin: '0 0 20px', fontSize: 15 }}>
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button className="btn-pill-link" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn-pill-link" onClick={() => handleDelete(confirmDelete.id)}
+                style={{ color: '#ff3b30' }}>Delete</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </section>
   );
 };
 
+
+const labelStyle = {
+  display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
+};
+
+const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  border: 'none',
+  borderRadius: 8,
+  padding: '12px 16px',
+  background: 'rgba(0,0,0,0.04)',
+  fontSize: 16,
+  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
+  outline: 'none',
+};
 export default BookCollections;

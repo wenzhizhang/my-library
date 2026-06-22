@@ -189,8 +189,6 @@ function Section({ children, dark = false, style = {} }) {
     background: dark
       ? 'rgba(0, 0, 0, 0.25)'
       : 'rgba(209, 209, 215, 0.15)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
     color: dark ? COLORS.white : COLORS.nearBlack,
     display: 'flex',
     flexDirection: 'column',
@@ -1900,14 +1898,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowPublisherModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
@@ -1975,14 +1969,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowBookshelfModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
@@ -2042,14 +2032,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowCategoryModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
@@ -2118,14 +2104,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowBrandModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
@@ -2185,14 +2167,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowAuthorModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),
@@ -2354,14 +2332,10 @@ function BookFormPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(29,29,31,0.6)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.4)',
         }} onClick={() => setShowSeriesModal(false)}>
           <div style={{
-            background: 'rgba(255,255,255,0.6)',
-            backdropFilter: 'blur(30px)',
-            WebkitBackdropFilter: 'blur(30px)',
+            background: '#fff',
             borderRadius: '20px',
             padding: '24px 28px',
             width: Math.min(560, window.innerWidth - 32),

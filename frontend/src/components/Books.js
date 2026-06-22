@@ -185,15 +185,15 @@ const Books = () => {
   return (
     <section className="section light">
       <div className="container">
-        <h1 className="section-heading">Books</h1>
-
-        <button className="btn-primary-blue" onClick={() => { sessionStorage.setItem('booksPageState', window.location.search); navigate(`${LIBRARY_PATH}/books/create`); }}>
-          Add New Book
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="section-heading">Books</h1>
+          <button className="btn-pill-link" onClick={() => { sessionStorage.setItem('booksPageState', window.location.search); navigate(`${LIBRARY_PATH}/books/create`); }} style={{ marginBottom: 20 }}>
+            + Add New Book
+          </button>
+        </div>
 
         {/* Toolbar */}
         <div className="toolbar">
-
           {/* Search */}
           <div className="toolbar-search">
             <div className="toolbar-search-row">
