@@ -5,7 +5,8 @@
   left: 0;
   right: 0;
   height: 48px;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
   display: flex;
   align-items: center;
@@ -63,10 +64,10 @@
 }
 
 .nav-logout {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   border-radius: 980px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.6) !important;
   font-size: 12px;
   font-weight: 400;
   padding: 4px 12px;
@@ -76,7 +77,7 @@
 
 .nav-logout:hover {
   border-color: rgba(255, 255, 255, 0.5);
-  color: #fff;
+  color: #fff !important;
 }
 
 .nav-login-link {

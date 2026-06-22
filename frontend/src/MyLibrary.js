@@ -2,6 +2,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
+import './i18n';
 import Header from './components/Header';
 import Books from './components/Books';
 import Authors from './components/Authors';
