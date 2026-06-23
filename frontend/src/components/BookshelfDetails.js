@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from 'react-i18next';
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
@@ -9,6 +10,7 @@ const BookshelfDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bookshelf, setBookshelf] = useState(null);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,17 +45,17 @@ const BookshelfDetails = () => {
         <button className="btn-primary-blue"
           onClick={() => navigate('/my-library/bookshelves')}
         >
-          Back to Bookshelves
+          {t('bookshelves.backToList')}
         </button>
 
         <div className="details-content">
-          <h2>Bookshelf Information</h2>
+          <h2>{t('bookDetails.basicInfo')}</h2>
           <p>
-            <strong>Name:</strong> {bookshelf.name}
+            <strong>{t('common.name')}:</strong> {bookshelf.name}
           </p>
           {bookshelf.description && (
             <p>
-              <strong>Description:</strong> {bookshelf.description}
+              <strong>{t('common.introduction')}:</strong> {bookshelf.description}
             </p>
           )}
         </div>

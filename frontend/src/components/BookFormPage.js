@@ -5,8 +5,9 @@ import { createPortal } from 'react-dom';
 import './Books.css';
 import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
-import SearchableSelect from './SearchableSelect';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
+import SearchableSelect from './SearchableSelect';
 
 // ============================================================
 // Apple Design System - Book Creation/Update Page (JavaScript)
@@ -582,6 +583,7 @@ function AppleCombobox({
 
 
 function BookFormPage() {
+  const { t } = useTranslation();
   const { bookId } = useParams();
   const navigate = useNavigate();
   const mode = bookId ? 'edit' : 'create';
@@ -1184,7 +1186,7 @@ function BookFormPage() {
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
               <div style={{ flex: 1 }}>
                 <AppleInput
-                  label="ISBN"
+                  label={t('bookForm.isbn')}
                   value={formData.isbn}
                   onChange={(v) => updateField('isbn', v)}
                   placeholder="978-7-..."
@@ -1221,7 +1223,7 @@ function BookFormPage() {
           </div>
           
           <AppleInput
-            label="Title (Chinese)"
+            label={t('bookForm.titleCn')}
             value={formData.title_cn}
             onChange={(v) => updateField('title_cn', v)}
             placeholder="书名"
@@ -1239,7 +1241,7 @@ function BookFormPage() {
           />
           
           <AppleInput
-            label="Translator"
+            label={t('bookForm.translator')}
             value={formData.translator}
             onChange={(v) => updateField('translator', v)}
             placeholder="Translator name"
@@ -1355,7 +1357,7 @@ function BookFormPage() {
           </div>
 
           <SearchableSelect
-            label="Publisher"
+            label={t('bookForm.publisher')}
             value={formData.publisher_id}
             onChange={(v) => updateField('publisher_id', v)}
             options={publishers}
@@ -1366,7 +1368,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Publish Date"
+            label={t('bookForm.publishDate')}
             value={formData.publish_date}
             onChange={(v) => updateField('publish_date', v)}
             type="date"
@@ -1374,7 +1376,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Category"
+            label={t('bookForm.category')}
             value={formData.category_id}
             onChange={(v) => updateField('category_id', v)}
             options={categories}
@@ -1389,7 +1391,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Bookshelf"
+            label={t('bookForm.bookshelf')}
             value={formData.bookshelf_id}
             onChange={(v) => updateField('bookshelf_id', v)}
             options={bookshelves}
@@ -1427,7 +1429,7 @@ function BookFormPage() {
           margin: '0 auto',
         }}>
           <SearchableSelect
-            label="Binding Type"
+            label={t('bookForm.binding')}
             value={formData.binding_type}
             onChange={(v) => updateField('binding_type', v)}
             options={BINDING_TYPES.map(name => ({ id: name, name }))}
@@ -1436,7 +1438,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Paper Type"
+            label={t('bookForm.paper')}
             value={formData.paper_type}
             onChange={(v) => updateField('paper_type', v)}
             options={PAPER_TYPES.map(name => ({ id: name, name }))}
@@ -1445,7 +1447,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Pages"
+            label={t('bookForm.pages')}
             value={formData.pages ?? ''}
             onChange={(v) => updateField('pages', v ? Number(v) : null)}
             type="number"
@@ -1454,7 +1456,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Book Count"
+            label={t('bookForm.bookCount')}
             value={formData.book_count ?? ''}
             onChange={(v) => updateField('book_count', v ? Number(v) : null)}
             type="number"
@@ -1463,7 +1465,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Language"
+            label={t('bookForm.language')}
             value={formData.language}
             onChange={(v) => updateField('language', v)}
             options={LANGUAGES.map(name => ({ id: name, name }))}
@@ -1472,7 +1474,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Compose Type"
+            label={t('bookForm.compose')}
             value={formData.compose_type}
             onChange={(v) => updateField('compose_type', v)}
             options={COMPOSE_TYPES.map(name => ({ id: name, name }))}
@@ -1481,7 +1483,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Brand"
+            label={t('bookForm.brand')}
             value={formData.brand_id}
             onChange={(v) => updateField('brand_id', v)}
             options={brands}
@@ -1550,7 +1552,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Purchase Date"
+            label={t('bookForm.purchaseDate')}
             value={formData.purchase_date}
             onChange={(v) => updateField('purchase_date', v)}
             type="date"
@@ -1558,7 +1560,7 @@ function BookFormPage() {
           />
 
           <SearchableSelect
-            label="Purchase Store"
+            label={t('bookForm.purchaseStore')}
             value={formData.purchase_store}
             onChange={(v) => updateField('purchase_store', v)}
             options={purchaseStores.map(name => ({ id: name, name }))}
@@ -1567,7 +1569,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Douban Score"
+            label={t('bookForm.doubanScore')}
             value={formData.douban_score ?? ''}
             onChange={(v) => updateField('douban_score', v ? Number(v) : null)}
             step="0.1"
@@ -1578,7 +1580,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Edition"
+            label={t('bookForm.edition')}
             value={formData.edition}
             onChange={(v) => updateField('edition', v)}
             placeholder="1st Edition"
@@ -1586,7 +1588,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Printing Info"
+            label={t('bookForm.printing')}
             value={formData.printing_info}
             onChange={(v) => updateField('printing_info', v)}
             placeholder="1st Printing"
@@ -1594,7 +1596,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Printed Number"
+            label={t('bookForm.printedNumber')}
             value={formData.printed_number ?? ''}
             onChange={(v) => updateField('printed_number', v ? Number(v) : null)}
             type="number"
@@ -1624,7 +1626,7 @@ function BookFormPage() {
 
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <AppleInput
-            label="Thumbnail Image URL"
+            label={t('bookForm.thumbImage')}
             value={formData.thumb_image}
             onChange={(v) => updateField('thumb_image', v)}
             placeholder="https://..."
@@ -1652,7 +1654,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Catalog"
+            label={t('bookForm.catalog')}
             value={formData.catalog}
             onChange={(v) => updateField('catalog', v)}
             placeholder="Table of contents..."
@@ -1662,7 +1664,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Introduction"
+            label={t('bookForm.introduction')}
             value={formData.introduction}
             onChange={(v) => updateField('introduction', v)}
             placeholder="Book introduction..."
@@ -1672,7 +1674,7 @@ function BookFormPage() {
           />
 
           <AppleInput
-            label="Summary"
+            label={t('bookForm.summary')}
             value={formData.summary}
             onChange={(v) => updateField('summary', v)}
             placeholder="Brief summary..."
@@ -1927,7 +1929,7 @@ function BookFormPage() {
             />
 
             <AppleInput
-              label="Introduction"
+              label={t('bookForm.introduction')}
               value={publisherFormData.intro}
               onChange={(v) => setPublisherFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"
@@ -1998,7 +2000,7 @@ function BookFormPage() {
             />
 
             <AppleInput
-              label="Introduction"
+              label={t('bookForm.introduction')}
               value={bookshelfFormData.intro}
               onChange={(v) => setBookshelfFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"
@@ -2070,7 +2072,7 @@ function BookFormPage() {
             />
 
             <AppleInput
-              label="Introduction"
+              label={t('bookForm.introduction')}
               value={categoryFormData.intro}
               onChange={(v) => setCategoryFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"
@@ -2133,7 +2135,7 @@ function BookFormPage() {
             />
 
             <AppleInput
-              label="Introduction"
+              label={t('bookForm.introduction')}
               value={brandFormData.intro}
               onChange={(v) => setBrandFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"
@@ -2290,7 +2292,7 @@ function BookFormPage() {
               </select>
             </div>
 
-            <AppleInput label="Introduction"
+            <AppleInput label={t('bookForm.introduction')}
               value={authorFormData.intro}
               onChange={(v) => setAuthorFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"
@@ -2361,7 +2363,7 @@ function BookFormPage() {
             />
 
             <AppleInput
-              label="Introduction"
+              label={t('bookForm.introduction')}
               value={seriesFormData.intro}
               onChange={(v) => setSeriesFormData(prev => ({ ...prev, intro: v }))}
               placeholder="Brief introduction"

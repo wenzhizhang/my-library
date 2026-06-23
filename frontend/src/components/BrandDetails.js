@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import './Books.css';
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
@@ -9,6 +10,7 @@ const BrandDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [brand, setBrand] = useState(null);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,12 +40,12 @@ const BrandDetails = () => {
     <section className="section light">
       <div className="container">
         <h1 className="section-heading">{brand.name}</h1>
-        <button className="btn-primary-blue" onClick={() => navigate('/my-library/brands')}>Back to Brands</button>
+        <button className="btn-primary-blue" onClick={() => navigate('/my-library/brands')}>{t('brands.backToList')}</button>
 
         <div className="details-content">
-          <h2>Brand Information</h2>
-          <p><strong>Name:</strong> {brand.name}</p>
-          {brand.intro && <p><strong>Introduction:</strong> {brand.intro}</p>}
+          <h2>{t('bookDetails.basicInfo')}</h2>
+          <p><strong>{t('common.name')}:</strong> {brand.name}</p>
+          {brand.intro && <p><strong>{t('common.introduction')}:</strong> {brand.intro}</p>}
         </div>
         <div className="grid">
           {brand.books && brand.books.length > 0 && (

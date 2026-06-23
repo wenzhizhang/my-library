@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
 
 const labelStyle = {
@@ -22,6 +23,7 @@ const inputStyle = {
 };
 
 const Publishers = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -175,7 +177,7 @@ const Publishers = () => {
     <section className="section light">
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">Publishers</h1>
+          <h1 className="section-heading">{t('publishers.title')}</h1>
           {isAuthenticated && (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               + Create Publisher
@@ -186,23 +188,23 @@ const Publishers = () => {
         <div className="toolbar">
           <div className="toolbar-search">
             <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder="Search publishers…"
+              <input className="toolbar-search-input" placeholder={t('common.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
             </div>
           </div>
           <div className="toolbar-actions">
             <label className="control-label">
-              <span className="control-label-text">Sort</span>
+              <span className="control-label-text">{t('common.sort')}</span>
               <select value={sortBy} onChange={(e) => setSortByParam(e.target.value)}>
                 <option value="id">ID</option>
                 <option value="name">Name</option>
               </select>
             </label>
             <label className="control-label">
-              <span className="control-label-text">Per page</span>
+              <span className="control-label-text">{t('common.perPage')}</span>
               <select value={limit} onChange={(e) => setLimitParam(parseInt(e.target.value))}>
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -212,7 +214,7 @@ const Publishers = () => {
             </label>
           </div>
           <div className="toolbar-info">
-            Page {page} / {totalPages} ({totalPublishers})
+            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalPublishers})
           </div>
         </div>
 
@@ -227,13 +229,12 @@ const Publishers = () => {
               <h3 className="card-title">{publisher.name}</h3>
               {publisher.intro && <p className="caption">{publisher.intro.length > 100 ? publisher.intro.substring(0, 100) + '...' : publisher.intro}</p>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${publisher.id}`)}>View</button>
+                <button className="btn-pill-link" onClick={() => navigate(`${publisher.id}`)}>{t('common.view')}</button>
                 {isAuthenticated && (
                   <>
-                    <button className="btn-pill-link" onClick={() => openEdit(publisher)}>Edit</button>
+                    <button className="btn-pill-link" onClick={() => openEdit(publisher)}>{t('common.edit')}</button>
                     <button className="btn-pill-link"
-                      onClick={() => setConfirmDelete(publisher)}
-                      style={{ color: '#ff3b30' }}>Delete</button>
+                      style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
                   </>
                 )}
               </div>
@@ -245,20 +246,20 @@ const Publishers = () => {
           <div className="pagination-links">
             {page > 1 && (
               <>
-                <button className="btn-pill-link" onClick={() => setPageParam(1)}>First</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>Previous</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
               </>
             )}
             {pages}
             {page < totalPages && (
               <>
-                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>Next</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>Last</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
+                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
               </>
             )}
           </div>
           <div className="pagination-input">
-            <label htmlFor="page-input">Go to page:</label>
+            <label htmlFor="page-input">{t('common.goToPage')}:</label>
             <input
               type="number"
               id="page-input"
@@ -268,7 +269,7 @@ const Publishers = () => {
               onChange={(e) => setGoToPage(e.target.value)}
               onKeyPress={handleKeyPress}
             />
-            <button className="btn-pill-link" onClick={handleGoToPage}>Go</button>
+            <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
           </div>
         </div>
       </div>
@@ -288,17 +289,17 @@ const Publishers = () => {
             boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
           }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ margin: '0 0 20px', fontSize: 22, fontWeight: 600 }}>
-              {editingPublisher ? 'Edit Publisher' : 'Create Publisher'}
+              {editingPublisher ? t('publishers.edit') : t('publishers.create')}
             </h2>
             <form onSubmit={handleSave}>
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Name <span style={{ color: '#ff3b30' }}>*</span></label>
+                <label style={labelStyle}>{t('common.name')} <span style={{ color: '#ff3b30' }}>*</span></label>
                 <input type="text" value={formData.name} required
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={inputStyle} placeholder="e.g. 中华书局" />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>Introduction</label>
+                <label style={labelStyle}>{t('common.introduction')}</label>
                 <textarea value={formData.intro} rows={4}
                   onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
                   style={{ ...inputStyle, resize: 'vertical' }} placeholder="Publisher description..." />
@@ -311,10 +312,10 @@ const Publishers = () => {
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn-pill-link"
-                  onClick={() => setModalOpen(false)}>Cancel</button>
+                  onClick={() => setModalOpen(false)}>{t('common.cancel')}</button>
                 <button type="submit" className="btn-pill-link" disabled={saving}
                   style={saving ? { opacity: 0.6 } : {}}>
-                  {saving ? 'Saving...' : 'Save'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </form>
@@ -340,12 +341,12 @@ const Publishers = () => {
               Delete "{confirmDelete.name}"?
             </h3>
             <p style={{ color: '#86868b', margin: '0 0 20px', fontSize: 15 }}>
-              This action cannot be undone.
+              {t('common.cannotUndo')}
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button className="btn-pill-link" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn-pill-link" onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
               <button className="btn-pill-link" onClick={() => handleDelete(confirmDelete.id)}
-                style={{ color: '#ff3b30' }}>Delete</button>
+                style={{ color: '#ff3b30' }}>{t('common.deleteConfirm')}</button>
             </div>
           </div>
         </div>

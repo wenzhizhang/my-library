@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from 'react-i18next';
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
@@ -9,6 +10,7 @@ const SeriesDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [series, setSeries] = useState(null);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,18 +41,18 @@ const SeriesDetails = () => {
       <div className="container">
         <h1 className="section-heading">{series.name}</h1>
         <button className="btn-primary-blue" onClick={() => navigate('/my-library/series')}>
-          Back to Series
+          {t('series.backToList')}
         </button>
 
         <div className="details-content">
           {series.intro && (
             <p>
-              <strong>Introduction:</strong> {series.intro}
+              <strong>{t('common.introduction')}:</strong> {series.intro}
             </p>
           )}
           {series.books && series.books.length > 0 && (
             <div>
-              <strong>Books in this Series:</strong>
+              <strong>{t('series.booksInSeries')}:</strong>
           
               <div className="grid">
                 {series.books.map((book) => (

@@ -1,11 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
 import { MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
 const BookCard = ({ book, onDelete }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [showConfirm, setShowConfirm] = React.useState(false);
 
@@ -40,14 +42,14 @@ const BookCard = ({ book, onDelete }) => {
         />
       )}
       <h3 className="card-title">{book.title_cn || book.title}</h3>
-      <p className="caption">ISBN: {book.isbn}</p>
-      <p className="caption">Authors: {book.authors ? book.authors.join(', ') : 'Unknown'}</p>
+      <p className="caption">{t('bookForm.isbn')}: {book.isbn}</p>
+      <p className="caption">{t('bookForm.authors')}: {book.authors ? book.authors.join(', ') : t('common.unknown')}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        <button className="btn-pill-link" onClick={handleViewDetails}>View</button>
+        <button className="btn-pill-link" onClick={handleViewDetails}>{t('common.view')}</button>
         {isAuthenticated && (
           <>
-            <button className="btn-pill-link" onClick={handleEdit}>Edit</button>
-            <button className="btn-pill-link" onClick={() => setShowConfirm(true)} style={{ color: '#ff3b30' }}>Delete</button>
+            <button className="btn-pill-link" onClick={handleEdit}>{t('common.edit')}</button>
+            <button className="btn-pill-link" onClick={() => setShowConfirm(true)} style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
           </>
         )}
       </div>
@@ -68,14 +70,14 @@ const BookCard = ({ book, onDelete }) => {
           textAlign: 'center',
         }} onClick={(e) => e.stopPropagation()}>
           <h3 style={{ margin: '0 0 8px', fontSize: 18 }}>
-            Delete "{book.title_cn || book.title}"?
+            {t('common.deleteConfirm')}
           </h3>
           <p style={{ color: '#86868b', margin: '0 0 20px', fontSize: 15 }}>
-            This action cannot be undone.
+            {t('common.cannotUndo')}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button className="btn-pill-link" onClick={() => setShowConfirm(false)}>Cancel</button>
-            <button className="btn-pill-link" onClick={handleDelete} style={{ color: '#ff3b30' }}>Delete</button>
+            <button className="btn-pill-link" onClick={() => setShowConfirm(false)}>{t('common.cancel')}</button>
+            <button className="btn-pill-link" onClick={handleDelete} style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
           </div>
         </div>
       </div>

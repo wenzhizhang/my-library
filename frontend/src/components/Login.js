@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { LIBRARY_PATH } from '../config';
+import { useTranslation } from 'react-i18next';
 import './Auth.css';
 
 const Login = () => {
@@ -11,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,24 +41,24 @@ const Login = () => {
   return (
     <div className="auth-page">
       <form className="auth-form" onSubmit={handleSubmit}>
-        <h2 className="auth-title">Login</h2>
+        <h2 className="auth-title">{t('nav.login')}</h2>
         {error && <p className="auth-error">{error}</p>}
         <label className="auth-label">
-          <span>Username</span>
+          <span>{t('auth.username')}</span>
           <input value={username} onChange={(e) => setUsername(e.target.value)} required />
         </label>
         <label className="auth-label">
-          <span>Password</span>
+          <span>{t('auth.password')}</span>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         <button className="auth-btn" disabled={loading}>
-          {loading ? 'Logging in…' : 'Login'}
+          {loading ? t('common.loading') : t('nav.login')}
         </button>
         <button type="button" className="auth-btn auth-btn-guest" onClick={handleGuest}>
-          Continue as Guest
+          {t('auth.guest')}
         </button>
         <p className="auth-footer">
-          Don't have an account? <Link to={`${LIBRARY_PATH}/register`}>Register</Link>
+          {t('auth.noAccount')} <Link to={`${LIBRARY_PATH}/register`}>{t('nav.register')}</Link>
         </p>
       </form>
     </div>

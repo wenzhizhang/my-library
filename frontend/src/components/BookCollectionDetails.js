@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useTranslation } from 'react-i18next';
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
@@ -9,6 +10,7 @@ import SearchableSelect from './SearchableSelect';
 const BookCollectionDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allBooks, setAllBooks] = useState([]);
@@ -153,38 +155,38 @@ const BookCollectionDetails = () => {
           className="btn-primary-blue"
           onClick={() => navigate('/my-library/book-collections')}
         >
-          Back to Collections
+          {t('collections.backToList')}
         </button>
 
         <div className="details-content">
-          <h2>Collection Information</h2>
+          <h2>{t('bookDetails.basicInfo')}</h2>
           <p>
-            <strong>Name:</strong> {collection.name}
+            <strong>{t('common.name')}:</strong> {collection.name}
           </p>
           {collection.intro && (
             <p>
-              <strong>Description:</strong> {collection.intro}
+              <strong>{t('common.introduction')}:</strong> {collection.intro}
             </p>
           )}
           {collection.total_books !== undefined && (
             <p>
-              <strong>Books:</strong> {collection.total_books}
+              <strong>{t('collections.books')}:</strong> {collection.total_books}
             </p>
           )}
         </div>
 
         <div className="details-content" style={{ marginTop: "1rem" }}>
-          <h2>Add Books to Collection</h2>
+          <h2>{t('collections.addBooks')}</h2>
           {error && <p style={{ color: "#ff3b30" }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <SearchableSelect
-                label="Search Book"
+                label={t('collections.searchBook')}
                 value={null}
                 onChange={handleSelectBook}
                 options={allBooks}
-                placeholder="Search and select books..."
+                placeholder={t('collections.searchPlaceholder')}
                 keepSearchOnSelect={true}
               />
             </div>
@@ -194,7 +196,7 @@ const BookCollectionDetails = () => {
               disabled={adding || pendingBooks.length === 0}
               style={{ marginBottom: "24px" }}
             >
-              {adding ? "Adding..." : `Add All (${pendingBooks.length})`}
+              {adding ? t('collections.adding') : t('collections.addAll', { count: pendingBooks.length })}
             </button>
           </div>
 
@@ -206,7 +208,7 @@ const BookCollectionDetails = () => {
                   <span
                     style={chipRemoveStyle}
                     onClick={() => handleRemovePending(book.id)}
-                    title="Remove"
+                    title={t('collections.remove')}
                   >
                     ×
                   </span>
@@ -217,7 +219,7 @@ const BookCollectionDetails = () => {
         </div>
 
         <div style={{ marginTop: "2rem" }}>
-          <h2>Books in Collection</h2>
+          <h2>{t('collections.booksInCollection')}</h2>
           <div className="grid">
             {collection.books && collection.books.length > 0 ? (
               collection.books.map((book) => (
@@ -229,12 +231,12 @@ const BookCollectionDetails = () => {
                     disabled={removingBookId === book.id}
                     style={{ marginTop: "0.5rem", color: "#ff3b30" }}
                   >
-                    {removingBookId === book.id ? "Removing..." : "Remove"}
+                    {removingBookId === book.id ? t('collections.removing') : t('collections.remove')}
                   </button>
                 </div>
               ))
             ) : (
-              <p>No books in this collection yet.</p>
+              <p>{t('collections.noBooks')}</p>
             )}
           </div>
         </div>

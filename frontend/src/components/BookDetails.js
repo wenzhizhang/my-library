@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import './Books.css';
 import './BookDetails.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
@@ -94,6 +95,7 @@ const InfoItem = ({ label, value, full = false, className = '' }) => {
 const BookDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [book, setBook] = useState(null);
   const [similarBooks, setSimilarBooks] = useState([]);
@@ -169,15 +171,15 @@ const BookDetails = () => {
       <div className="bd-page">
         <div className="bd-container bd-error">
           <div className="bd-error-icon">📖</div>
-          <h2 className="bd-error-title">未找到该书籍</h2>
+          <h2 className="bd-error-title">{t('books.notFound')}</h2>
           <p className="bd-error-message">
-            该书可能已被移除，或链接地址有误。
+            {t('books.notFoundDetail')}
           </p>
           <button
             className="bd-back"
             onClick={() => navigate(`${LIBRARY_PATH}/books`)}
           >
-            <span className="bd-back-arrow">←</span> 返回书库
+            <span className="bd-back-arrow">←</span> {t('books.backToList')}
           </button>
         </div>
       </div>
@@ -196,7 +198,7 @@ const BookDetails = () => {
           className="bd-back"
           onClick={() => navigate(`${LIBRARY_PATH}/books`)}
         >
-          <span className="bd-back-arrow">←</span> 返回书库
+          <span className="bd-back-arrow">←</span> {t('books.backToList')}
         </button>
 
         {/* ── Hero ── */}
@@ -231,7 +233,7 @@ const BookDetails = () => {
             {book.pages && (
               <div className="bd-meta-chip">
                 <span className="bd-meta-chip-icon">📄</span>
-                <span className="bd-meta-chip-value">{book.pages}</span> 页
+                <span className="bd-meta-chip-value">{book.pages}</span> {t('bookForm.pages')}
               </div>
             )}
             {(book.price || book.purchase_price) && (
@@ -246,13 +248,13 @@ const BookDetails = () => {
               <span className="bd-meta-chip-icon">📚</span>
               <span className="bd-info-value status">
                 <span className={`bd-status-dot ${readStateClass(book.read_state)}`} />
-                {book.read_state || '未设置'}
+                {book.read_state || t('common.none')}
               </span>
             </div>
             {book.isbn && (
               <div className="bd-meta-chip">
                 <span className="bd-meta-chip-icon">🔖</span>
-                ISBN <span className="bd-meta-chip-value">{book.isbn}</span>
+                {t('bookForm.isbn')} <span className="bd-meta-chip-value">{book.isbn}</span>
               </div>
             )}
           </div>
@@ -272,7 +274,7 @@ const BookDetails = () => {
               </div>
             ) : (
               <div className="bd-cover-card" style={{ aspectRatio: '3/4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bd-text-tertiary)', fontSize: '14px' }}>
-                暂无封面
+                {t('bookDetails.noCover')}
               </div>
             )}
           </aside>
@@ -281,15 +283,15 @@ const BookDetails = () => {
           <div className="bd-info">
 
             {/* Basic Info */}
-            <InfoCard icon="📋" title="基本信息">
-              <InfoItem label="原名" value={book.title} full />
+            <InfoCard icon="📋" title={t('bookDetails.basicInfo')}>
+              <InfoItem label={t('bookForm.titleEn')} value={book.title} full />
               {book.title_cn && book.title !== book.title_cn && (
-                <InfoItem label="中文名" value={book.title_cn} full />
+                <InfoItem label={t('bookForm.titleCn')} value={book.title_cn} full />
               )}
-              <InfoItem label="ISBN" value={book.isbn} />
-              <InfoItem label="正文语言" value={book.language} />
+              <InfoItem label={t('bookForm.isbn')} value={book.isbn} />
+              <InfoItem label={t('bookForm.language')} value={book.language} />
               <InfoItem
-                label="作者"
+                label={t('bookForm.authors')}
                 value={
                   book.authors?.length > 0 ? (
                     <LinkList items={book.authors} basePath="authors" />
@@ -297,60 +299,60 @@ const BookDetails = () => {
                 }
                 full
               />
-              <InfoItem label="译者/编辑" value={book.translator} full />
+              <InfoItem label={t('bookForm.translator')} value={book.translator} full />
               <InfoItem
-                label="出版社"
+                label={t('bookForm.publisher')}
                 value={<EntityLink entity={book.publisher} basePath="publishers" />}
               />
-              <InfoItem label="出版日期" value={fmtDate(book.publish_date)} />
+              <InfoItem label={t('bookForm.publishDate')} value={fmtDate(book.publish_date)} />
             </InfoCard>
 
             {/* Physical Details */}
             {(book.binding_type || book.paper_type || book.pages || book.book_count || book.compose_type) && (
-              <InfoCard icon="📖" title="装帧信息">
-                <InfoItem label="装帧" value={book.binding_type} />
-                <InfoItem label="正文用纸" value={book.paper_type} />
-                <InfoItem label="页数" value={book.pages} />
-                <InfoItem label="册数" value={book.book_count} />
-                <InfoItem label="排版" value={book.compose_type} />
+              <InfoCard icon="📖" title={t('bookDetails.bindingInfo')}>
+                <InfoItem label={t('bookForm.binding')} value={book.binding_type} />
+                <InfoItem label={t('bookForm.paper')} value={book.paper_type} />
+                <InfoItem label={t('bookForm.pages')} value={book.pages} />
+                <InfoItem label={t('bookForm.bookCount')} value={book.book_count} />
+                <InfoItem label={t('bookForm.compose')} value={book.compose_type} />
               </InfoCard>
             )}
 
             {/* Purchase Info */}
-            <InfoCard icon="🛒" title="购买信息">
+            <InfoCard icon="🛒" title={t('bookDetails.purchaseInfo')}>
               <InfoItem
-                label="定价"
+                label={t('bookForm.price')}
                 value={book.price ? `¥ ${Number(book.price).toFixed(2)}` : null}
                 className="price"
               />
               {book.price && book.purchase_price && book.price > 0 && (
                 <InfoItem
-                  label="折扣"
+                  label={t('bookForm.discount')}
                   value={`${(book.purchase_price / book.price * 100).toFixed(1)}%`}
                   className={book.purchase_price / book.price < 0.5 ? 'highlight' : ''}
                 />
               )}
               <InfoItem
-                label="购入价"
+                label={t('bookForm.purchasePrice')}
                 value={`¥ ${Number(book.purchase_price).toFixed(2)}`}
               />
-              <InfoItem label="购入日期" value={fmtDate(book.purchase_date)} />
-              <InfoItem label="来源" value={book.purchase_store} />
+              <InfoItem label={t('bookForm.purchaseDate')} value={fmtDate(book.purchase_date)} />
+              <InfoItem label={t('bookForm.purchaseStore')} value={book.purchase_store} />
             </InfoCard>
 
             {/* Publishing Info */}
             {(book.brand || book.book_series || book.category || book.bookshelf || book.edition || book.printing_info) && (
-              <InfoCard icon="🏷️" title="出版信息">
+              <InfoCard icon="🏷️" title={t('bookDetails.publishingInfo')}>
                 <InfoItem
-                  label="出品方"
+                  label={t('bookForm.brand')}
                   value={<EntityLink entity={book.brand} basePath="brands" />}
                 />
                 <InfoItem
-                  label="书系"
+                  label={t('bookForm.series')}
                   value={<EntityLink entity={book.book_series} basePath="series" />}
                 />
                 <InfoItem
-                  label="分类"
+                  label={t('bookForm.category')}
                   value={
                     book.category ? (
                       <Link to={`${LIBRARY_PATH}/categories/${book.category.id}`}>
@@ -360,39 +362,39 @@ const BookDetails = () => {
                   }
                 />
                 <InfoItem
-                  label="所在书架"
+                  label={t('bookForm.bookshelf')}
                   value={<EntityLink entity={book.bookshelf} basePath="bookshelves" />}
                 />
-                <InfoItem label="版次" value={book.edition} />
-                <InfoItem label="印次" value={book.printing_info} />
-                <InfoItem label="印数" value={book.printed_number} />
+                <InfoItem label={t('bookForm.edition')} value={book.edition} />
+                <InfoItem label={t('bookForm.printing')} value={book.printing_info} />
+                <InfoItem label={t('bookForm.printedNumber')} value={book.printed_number} />
               </InfoCard>
             )}
 
             {/* Status */}
-            <InfoCard icon="📌" title="状态">
+            <InfoCard icon="📌" title={t('bookDetails.status')}>
               <InfoItem
-                label="阅读状态"
+                label={t('bookForm.readState')}
                 value={
                   <span className="bd-info-value status">
                     <span className={`bd-status-dot ${readStateClass(book.read_state)}`} />
-                    {book.read_state || '未设置'}
+                    {book.read_state || t('common.none')}
                   </span>
                 }
               />
               <InfoItem
-                label="已登记"
-                value={book.registered ? '是' : '否'}
+                label={t('bookForm.registered')}
+                value={book.registered ? t('bookDetails.yes') : t('bookDetails.no')}
               />
               <InfoItem
-                label="心愿单"
-                value={book.in_wish ? '是' : '否'}
+                label={t('bookForm.wishlist')}
+                value={book.in_wish ? t('bookDetails.yes') : t('bookDetails.no')}
               />
             </InfoCard>
 
             {/* Tags */}
             {book.tags && book.tags.length > 0 && (
-              <InfoCard icon="🔖" title="标签">
+              <InfoCard icon="🔖" title={t('bookForm.tags')}>
                 <div className="bd-tags" style={{ gridColumn: '1 / -1' }}>
                   {book.tags.map((tag) => (
                     <Link
@@ -409,16 +411,16 @@ const BookDetails = () => {
 
             {/* Content */}
             {(book.introduction || book.summary || book.catalog) && (
-              <InfoCard icon="📝" title="内容">
+              <InfoCard icon="📝" title={t('bookDetails.content')}>
                 {book.introduction && (
-                  <InfoItem label="内容简介" value={book.introduction} full />
+                  <InfoItem label={t('bookDetails.introduction')} value={book.introduction} full />
                 )}
                 {book.summary && (
-                  <InfoItem label="内容概述" value={book.summary} full />
+                  <InfoItem label={t('bookDetails.summary')} value={book.summary} full />
                 )}
                 {book.catalog && (
                   <InfoItem
-                    label="目录"
+                    label={t('bookDetails.catalog')}
                     value={
                       <div className="bd-content-block catalog">
                         {book.catalog}
@@ -437,8 +439,8 @@ const BookDetails = () => {
         {similarBooks.length > 0 && (
           <section className="bd-similar">
             <div className="bd-similar-header">
-              <h2 className="bd-similar-title">相似书籍</h2>
-              <span className="bd-similar-hint">基于共同标签推荐</span>
+              <h2 className="bd-similar-title">{t('bookDetails.similarBooks')}</h2>
+              <span className="bd-similar-hint">{t('bookDetails.similarHint')}</span>
             </div>
             <div className="bd-similar-scroll">
               {similarBooks.map((sb) => (
@@ -465,7 +467,7 @@ const BookDetails = () => {
                         fontSize: '13px',
                       }}
                     >
-                      暂无封面
+                      {t('bookDetails.noCover')}
                     </div>
                   )}
                   <div className="bd-similar-card-body">
@@ -473,7 +475,7 @@ const BookDetails = () => {
                       {sb.title_cn || sb.title}
                     </h3>
                     <p className="bd-similar-card-author">
-                      {sb.authors?.map((a) => a.name).join(', ') || '未知作者'}
+                      {sb.authors?.map((a) => a.name).join(', ') || t('bookDetails.unknownAuthor')}
                     </p>
                     {sb.shared_tags?.length > 0 && (
                       <div className="bd-similar-card-tags">

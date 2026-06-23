@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
@@ -8,6 +9,7 @@ import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
 const Books = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -144,12 +146,12 @@ const Books = () => {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('page', '1');
                 setSearchParams(newParams, { replace: true });
-              }}>First</button>
+                }}>{t('common.first')}</button>
               <button className="btn-pill-link" onClick={() => {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('page', String(page - 1));
                 setSearchParams(newParams, { replace: true });
-              }}>Previous</button>
+                }}>{t('common.previous')}</button>
             </>
           )}
           {pages}
@@ -159,12 +161,12 @@ const Books = () => {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('page', String(page + 1));
                 setSearchParams(newParams, { replace: true });
-              }}>Next</button>
+                }}>{t('common.next')}</button>
               <button className="btn-pill-link" onClick={() => {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('page', String(totalPages));
                 setSearchParams(newParams, { replace: true });
-              }}>Last</button>
+                }}>{t('common.last')}</button>
             </>
           )}
         </div>
@@ -172,13 +174,13 @@ const Books = () => {
           <input type="number" min="1" max={totalPages} value={goToPage}
             onChange={(e) => setGoToPage(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()} />
-          <button className="btn-pill-link" onClick={handleGoToPage}>Go</button>
+          <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
         </div>
       </div>
     );
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+    if (loading) return <div className="loading">{t('common.loading')}</div>;
 
   const activeTag = searchParams.get('tag');
 
@@ -186,9 +188,9 @@ const Books = () => {
     <section className="section light">
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">Books</h1>
+          <h1 className="section-heading">{t('books.title')}</h1>
           <button className="btn-pill-link" onClick={() => { sessionStorage.setItem('booksPageState', window.location.search); navigate(`${LIBRARY_PATH}/books/create`); }} style={{ marginBottom: 20 }}>
-            + Add New Book
+            {t('books.addNew')}
           </button>
         </div>
 
@@ -197,53 +199,53 @@ const Books = () => {
           {/* Search */}
           <div className="toolbar-search">
             <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder="Search title, title_cn, ISBN…"
+              <input className="toolbar-search-input" placeholder={t('books.searchPlaceholder')}
                 value={inputParams.q}
                 onChange={(e) => handleInputChange('q', e.target.value)}
                 onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>Search</button>
+              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
               <button
                 className={`btn-pill-link${showAdvanced ? ' active' : ''}`}
                 onClick={() => setShowAdvanced(!showAdvanced)}>
-                Advanced
+                {t('books.advanced')}
               </button>
             </div>
 
             {showAdvanced && (
               <div className="toolbar-search-advanced">
                 <label className="search-label">
-                  <span>ISBN</span>
-                  <input placeholder="Search ISBN…"
+                  <span>{t('books.searchIsbn')}</span>
+                  <input placeholder={t('books.searchIsbn')}
                     value={inputParams.isbn}
                     onChange={(e) => handleInputChange('isbn', e.target.value)} />
                 </label>
                 <label className="search-label">
-                  <span>Author</span>
-                  <input placeholder="Search author…"
+                  <span>{t('books.searchAuthor')}</span>
+                  <input placeholder={t('books.searchAuthor')}
                     value={inputParams.author}
                     onChange={(e) => handleInputChange('author', e.target.value)} />
                 </label>
                 <label className="search-label">
-                  <span>Publisher</span>
-                  <input placeholder="Search publisher…"
+                  <span>{t('books.searchPublisher')}</span>
+                  <input placeholder={t('books.searchPublisher')}
                     value={inputParams.publisher}
                     onChange={(e) => handleInputChange('publisher', e.target.value)} />
                 </label>
                 <label className="search-label">
-                  <span>Tag</span>
-                  <input placeholder="Search tag…"
+                  <span>{t('books.searchTag')}</span>
+                  <input placeholder={t('books.searchTag')}
                     value={inputParams.tag}
                     onChange={(e) => handleInputChange('tag', e.target.value)} />
                 </label>
                 <label className="search-label">
-                  <span>Purchase Year</span>
-                  <input type="number" min="2000" max="2099" step="1" placeholder="YYYY"
+                  <span>{t('books.purchaseYear')}</span>
+                  <input type="number" min="2000" max="2099" step="1" placeholder={t('books.purchaseYear')}
                     value={inputParams.purchase_year}
                     onChange={(e) => handleInputChange('purchase_year', e.target.value)} />
                 </label>
                 <label className="search-label">
-                  <span>Purchase Month</span>
-                  <input type="number" min="1" max="12" step="1" placeholder="MM"
+                  <span>{t('books.purchaseMonth')}</span>
+                  <input type="number" min="1" max="12" step="1" placeholder={t('books.purchaseMonth')}
                     value={inputParams.purchase_month}
                     onChange={(e) => handleInputChange('purchase_month', e.target.value)} />
                 </label>
@@ -254,14 +256,14 @@ const Books = () => {
           {/* Sort & limit */}
           <div className="toolbar-actions">
             <label className="control-label">
-              <span className="control-label-text">Sort</span>
+              <span className="control-label-text">{t('common.sort')}</span>
               <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="title">Title</option>
+                <option value="id">{t('books.sortId')}</option>
+                <option value="title">{t('books.sortTitle')}</option>
               </select>
             </label>
             <label className="control-label">
-              <span className="control-label-text">Per page</span>
+              <span className="control-label-text">{t('common.perPage')}</span>
               <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -273,14 +275,14 @@ const Books = () => {
 
           {/* Page info */}
           <div className="toolbar-info">
-            Page {page} / {totalPages} ({totalBooks})
+            {t('common.page')} {page} {t('common.of')} {totalPages} {t('common.total')}({totalBooks})
           </div>
         </div>
 
         {/* Tag filter badge */}
         {activeTag && (
           <div className="tag-filter-badge">
-            <span className="tag-filter-text">Filtered by tag: {activeTag}</span>
+            <span className="tag-filter-text">{t('books.searchTag')}: {activeTag}</span>
             <button onClick={() => {
               const newParams = new URLSearchParams(searchParams);
               newParams.delete('tag');
