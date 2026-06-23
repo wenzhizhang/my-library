@@ -907,7 +907,7 @@ function BookFormPage() {
           navigate(`/my-library/books${prevState}`);
           sessionStorage.removeItem('booksPageState');
         } else {
-          navigate('/my-library/books');
+          navigate(-1);
         }
       }, 1500);
     } catch (error) {
