@@ -1183,7 +1183,7 @@ function BookFormPage() {
           margin: '0 auto',
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ flex: 1 }}>
                 <AppleInput
                   label={t('bookForm.isbn')}
@@ -1212,8 +1212,8 @@ function BookFormPage() {
                   color: COLORS.white,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  alignSelf: 'flex-end',
-                  marginBottom: '8px',
+                  alignSelf: 'center',
+                  marginBottom: '0px',
                   opacity: isbnLookupLoading ? 0.6 : 1,
                 }}
               >
