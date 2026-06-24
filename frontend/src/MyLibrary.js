@@ -10,6 +10,7 @@ import Publishers from './components/Publishers';
 import Categories from './components/Categories';
 import Bookshelves from './components/Bookshelves';
 import BookCollections from './components/BookCollections';
+import ReadingPlans from './components/ReadingPlans';
 import Brands from './components/Brands';
 import Series from './components/Series';
 import BookDetails from './components/BookDetails';
@@ -17,9 +18,10 @@ import BookFormPage from './components/BookFormPage';
 import AuthorDetails from './components/AuthorDetails';
 import PublisherDetails from './components/PublisherDetails';
 import CategoryDetails from './components/CategoryDetails';
-import BookshelfDetails from './components/BookshelfDetails';
 import BrandDetails from './components/BrandDetails';
+import BookshelfDetails from './components/BookshelfDetails';
 import BookCollectionDetails from './components/BookCollectionDetails';
+import ReadingPlanDetails from './components/ReadingPlanDetails';
 import SeriesDetails from './components/SeriesDetails';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -58,6 +60,8 @@ function MyLibrary() {
 
             <Route path="book-collections" element={<BookCollections />} />
             <Route path="book-collections/:id" element={<BookCollectionDetails />} />
+            <Route path="reading-plans" element={<ReadingPlans />} />
+            <Route path="reading-plans/:id" element={<ReadingPlanDetails />} />
             <Route path="brands" element={<Brands />} />
             <Route path="brands/:id" element={<BrandDetails />} />
 

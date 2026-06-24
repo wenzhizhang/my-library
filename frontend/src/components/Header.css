@@ -15,40 +15,59 @@
   z-index: 1000;
 }
 
-.nav-container {
-  max-width: 980px;
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.nav-logo {
+/* ── Left: brand ── */
+.nav-brand {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #ffffff;
+  color: #fff;
   text-decoration: none;
-  font-size: 17px;
-  font-weight: 600;
   flex-shrink: 0;
-  white-space: nowrap;
 }
 
-.nav-logo-img {
-  width: 38px;
-  height: 38px;
+.nav-brand-img {
+  width: 32px;
+  height: 32px;
   border-radius: 4px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-.nav-auth {
+.nav-brand-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* ── Center: nav links ── */
+.nav-center {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 20px;
+}
+
+/* ── Right: lang + auth + visits ── */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+.nav-lang {
+  display: flex;
+  align-items: center;
 }
 
 .nav-auth-user {
@@ -94,6 +113,5 @@
   color: rgba(255, 255, 255, 0.35);
   font-size: 11px;
   font-weight: 400;
-  margin-left: 4px;
   white-space: nowrap;
 }

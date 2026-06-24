@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import { MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 
-const BookCard = ({ book, onDelete }) => {
+const BookCard = ({ book, onDelete, protectLevel = 0, showCheckbox = false, checked = false, onCheckChange }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -44,13 +44,23 @@ const BookCard = ({ book, onDelete }) => {
       <h3 className="card-title">{book.title_cn || book.title}</h3>
       <p className="caption">{t('bookForm.isbn')}: {book.isbn}</p>
       <p className="caption">{t('bookForm.authors')}: {book.authors ? book.authors.join(', ') : t('common.unknown')}</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
         <button className="btn-pill-link" onClick={handleViewDetails}>{t('common.view')}</button>
-        {isAuthenticated && (
-          <>
-            <button className="btn-pill-link" onClick={handleEdit}>{t('common.edit')}</button>
-            <button className="btn-pill-link" onClick={() => setShowConfirm(true)} style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
-          </>
+        {isAuthenticated && protectLevel < 2 && (
+          <button className="btn-pill-link" onClick={handleEdit}>{t('common.edit')}</button>
+        )}
+        {isAuthenticated && protectLevel < 1 && (
+          <button className="btn-pill-link" onClick={() => setShowConfirm(true)} style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
+        )}
+        {showCheckbox && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', cursor: 'pointer', fontSize: 13, color: '#86868b' }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => onCheckChange && onCheckChange(book.id, e.target.checked)}
+            />
+            {t('common.select')}
+          </label>
         )}
       </div>
     </div>

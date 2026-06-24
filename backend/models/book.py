@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .author import Author
     from .series import BookSeries
     from .book_collection import BookCollection
+    from .reading_plan import ReadingPlan
 
 
 class Book(Base):
@@ -74,6 +75,7 @@ class Book(Base):
     authors: Mapped[list["Author"]] = relationship(secondary=book_authors, back_populates="books")
 
     collections: Mapped[list["BookCollection"]] = relationship(secondary="book_collection_items", back_populates="books")
+    reading_plans: Mapped[list["ReadingPlan"]] = relationship(secondary="reading_plan_items", back_populates="books")
 
     def __repr__(self):
         return f"<Book(id={self.id}, title='{self.title}')>"

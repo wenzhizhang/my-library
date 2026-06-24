@@ -9,6 +9,7 @@ from .application import Application
 from .user import User
 from .stats import VisitLog
 from .book_collection import BookCollection, book_collection_items
+from .reading_plan import ReadingPlan, reading_plan_items
 
 __all__ = [
     "Base",
@@ -25,4 +26,6 @@ __all__ = [
     "VisitLog",
     "BookCollection",
     "book_collection_items",
+    "ReadingPlan",
+    "reading_plan_items",
 ]

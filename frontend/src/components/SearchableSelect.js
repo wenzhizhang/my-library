@@ -58,6 +58,7 @@ function SearchableSelect({
   addNewLabel = '+ New',
   onAddNew,
   keepSearchOnSelect = false,
+  renderOption = null,
 }) {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -146,7 +147,6 @@ function SearchableSelect({
     color: dark ? COLORS.white : COLORS.nearBlack,
     background: isSelected ? (dark ? 'rgba(0,113,227,0.3)' : 'rgba(0,113,227,0.1)') : 'transparent',
   });
-
   const dropdownPortal = isOpen && filteredOptions.length > 0 && dropdownPos && createPortal(
     <div ref={dropdownRef} style={{
       ...dropdownStyle,
@@ -166,7 +166,7 @@ function SearchableSelect({
             }
           }}
         >
-          {opt.name}
+          {renderOption ? renderOption(opt) : opt.name}
         </div>
       ))}
     </div>,

@@ -8,7 +8,7 @@
 
 - **图书管理**: 全字段录入（35+ 字段），支持搜索、筛选、排序、分页
 - **ISBN 入库**: 输入 ISBN 自动从豆瓣 API 获取书籍信息并填充表单
-- **作者/出版社/分类/品牌/系列/书架/书单**: 完整的 CRUD 及关联
+- **作者/出版社/分类/品牌/系列/书架/书单/阅读计划**: 完整的 CRUD 及关联
 - **统计看板**: 按类别、语言、装帧、阅读状态、时间分布等维度可视化
 - **多用户**: JWT 认证，每用户独立 SQLite 数据库
 
@@ -93,6 +93,7 @@ my-library/
 │   │   ├── bookshelf.py       # 书架 CRUD
 │   │   ├── series.py          # 系列 CRUD
 │   │   ├── book_collection.py # 书单 CRUD
+│   │   ├── reading_plan.py     # 阅读计划 CRUD
 │   │   ├── isbn.py            # ISBN 查询 (豆瓣/OpenLibrary)
 │   │   ├── stats.py           # 统计接口
 │   │   ├── config_router.py   # 配置 API
@@ -101,7 +102,7 @@ my-library/
 │   ├── services/              # 业务逻辑
 │   │   └── isbn_lookup.py     # ISBN 多源查询 (豆瓣+OpenLibrary+Google)
 │   ├── spec/                  # OpenAPI 文档
-│   ├── tests/                 # 后端测试 (pytest, 88 用例)
+│   ├── tests/                 # 后端测试 (pytest, 105 用例)
 │   ├── main.py                # 应用入口
 │   └── Dockerfile
 ├── frontend/                  # React 前端
@@ -117,6 +118,7 @@ my-library/
 │   │   │   ├── Bookshelf*.js     # 书架
 │   │   │   ├── Series*.js        # 系列
 │   │   │   ├── BookCollection*.js # 书单
+│   │   │   ├── ReadingPlan*.js     # 阅读计划
 │   │   │   ├── StatsPage.js      # 统计看板
 │   │   │   └── SearchableSelect.js # 可搜索下拉
 │   │   ├── __tests__/            # 前端测试 (Jest, 40 用例)
@@ -186,6 +188,7 @@ DOUBAN_KEY=0ac44ae01...
 | `/api/categories` | 分类 CRUD（支持父子层级）、搜索 |
 | `/api/bookshelves` | 书架 CRUD、搜索 |
 | `/api/series` | 系列 CRUD、搜索 |
+| `/api/reading-plans` | 阅读计划 CRUD、搜索、图书关联、进度计算 |
 | `/api/book-collections` | 书单 CRUD、搜索 |
 | `/api/isbn/{isbn}` | ISBN 查询 (豆瓣 → OpenLibrary → Google) |
 | `/api/stats/books` | 统计接口 (概览、分布、时间线) |
@@ -199,7 +202,7 @@ DOUBAN_KEY=0ac44ae01...
 ## 测试
 
 ```bash
-# 后端测试 (88 用例)
+# 后端测试 (105 用例)
 cd backend && python3 -m pytest tests/ -v
 
 # 前端测试 (40 用例)

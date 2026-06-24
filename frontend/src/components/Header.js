@@ -39,12 +39,12 @@ const Header = () => {
 
   return (
     <nav className="nav">
-      <div className="nav-container">
-        <Link to={getPath('/')} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', textDecoration: 'none', fontSize: 17, fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap', maxWidth: 240 }}>
-          <img src="/images/logo/logo-my-library.png" alt="" style={{ width: 38, height: 38, borderRadius: 4, objectFit: 'contain', flexShrink: 0 }} />
-          <span style={{ fontSize: 17, fontWeight: 600, color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('nav.home')}</span>
-        </Link>
-        <div className="nav-links">
+      <Link to={getPath('/')} className="nav-brand">
+        <img src="/images/logo/logo-my-library.png" alt="" className="nav-brand-img" />
+        <span className="nav-brand-text">{t('nav.home')}</span>
+      </Link>
+      <div className="nav-center">
+        <div className="nav-menu">
           <Link to={getPath('/books')} className={`nav-link ${isActive('/books') ? 'active' : ''}`}>
             {t('nav.books')}
           </Link>
@@ -63,6 +63,9 @@ const Header = () => {
           <Link to={getPath('/book-collections')} className={`nav-link ${isActive('/book-collections') ? 'active' : ''}`}>
             {t('nav.collections')}
           </Link>
+          <Link to={getPath('/reading-plans')} className={`nav-link ${isActive('/reading-plans') ? 'active' : ''}`}>
+            {t('nav.readingPlans')}
+          </Link>
           <Link to={getPath('/brands')} className={`nav-link ${isActive('/brands') ? 'active' : ''}`}>
             {t('nav.brands')}
           </Link>
@@ -73,6 +76,8 @@ const Header = () => {
             {t('nav.stats')}
           </Link>
         </div>
+      </div>
+      <div className="nav-right">
         <div className="nav-lang">
           <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)}
             style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
@@ -81,19 +86,17 @@ const Header = () => {
             <option value="en">EN</option>
           </select>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="nav-username">{user?.username}</span>
-              <button className="nav-logout" onClick={logout}>{t('nav.logout')}</button>
-            </div>
-          ) : (
-            <Link to={`${LIBRARY_PATH}/login`} className="nav-link nav-login-link">{t('nav.login')}</Link>
-          )}
-          {visitCount !== null && (
-            <span className="nav-visit-count">{visitCount} visits</span>
-          )}
-        </div>
+        {isAuthenticated ? (
+          <div className="nav-auth-user">
+            <span className="nav-username">{user?.username}</span>
+            <button className="nav-logout" onClick={logout}>{t('nav.logout')}</button>
+          </div>
+        ) : (
+          <Link to={`${LIBRARY_PATH}/login`} className="nav-link nav-login-link">{t('nav.login')}</Link>
+        )}
+        {visitCount !== null && (
+          <span className="nav-visit-count">{visitCount} visits</span>
+        )}
       </div>
     </nav>
   );

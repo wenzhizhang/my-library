@@ -5,7 +5,7 @@ info:
     Book library management system.
     All endpoints return JSON. Some endpoints require authentication
     (Bearer token from `/api/auth/login`).
-  version: "0.2.35"
+  version: "0.3.0"
   contact:
     name: My Library
 servers:
@@ -24,6 +24,7 @@ tags:
   - name: Categories
   - name: Bookshelves
   - name: Book Collections
+  - name: Reading Plans
   - name: Applications
   - name: Stats
   - name: RAG
@@ -421,6 +422,78 @@ components:
             $ref: "#/components/schemas/BookCollectionSummary"
         total_pages: { type: integer }
         total_collections: { type: integer }
+
+    # ── Reading Plan ──
+    ReadingPlanCreation:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        intro: { type: string }
+        start_date: { type: string, format: date, nullable: true }
+        end_date: { type: string, format: date, nullable: true }
+    ReadingPlanUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        intro: { type: string }
+        start_date: { type: string, format: date, nullable: true }
+        end_date: { type: string, format: date, nullable: true }
+    AddBookToPlan:
+      type: object
+      required: [book_id]
+      properties:
+        book_id: { type: integer }
+    ReadingPlanBookSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        title_cn: { type: string, nullable: true }
+        thumb_image: { type: string, nullable: true }
+        isbn: { type: string, nullable: true }
+        authors:
+          type: array
+          nullable: true
+          items: { type: string }
+        read_state: { type: string, nullable: true }
+        book_count: { type: integer, nullable: true }
+    ReadingPlanSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        start_date: { type: string, format: date, nullable: true }
+        end_date: { type: string, format: date, nullable: true }
+        created_at: { type: string, nullable: true }
+        total_books: { type: integer }
+        progress: { type: number, nullable: true }
+    ReadingPlanResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        start_date: { type: string, format: date, nullable: true }
+        end_date: { type: string, format: date, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        total_books: { type: integer, nullable: true }
+        progress: { type: number, nullable: true }
+        books:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/ReadingPlanBookSimple"
+    ReadingPlanListResponse:
+      type: object
+      properties:
+        reading_plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReadingPlanSummary"
+        total_pages: { type: integer }
+        total_plans: { type: integer }
 
     # ── Application ──
     ApplicationCreation:
@@ -1470,6 +1543,173 @@ paths:
         "400":
           description: Book not in collection
 
+
+  # ═══════════════════════════════════════════════
+  # Reading Plans
+  # ═══════════════════════════════════════════════
+  /api/reading-plans:
+    get:
+      tags: [Reading Plans]
+      summary: List reading plans (paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, id, start_date, created_at] } }
+        - { name: q, in: query, schema: { type: string }, description: Search by name }
+      responses:
+        "200":
+          description: Paginated list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanListResponse"
+    post:
+      tags: [Reading Plans]
+      summary: Create a reading plan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadingPlanCreation"
+      responses:
+        "200":
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+
+  /api/reading-plans/{plan_id}:
+    get:
+      tags: [Reading Plans]
+      summary: Get plan with books
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Plan with books
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+        "404":
+          description: Plan not found
+    put:
+      tags: [Reading Plans]
+      summary: Update a reading plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadingPlanUpdate"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+    delete:
+      tags: [Reading Plans]
+      summary: Delete a reading plan (books unaffected)
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  /api/reading-plans/{plan_id}/books:
+    post:
+      tags: [Reading Plans]
+      summary: Add a single book to plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddBookToPlan"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+        "400":
+          description: Book already in plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "404":
+          description: Book or plan not found
+
+  /api/reading-plans/{plan_id}/books/batch:
+    post:
+      tags: [Reading Plans]
+      summary: Batch-add books to plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAddBooks"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+        "400":
+          description: Books not found or already in plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/reading-plans/{plan_id}/books/{book_id}:
+    delete:
+      tags: [Reading Plans]
+      summary: Remove a book from plan
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingPlanResponse"
+        "400":
+          description: Book not in plan
   # ═══════════════════════════════════════════════
   # Applications
   # ═══════════════════════════════════════════════

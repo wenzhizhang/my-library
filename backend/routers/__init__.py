@@ -4,6 +4,7 @@ from .bookshelf import router as bookshelf_router
 from .category import router as category_router
 from .publisher import publisher_router, brand_router
 from .book_collection import router as book_collection_router
+from .reading_plan import router as reading_plan_router
 from .series import router as series_router
 from .application import router as application_router
 from .user import router as user_router
@@ -22,8 +23,9 @@ __all__ = [
     "series_router",
     "application_router",
     "user_router",
-    "book_collection_router",
     "rag_router",
+    "book_collection_router",
+    "reading_plan_router",
     "stats_router",
     "config_router",
     "isbn_router",
