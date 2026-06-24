@@ -27,17 +27,18 @@ def stats_summary(db: Session = Depends(get_stats_db)):
     return {"total_visits": total}
 
 
-@router.get("/visit")
+
 @router.get("/visits")
-def stats_visits(limit: int = 50, skip: int = 0, db: Session = Depends(get_stats_db)):
-    """Return recent page-views with IP, time, and path."""
-    visits = (
+def stats_visits(limit: int = None, skip: int = 0, db: Session = Depends(get_stats_db)):
+    """Return page-views with IP, time, and path. Omit limit to return all records."""
+    query = (
         db.query(VisitLog)
         .order_by(VisitLog.timestamp.desc())
         .offset(skip)
-        .limit(limit)
-        .all()
     )
+    if limit:
+        query = query.limit(limit)
+    visits = query.all()
     return [
         {
             "ip": v.ip,
