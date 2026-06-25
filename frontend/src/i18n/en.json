@@ -12,6 +12,7 @@
     "stats": "Stats",
     "readingPlans": "Plans",
     "login": "Login",
+    "export": "Export",
     "logout": "Logout",
     "register": "Register"
   },
@@ -387,5 +388,25 @@
     "status": "Status",
     "yes": "Yes",
     "no": "No"
+  },
+  "export": {
+    "title": "Export Data",
+    "format": "Format",
+    "scope": "Scope",
+    "download": "Download",
+    "loginRequired": "Please log in to export data.",
+    "selectFormat": "Select format",
+    "selectScope": "Select what to export",
+    "exporting": "Exporting…",
+    "scopes": {
+      "books": "Books",
+      "authors": "Authors",
+      "publishers": "Publishers",
+      "brands": "Brands",
+      "series": "Series",
+      "categories": "Categories",
+      "bookshelves": "Bookshelves",
+      "collections": "Collections"
+    }
   }
 }

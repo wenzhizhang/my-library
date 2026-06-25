@@ -32,3 +32,4 @@ websockets==16.0
 sqlite-vec==0.1.9
 fastembed==0.8.0
 beautifulsoup4==4.12.3
+openpyxl==3.1.5

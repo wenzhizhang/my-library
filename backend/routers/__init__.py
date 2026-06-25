@@ -12,6 +12,7 @@ from .rag import router as rag_router
 from .isbn import router as isbn_router
 from .stats import router as stats_router
 from .config_router import router as config_router
+from .export import router as export_router
 
 __all__ = [
     "author_router",
@@ -29,4 +30,5 @@ __all__ = [
     "stats_router",
     "config_router",
     "isbn_router",
+    "export_router",
 ]

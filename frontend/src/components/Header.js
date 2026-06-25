@@ -1,5 +1,5 @@
-// src/components/Header.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -7,6 +7,9 @@ import { LIBRARY_PATH } from '../config';
 import i18n from '../i18n';
 import './Header.css';
 const Header = () => {
+  const triggerRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const [visitCount, setVisitCount] = useState(null);
@@ -19,6 +22,26 @@ const Header = () => {
       .then((data) => setVisitCount(data.total_visits))
       .catch(() => {});
   }, [location.pathname]);
+  // Close dropdown on outside click (covers both trigger and portal)
+  useEffect(() => {
+    const handleClick = (e) => {
+      const portal = document.getElementById('nav-user-menu-portal');
+      const hitTrigger = triggerRef.current?.contains(e.target);
+      const hitPortal = portal?.contains(e.target);
+      if (!hitTrigger && !hitPortal) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+  const toggleMenu = useCallback(() => {
+    if (!menuOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setMenuOpen(!menuOpen);
+  }, [menuOpen]);
   const prefix = LIBRARY_PATH === '/' ? '' : LIBRARY_PATH;
 
   const getPath = (path) => {
@@ -87,15 +110,42 @@ const Header = () => {
           </select>
         </div>
         {isAuthenticated ? (
-          <div className="nav-auth-user">
-            <span className="nav-username">{user?.username}</span>
-            <button className="nav-logout" onClick={logout}>{t('nav.logout')}</button>
+          <div className="nav-user-menu">
+            <span
+              ref={triggerRef}
+              className="nav-username nav-user-menu-trigger"
+              onClick={toggleMenu}
+            >
+              {user?.username}
+            </span>
           </div>
         ) : (
           <Link to={`${LIBRARY_PATH}/login`} className="nav-link nav-login-link">{t('nav.login')}</Link>
         )}
         {visitCount !== null && (
           <span className="nav-visit-count">{visitCount} visits</span>
+        )}
+        {menuOpen && createPortal(
+          <div
+            id="nav-user-menu-portal"
+            className="nav-user-menu-dropdown"
+            style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
+          >
+            <Link
+              to={getPath('/export')}
+              className="nav-user-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t('nav.export')}
+            </Link>
+            <button
+              className="nav-user-menu-item"
+              onClick={() => { setMenuOpen(false); logout(); }}
+            >
+              {t('nav.logout')}
+            </button>
+          </div>,
+          document.body
         )}
       </div>
     </nav>

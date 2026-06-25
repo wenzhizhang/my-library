@@ -26,6 +26,7 @@ import SeriesDetails from './components/SeriesDetails';
 import Login from './components/Login';
 import Register from './components/Register';
 import StatsPage from './components/StatsPage';
+import ExportPage from './components/ExportPage';
 import './MyLibrary.css';
 
 function MyLibrary() {
@@ -68,6 +69,7 @@ function MyLibrary() {
             <Route path="series" element={<Series />} />
             <Route path="series/:id" element={<SeriesDetails />} />
             <Route path="stats" element={<StatsPage />} />
+            <Route path="export" element={<ExportPage />} />
           </Routes>
         </main>
       </div>

@@ -70,35 +70,58 @@
   align-items: center;
 }
 
-.nav-auth-user {
+.nav-user-menu {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
-.nav-username {
+.nav-user-menu-trigger {
+  cursor: pointer;
   color: rgba(255, 255, 255, 0.7);
   font-size: 13px;
   font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s, color 0.15s;
+  user-select: none;
 }
 
-.nav-logout {
-  background: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  border-radius: 980px;
-  color: rgba(255, 255, 255, 0.6) !important;
-  font-size: 12px;
+.nav-user-menu-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.nav-user-menu-dropdown {
+  min-width: 160px;
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.nav-user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
   font-weight: 400;
-  padding: 4px 12px;
+  color: rgba(255, 255, 255, 0.85);
+  background: none;
+  border: none;
+  text-align: left;
+  text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
 }
 
-.nav-logout:hover {
-  border-color: rgba(255, 255, 255, 0.5);
-  color: #fff !important;
+.nav-user-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
-
 .nav-login-link {
   font-size: 13px !important;
   font-weight: 500 !important;

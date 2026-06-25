@@ -12,6 +12,7 @@
     "stats": "统计",
     "readingPlans": "阅读计划",
     "login": "登录",
+    "export": "导出",
     "logout": "退出",
     "register": "注册"
   },
@@ -369,5 +370,25 @@
     "status": "状态",
     "yes": "是",
     "no": "否"
+  },
+  "export": {
+    "title": "导出数据",
+    "format": "格式",
+    "scope": "范围",
+    "download": "下载",
+    "loginRequired": "请先登录后再导出数据。",
+    "selectFormat": "选择格式",
+    "selectScope": "选择导出内容",
+    "exporting": "导出中…",
+    "scopes": {
+      "books": "图书",
+      "authors": "作者",
+      "publishers": "出版社",
+      "brands": "品牌",
+      "series": "系列",
+      "categories": "分类",
+      "bookshelves": "书架",
+      "collections": "书单"
+    }
   }
 }
