@@ -6,6 +6,7 @@ from models import BookSeries, Book
 from schemas.series import BookSeriesCreation, BookSeriesUpdate, BookSeriesResponse
 
 from auth import get_current_user_id
+from services.sync_to_root import sync_series
 from database import get_db
 
 router = APIRouter(prefix="/api/series", tags=["series"])
@@ -18,6 +19,7 @@ def create_series(series: BookSeriesCreation, db: Session = Depends(get_db), use
     db.add(db_series)
     db.commit()
     db.refresh(db_series)
+    sync_series(db_series)
     return db_series
 
 @router.get("/")
@@ -66,6 +68,7 @@ def update_series(series_id: int, series_update: BookSeriesUpdate, db: Session =
         setattr(series, key, value)
     db.commit()
     db.refresh(series)
+    sync_series(series)
     return series
 
 @router.delete("/{series_id}")

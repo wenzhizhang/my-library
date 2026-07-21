@@ -7,6 +7,7 @@ from models import Book, Author, book_authors
 from models.book import BookSearchStrategy
 from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
+from services.sync_to_root import sync_book as sync_book_to_root, sync_book_author as sync_book_author_to_root
 from rag.pipeline import sync_book, remove_book
 
 router = APIRouter(prefix="/api/books", tags=["books"])
@@ -38,8 +39,10 @@ def create_book(book: BookCreation, db: Session = Depends(get_db)):
     
     db.add(db_book)
     db.commit()
-    # sync_book(db, db_book.id)  # RAG disabled
     db.refresh(db_book)
+    sync_book_to_root(db_book)
+    for author in authors:
+        sync_book_author_to_root(db_book.id, author.id)
     return {
         "id": db_book.id,
         "isbn": db_book.isbn,
@@ -239,7 +242,8 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="Book not found")
     
     update_data = book_update.model_dump(exclude_unset=True)
-    if "author_ids" in update_data:
+    has_author_update = "author_ids" in update_data
+    if has_author_update:
         authors = db.query(Author).filter(Author.id.in_(update_data["author_ids"])).all()
         book.authors = authors
         del update_data["author_ids"]
@@ -247,8 +251,11 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
     for key, value in update_data.items():
         setattr(book, key, value)
     db.commit()
+    sync_book_to_root(book)
+    if has_author_update:
+        for author in book.authors:
+            sync_book_author_to_root(book.id, author.id)
     db.refresh(book)
-    # sync_book(db, book.id)  # RAG disabled
     return {
         "id": book.id,
         "isbn": book.isbn,

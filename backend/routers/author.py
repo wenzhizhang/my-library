@@ -8,6 +8,7 @@ from schemas.author import (
     AuthorCreation, AuthorUpdate, AuthorResponse,
     NATIONS, DYNASTIES,
 )
+from services.sync_to_root import sync_author
 from database import get_db
 from auth import get_current_user_id
 
@@ -92,6 +93,7 @@ def create_author(
     db.add(db_author)
     db.commit()
     db.refresh(db_author)
+    sync_author(db_author)
     return db_author
 
 
@@ -116,6 +118,7 @@ def update_author(
         setattr(author, key, value)
     db.commit()
     db.refresh(author)
+    sync_author(author)
     return author
 
 

@@ -17,6 +17,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(title="My Library", description="A book library management system", root_path="/my-library")
 
 
+@app.on_event("startup")
+def startup():
+    from database import init_root_db
+    init_root_db()
+
+
 @app.get("/openapi.json", include_in_schema=False)
 def custom_openapi_json():
     import yaml

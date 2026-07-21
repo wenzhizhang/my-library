@@ -158,7 +158,44 @@ def get_applications_db():
         db.close()
 
 
-# Initialize on import
 init_auth_db()
 init_stats_db()
 init_apps_db()
+
+# =============================================================================
+# Shared root database — public reference data (authors, publishers, etc.)
+# =============================================================================
+ROOT_DB_PATH = os.environ.get("ROOT_DB_PATH", os.path.join(DATA_DIR, "root.db"))
+root_engine = create_engine(
+    f"sqlite:///{ROOT_DB_PATH}", connect_args={"check_same_thread": False}
+)
+RootSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=root_engine)
+
+
+def get_root_db():
+    db = RootSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def init_root_db():
+    wanted = {"authors", "publishers", "brands", "book_series", "categories", "books", "book_authors"}
+
+    print(f"[init_root_db] Path: {ROOT_DB_PATH}", flush=True)
+
+    # Delegate table creation to sync service (CREATE TABLE IF NOT EXISTS)
+    from services.sync_to_root import _ensure_tables
+    _ensure_tables()
+
+    # Drop any tables not in the wanted set (cleanup from old schemas)
+    with root_engine.begin() as conn:
+        tables = conn.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        for (name,) in tables:
+            if name not in wanted:
+                conn.exec_driver_sql(f"DROP TABLE IF EXISTS [{name}]")
+
+    print(f"[init_root_db] Done, tables: {wanted}", flush=True)

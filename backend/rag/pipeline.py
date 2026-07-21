@@ -20,7 +20,6 @@ from .document import build_book_fts_fields
 
 logger = logging.getLogger(__name__)
 
-
 # ── Background reindex state ──────────────────────────────────────────────────
 
 

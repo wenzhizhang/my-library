@@ -6,6 +6,7 @@ from models import Category, Book
 from schemas.category import CategoryCreation, CategoryUpdate, CategoryResponse
 from database import get_db
 from auth import get_current_user_id
+from services.sync_to_root import sync_category
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
@@ -21,6 +22,7 @@ def create_category(category: CategoryCreation, db: Session = Depends(get_db), u
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
+    sync_category(db_category)
     return db_category
 
 @router.get("/")
@@ -75,6 +77,7 @@ def update_category(category_id: int, category_update: CategoryUpdate, db: Sessi
             setattr(category, key, value)
     db.commit()
     db.refresh(category)
+    sync_category(category)
     return category
 
 @router.delete("/{category_id}")

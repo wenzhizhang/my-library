@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from auth import require_user_id
+from services.sync_to_root import sync_all_to_root
 from models import (
     Author, Book, Publisher, Brand, BookSeries, Category,
     Bookshelf, BookCollection,
@@ -172,3 +173,16 @@ def export_data(
         media_type=content_type,
         headers={"Content-Disposition": f'attachment; filename="{scope}{ext}"'},
     )
+
+
+@router.post("/sync-to-root")
+def sync_to_root(
+    differential: bool = Query(True, description="Only sync changed/missing entries"),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
+):
+    """Sync all entities from the current user's database to root.db.
+
+    Set differential=false for a full resync of every row."""
+    counts = sync_all_to_root(db, differential=differential)
+    return {"message": "Sync complete", "differential": differential, "counts": counts}

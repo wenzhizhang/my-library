@@ -29,6 +29,7 @@ tags:
   - name: Stats
   - name: RAG
   - name: ISBN
+  - name: Export
   - name: Config
 components:
   securitySchemes:
@@ -1895,8 +1896,12 @@ paths:
   /api/isbn/{isbn}:
     get:
       tags: [ISBN]
-      summary: Look up book metadata by ISBN
-      description: Queries external sources (Open Library, Douban, Google Books) and returns merged book metadata.
+      summary: Look up book metadata by ISBN (user DB → root.db → external)
+      description: |
+        Three-tier lookup: user's own DB → shared root.db → external APIs.
+        Existing books in user DB or root.db are returned instantly without
+        hitting external services. Authors and publishers found in root.db
+        are copied to the user's DB automatically.
       parameters:
         - name: isbn
           in: path
@@ -1912,6 +1917,71 @@ paths:
                 $ref: "#/components/schemas/IsbnLookupResponse"
         "404":
           description: ISBN not found or no source returned data
+          content:
+            application/json:
+
+  # ═══════════════════════════════════════════════
+  # Export
+  # ═══════════════════════════════════════════════
+  /api/export/:
+    get:
+      tags: [Export]
+      summary: Export data in various formats
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [sql, csv, excel, markdown, json] }
+          description: Output format
+        - name: scope
+          in: query
+          required: true
+          schema: { type: string, enum: [books, authors, publishers, brands, series, categories, bookshelves, collections] }
+          description: Entity type to export
+      responses:
+        "200":
+          description: File download
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/export/sync-to-root:
+    post:
+      tags: [Export]
+      summary: Sync user database to shared root.db
+      description: |
+        Syncs reference data (authors, publishers, brands, series, categories, books)
+        from the current user's database to the shared root.db. Dependency order:
+        reference tables first, then books, then book-author mappings.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: differential
+          in: query
+          schema: { type: boolean, default: true }
+          description: If true, only sync changed/missing entries; false for full resync
+      responses:
+        "200":
+          description: Sync result with per-table counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  differential: { type: boolean }
+                  counts:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        total: { type: integer }
+                        synced: { type: integer }
+        "401":
+          description: Authentication required
           content:
             application/json:
               schema:

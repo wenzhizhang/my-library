@@ -134,54 +134,6 @@ const TYPOGRAPHY = {
 
 // --- Components ---
 
-function Navigation() {
-  const navStyle = {
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-    height: '48px',
-    background: 'rgba(0, 0, 0, 0.8)',
-    backdropFilter: 'saturate(180%) blur(20px)',
-    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    fontFamily: TYPOGRAPHY.fontText,
-    fontSize: '12px',
-    fontWeight: 400,
-    color: COLORS.white,
-    letterSpacing: '-0.12px',
-  };
-
-
-
-  return (
-    <nav style={navStyle}>
-      <div style={{ fontWeight: 600, fontSize: '17px', letterSpacing: '-0.374px' }}>
-        📚 Library
-      </div>
-      <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }}>
-        <span style={{ cursor: 'pointer', opacity: 0.8, transition: 'opacity 0.2s' }} 
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}>
-          Books
-        </span>
-        <span style={{ cursor: 'pointer', opacity: 0.8, transition: 'opacity 0.2s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}>
-          Authors
-        </span>
-        <span style={{ cursor: 'pointer', opacity: 0.8, transition: 'opacity 0.2s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}>
-          Settings
-        </span>
-      </div>
-      <div style={{ width: '60px' }} />
-    </nav>
-  );
-}
 
 function Section({ children, dark = false, style = {} }) {
   const sectionStyle = {
@@ -765,30 +717,52 @@ function BookFormPage() {
         if (data.thumb_image) setApiThumbUrl(data.thumb_image);
         fill('link', data.link);
         fill('catalog', data.catalog);
+        fill('language', data.language);
+        fill('paper_type', data.paper_type);
+        fill('compose_type', data.compose_type);
+        fill('edition', data.edition);
+        fill('printing_info', data.printing_info);
+        fill('printed_number', data.printed_number);
+        fill('book_count', data.book_count);
 
-        // Tags: use the first tag returned from the API
-        const tagNames = data.tag_names || [];
-        if (tagNames.length > 0 && (!next.tags || next.tags.length === 0)) {
-          next.tags = [tagNames[0]];
+        // Brand: use ID from API
+        if (data.brand_id && !next.brand_id) {
+          next.brand_id = data.brand_id;
         }
 
-        // Publisher: use ID from API (already found/created on backend)
+        // Category: use ID from API
+        if (data.category_id && !next.category_id) {
+          next.category_id = data.category_id;
+        }
+
+        // Book Series: use ID from API
+        if (data.book_series_id && !next.book_series_id) {
+          next.book_series_id = data.book_series_id;
+        }
+
+        // Authors: use IDs from API
+        if (data.author_ids?.length && !next.author_ids?.length) {
+          next.author_ids = data.author_ids;
+        }
+
+        // Publisher: use ID from API
         if (data.publisher_id && !next.publisher_id) {
           next.publisher_id = data.publisher_id;
         }
 
-        // Authors: use IDs returned by backend (already found/created)
-        const authorIds = data.author_ids || [];
-        if (authorIds.length > 0) {
-          const current = next.author_ids || [];
-          const newIds = authorIds.filter(id => !current.includes(id));
-          if (newIds.length > 0) {
-            next.author_ids = [...current, ...newIds];
-          }
-        }
-
         return next;
       });
+
+      // Populate author name map for pill display
+      if (data.author_ids?.length) {
+        setAuthorNameMap(prev => {
+          const nameMap = { ...prev };
+          data.author_ids.forEach((id, i) => {
+            if (data.author_names?.[i]) nameMap[id] = data.author_names[i];
+          });
+          return nameMap;
+        });
+      }
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to look up ISBN';
       alert(msg);
@@ -1885,7 +1859,6 @@ function BookFormPage() {
       margin: 0,
       padding: 0,
     }}>
-      <Navigation />
       
       <form onSubmit={handleSubmit} noValidate>
         {heroSection}

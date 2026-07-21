@@ -31,10 +31,12 @@ services:
       - DATA_DIR=/app/data
       - HF_ENDPOINT=https://hf-mirror.com
       - DOUBAN_KEY=${DOUBAN_KEY:-}
+      - ROOT_DB_PATH=/app/root-db/root.db
     restart: unless-stopped
     volumes:
       - backend-data:/app/data
       - ./backend/config:/app/config:ro
+      - root-db-data:/app/root-db
 
   # ---- my-library 前端 ----
   frontend:
@@ -54,6 +56,8 @@ volumes:
   backend-data:
     driver: local
   certbot-etc:
+    driver: local
+  root-db-data:
     driver: local
   certbot-www:
     driver: local

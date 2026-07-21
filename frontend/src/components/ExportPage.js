@@ -64,6 +64,7 @@ const ExportPage = () => {
     }
   };
 
+
   return (
     <section className="section light">
       <div style={{ maxWidth: 520, margin: '0 auto', padding: '40px 20px' }}>
@@ -138,6 +139,7 @@ const ExportPage = () => {
         >
           {exporting ? t('export.exporting') : t('export.download')}
         </button>
+
       </div>
     </section>
   );

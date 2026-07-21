@@ -6,6 +6,7 @@ from models import Publisher, Brand, Book
 from schemas.publisher import PublisherCreation, PublisherUpdate, PublisherResponse, BrandCreation, BrandUpdate, BrandResponse
 from database import get_db
 from auth import get_current_user_id
+from services.sync_to_root import sync_publisher, sync_brand
 
 publisher_router = APIRouter(prefix="/api/publishers", tags=["publishers"])
 
@@ -17,6 +18,7 @@ def create_publisher(publisher: PublisherCreation, db: Session = Depends(get_db)
     db.add(db_publisher)
     db.commit()
     db.refresh(db_publisher)
+    sync_publisher(db_publisher)
     return db_publisher
 
 @publisher_router.get("/")
@@ -66,6 +68,7 @@ def update_publisher(publisher_id: int, publisher_update: PublisherUpdate, db: S
         setattr(publisher, key, value)
     db.commit()
     db.refresh(publisher)
+    sync_publisher(publisher)
     return publisher
 
 @publisher_router.delete("/{publisher_id}")
@@ -89,6 +92,7 @@ def create_brand(brand: BrandCreation, db: Session = Depends(get_db), user_id: O
     db.add(db_brand)
     db.commit()
     db.refresh(db_brand)
+    sync_brand(db_brand)
     return db_brand
 
 @brand_router.get("/")
@@ -137,6 +141,7 @@ def update_brand(brand_id: int, brand_update: BrandUpdate, db: Session = Depends
         setattr(brand, key, value)
     db.commit()
     db.refresh(brand)
+    sync_brand(brand)
     return brand
 
 @brand_router.delete("/{brand_id}")

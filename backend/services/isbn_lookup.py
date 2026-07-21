@@ -17,9 +17,8 @@ from typing import Any, Optional
 
 import httpx
 
-logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
-
 logger = logging.getLogger(__name__)
+
 SOURCE_TIMEOUT = 5.0
 RATE_LIMIT_INTERVAL = 2.0  # seconds between requests to external APIs
 
@@ -38,6 +37,11 @@ class BookInfo:
     title_cn: str = ""
     publisher_name: str = ""
     publish_date: str = ""
+    brand_id: Optional[int] = None
+    book_series_id: Optional[int] = None
+    book_series_name: str = ""
+    category_id: Optional[int] = None
+    category_path: Optional[str] = None
     pages: Optional[int] = None
     price: Optional[float] = None
     summary: str = ""
@@ -53,6 +57,12 @@ class BookInfo:
     catalog: str = ""
     tag_names: list[str] = field(default_factory=list)
     author_intro: str = ""
+    paper_type: str = ""
+    compose_type: str = ""
+    edition: str = ""
+    printing_info: str = ""
+    printed_number: Optional[int] = None
+    book_count: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------
@@ -477,12 +487,15 @@ def _clean_author_name(raw: str) -> str:
     name = raw.strip()
     name = re.sub(r"^\[[^\]]+\]\s*", "", name)
     name = re.sub(r"^\([^\)]+\)\s*", "", name)
+    name = re.sub(r"^（[^）]+）\s*", "", name)
     # Space-containing names: if last segment is Chinese, drop it
     if " " in name:
         parts = name.rsplit(" ", 1)
         if re.search(r"[\u4e00-\u9fff]", parts[-1]):
             name = parts[0]
     return name.strip()
+
+
 def _guess_language(title: str, subjects: list[str]) -> str:
     """Rough language guess from title content and subjects."""
     if re.search(r"[\u4e00-\u9fff]", title):

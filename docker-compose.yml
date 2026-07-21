@@ -33,10 +33,12 @@ services:
       - SERVER_IP=${SERVER_IP:-localhost}
       - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       - DOUBAN_KEY=${DOUBAN_KEY:-}
+      - ROOT_DB_PATH=/app/root-db/root.db
     volumes:
       - my-library-data:/app/data
       - ./config/projects.json:/app/config/projects.json:ro
       - ./backend/config:/app/config:ro
+      - root-db-data:/app/root-db
     restart: unless-stopped
 
   # ---- my-library 前端 ----
@@ -56,4 +58,6 @@ volumes:
   certbot-etc:
     driver: local
   certbot-www:
+    driver: local
+  root-db-data:
     driver: local

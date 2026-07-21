@@ -30,6 +30,10 @@ if [ -f "${SEED_DB}" ]; then
         echo "[entrypoint] Existing database is up to date — skipping seed"
     fi
 fi
+# Ensure root.db directory exists
+ROOT_VOLUME="${ROOT_DB_PATH:-${DATA_DIR:-/app/data}/root.db}"
+ROOT_DIR="$(dirname "$ROOT_VOLUME")"
+mkdir -p "$ROOT_DIR"
 
 # Sync projects from config
 CONFIG_FILE="/app/config/projects.json"

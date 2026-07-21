@@ -6,11 +6,10 @@
 
 ## 功能
 
-- **图书管理**: 全字段录入（35+ 字段），支持搜索、筛选、排序、分页
-- **ISBN 入库**: 输入 ISBN 自动从豆瓣 API 获取书籍信息并填充表单
-- **作者/出版社/分类/品牌/系列/书架/书单/阅读计划**: 完整的 CRUD 及关联
-- **统计看板**: 按类别、语言、装帧、阅读状态、时间分布等维度可视化
-- **多用户**: JWT 认证，每用户独立 SQLite 数据库
+- **图书管理**: 全字段录入（35+ 字段），支持搜索、筛选、排序、分页、数据导出
+- **ISBN 入库**: 输入 ISBN 自动查找（用户库 → 共享库 → 豆瓣/OpenLibrary），支持表单自动填充
+- **共享数据库 (root.db)**: 作者/出版社/品牌/分类/系列/图书的公共参考数据跨用户共享，创建时自动同步
+- **导出功能**: 支持 SQL / CSV / Excel / Markdown / JSON 五种格式，可按表选择导出范围
 
 ---
 
@@ -18,7 +17,7 @@
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Python 3.12, FastAPI 0.104, SQLAlchemy 2.0, SQLite |
+| 后端 | Python 3.12, FastAPI 0.104, SQLAlchemy 2.0, SQLite (shared root.db + per-user DBs) |
 | 前端 | React 19, react-router-dom v7, recharts, axios |
 | 反向代理 | Nginx (TLS 终端 + 静态文件 + API 代理) |
 | 容器化 | Docker Compose |
@@ -94,14 +93,10 @@ my-library/
 │   │   ├── series.py          # 系列 CRUD
 │   │   ├── book_collection.py # 书单 CRUD
 │   │   ├── reading_plan.py     # 阅读计划 CRUD
-│   │   ├── isbn.py            # ISBN 查询 (豆瓣/OpenLibrary)
-│   │   ├── stats.py           # 统计接口
-│   │   ├── config_router.py   # 配置 API
-│   │   └── user.py            # 认证/用户
-│   ├── schemas/               # Pydantic 模型
+│   │   ├── isbn.py            # ISBN 查询 (用户库 → root.db → 豆瓣/OpenLibrary)
+│   │   ├── export.py          # 数据导出 + 批量同步到 root.db
 │   ├── services/              # 业务逻辑
-│   │   └── isbn_lookup.py     # ISBN 多源查询 (豆瓣+OpenLibrary+Google)
-│   ├── spec/                  # OpenAPI 文档
+│   │   └── sync_to_root.py    # root.db 同步服务（增量/全量）
 │   ├── tests/                 # 后端测试 (pytest, 105 用例)
 │   ├── main.py                # 应用入口
 │   └── Dockerfile
@@ -190,11 +185,9 @@ DOUBAN_KEY=0ac44ae01...
 | `/api/series` | 系列 CRUD、搜索 |
 | `/api/reading-plans` | 阅读计划 CRUD、搜索、图书关联、进度计算 |
 | `/api/book-collections` | 书单 CRUD、搜索 |
-| `/api/isbn/{isbn}` | ISBN 查询 (豆瓣 → OpenLibrary → Google) |
-| `/api/stats/books` | 统计接口 (概览、分布、时间线) |
-| `/api/stats/page-view` | 页面访问日志 |
-| `/api/config/purchase-stores` | 购买渠道列表 |
-
+| `/api/export/` | 数据导出 (SQL/CSV/Excel/Markdown/JSON) |
+| `/api/export/sync-to-root` | 批量同步到共享 root.db (支持增量/全量) |
+| `/api/isbn/{isbn}` | ISBN 查询 (用户库 → root.db → 豆瓣 → OpenLibrary) |
 完整 API 文档见 `backend/spec/openapi.yaml`。
 
 ---
@@ -234,11 +227,10 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### 4. TLS 证书
-
-Nginx 容器内置 Certbot，首次启动会自动申请 Let's Encrypt 证书并配置 HTTPS。
-
----
-
+- **用户数据库**: 每个用户独立的 SQLite 文件 (`{uuid}.db`)，存放在 `backend/data/`
+- **共享数据库**: `root.db` 存储公共参考数据（作者、出版社等），跨用户共享，创建/更新时自动同步
+- **认证数据库**: `auth.db` 存储用户账号和 JWT 凭证
+- 所有数据库通过 Docker Volume `my-library-data` 持久化
 ## 数据存储
 
 - 每个用户使用独立的 SQLite 数据库文件，存放在 `backend/data/` 目录
