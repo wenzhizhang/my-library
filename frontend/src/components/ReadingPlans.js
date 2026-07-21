@@ -342,7 +342,6 @@ const ReadingPlans = () => {
           </div>
 
           <div className="pagination-input">
-            <label htmlFor="page-input">{t('common.goToPage')}:</label>
             <input
               type="number"
               id="page-input"
@@ -350,10 +349,11 @@ const ReadingPlans = () => {
               max={totalPages}
               value={goToPage}
               onChange={(e) => setGoToPage(e.target.value)}
-              onKeyPress={handleKeyDown}
+              onKeyPress={(e) => { if (e.key === 'Enter') handleGoToPage(); }}
             />
+            <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
           </div>
-        </div>
+      </div>
       </div>
 
       {/* ── Create / Edit Modal ─────────────────────────────── */}

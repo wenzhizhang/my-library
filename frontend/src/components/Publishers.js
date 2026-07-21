@@ -259,7 +259,6 @@ const Publishers = () => {
             )}
           </div>
           <div className="pagination-input">
-            <label htmlFor="page-input">{t('common.goToPage')}:</label>
             <input
               type="number"
               id="page-input"

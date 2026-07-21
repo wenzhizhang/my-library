@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './Books.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
@@ -11,18 +11,15 @@ const Authors = () => {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // Derive state from URL search params
+  const page = parseInt(searchParams.get('page')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 10;
+  const sortBy = searchParams.get('sort_by') || 'name';
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).page || 1; } catch { return 1; }
-  });
-  const [limit, setLimit] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).limit || 10; } catch { return 10; }
-  });
-  const [sortBy, setSortBy] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).sortBy || 'name'; } catch { return 'name'; }
-  });
+
   const [totalPages, setTotalPages] = useState(1);
   const [totalAuthors, setTotalAuthors] = useState(0);
   const [goToPage, setGoToPage] = useState('');
@@ -33,14 +30,10 @@ const Authors = () => {
   const [formData, setFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).searchQuery || ''; } catch { return ''; }
-  });
-  const [submittedQuery, setSubmittedQuery] = useState(() => {
-    try { return JSON.parse(sessionStorage.getItem('authorsPageState')).submittedQuery || ''; } catch { return ''; }
-  });
-  // Clear after reading
-  try { if (sessionStorage.getItem('authorsPageState')) sessionStorage.removeItem('authorsPageState'); } catch {}
+
+  // Search input state (synced from URL)
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
   const [nations, setNations] = useState(['无']);
   const [dynasties, setDynasties] = useState([]);
   const fetchAuthors = useCallback(async () => {
@@ -61,8 +54,12 @@ const Authors = () => {
   }, [page, limit, sortBy, submittedQuery]);
 
   const handleSearch = () => {
-    setSubmittedQuery(searchQuery.trim());
-    setPage(1);
+    const q = searchQuery.trim();
+    setSubmittedQuery(q);
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q); else next.delete('q');
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
   };
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
@@ -156,11 +153,29 @@ const Authors = () => {
 
   // ── Pagination ─────────────────────────────────────────────
 
-  const handleSortChange = (newSortBy) => { setSortBy(newSortBy); setPage(1); };
-  const handleLimitChange = (newLimit) => { setLimit(parseInt(newLimit)); setPage(1); };
+  const setPageParam = (p) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(p));
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSortChange = (newSortBy) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('sort_by', newSortBy);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleLimitChange = (newLimit) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('limit', newLimit);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+
   const handleGoToPage = () => {
     const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPage(pageNum);
+    setPageParam(pageNum);
     setGoToPage('');
   };
   const handleKeyPress = (e) => { if (e.key === 'Enter') handleGoToPage(); };
@@ -171,7 +186,7 @@ const Authors = () => {
     const endPage = Math.min(totalPages, page + 2);
     for (let i = startPage; i <= endPage; i++) {
       pages.push(
-        <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPage(i)}>
+        <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPageParam(i)}>
           {i}
         </button>
       );
@@ -181,20 +196,19 @@ const Authors = () => {
         <div className="pagination-links">
           {page > 1 && (
             <>
-              <button className="btn-pill-link" onClick={() => setPage(1)}>{t('common.first')}</button>
-              <button className="btn-pill-link" onClick={() => setPage(page - 1)}>{t('common.previous')}</button>
+              <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
+              <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
             </>
           )}
           {pages}
           {page < totalPages && (
             <>
-              <button className="btn-pill-link" onClick={() => setPage(page + 1)}>{t('common.next')}</button>
-              <button className="btn-pill-link" onClick={() => setPage(totalPages)}>{t('common.last')}</button>
+              <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
+              <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
             </>
           )}
         </div>
         <div className="pagination-input">
-          <label htmlFor="page-input">{t('common.goToPage')}</label>
           <input type="number" id="page-input" min="1" max={totalPages} value={goToPage}
             onChange={(e) => setGoToPage(e.target.value)} onKeyPress={handleKeyPress} />
           <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
@@ -274,7 +288,7 @@ const Authors = () => {
                 </p>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => { sessionStorage.setItem('authorsPageState', JSON.stringify({ page, limit, sortBy, searchQuery, submittedQuery })); navigate(`${author.id}`); }}>
+                <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
                   {t('common.view')}
                 </button>
                 {isAuthenticated && (
