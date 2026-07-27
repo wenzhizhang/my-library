@@ -76,6 +76,7 @@ def read_author(author_id: int, db: Session = Depends(get_db)):
     )
     if author is None:
         raise HTTPException(status_code=404, detail="Author not found")
+    author.books = [b for b in author.books if not b.in_wish]
     return author
 
 

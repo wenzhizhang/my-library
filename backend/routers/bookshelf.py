@@ -52,6 +52,7 @@ def read_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
     bookshelf = db.query(Bookshelf).options(joinedload(Bookshelf.books).joinedload(Book.authors)).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
+    bookshelf.books = [b for b in bookshelf.books if not b.in_wish]
     return bookshelf
 
 @router.put("/{bookshelf_id}", response_model=BookshelfResponse)

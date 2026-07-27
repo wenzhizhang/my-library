@@ -55,6 +55,7 @@ def read_series_item(series_id: int, db: Session = Depends(get_db)):
     series = db.query(BookSeries).options(joinedload(BookSeries.books).joinedload(Book.authors)).filter(BookSeries.id == series_id).first()
     if series is None:
         raise HTTPException(status_code=404, detail="Series not found")
+    series.books = [b for b in series.books if not b.in_wish]
     return series
 
 @router.put("/{series_id}", response_model=BookSeriesResponse)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 import './Books.css';
 import './BookDetails.css';
@@ -96,11 +97,14 @@ const BookDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
 
   const [book, setBook] = useState(null);
   const [similarBooks, setSimilarBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [movingToLibrary, setMovingToLibrary] = useState(false);
+  const [moveError, setMoveError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +143,19 @@ const BookDetails = () => {
 
     return () => { cancelled = true; };
   }, [id]);
+
+  const handleMoveToLibrary = async () => {
+    setMovingToLibrary(true);
+    setMoveError(false);
+    try {
+      await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}`, { in_wish: false });
+      setBook(prev => ({ ...prev, in_wish: false }));
+    } catch (err) {
+      console.error('Error moving book to library:', err);
+      setMoveError(true);
+    }
+    setMovingToLibrary(false);
+  };
 
   /* ---- Loading Skeleton ---- */
   if (loading) {
@@ -221,6 +238,22 @@ const BookDetails = () => {
               </>
             )}
           </div>
+          {isAuthenticated && book.in_wish && (
+            <div style={{ marginTop: '12px', marginBottom: '4px' }}>
+              <button
+                className="btn-primary-blue"
+                onClick={handleMoveToLibrary}
+                disabled={movingToLibrary}
+              >
+                {movingToLibrary ? '…' : t('bookDetails.moveToLibrary')}
+              </button>
+              {moveError && (
+                <span style={{ marginLeft: 12, fontSize: 14, color: '#ff3b30', verticalAlign: 'middle' }}>
+                  {t('common.error')}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Meta Chips */}
           <div className="bd-meta-bar">

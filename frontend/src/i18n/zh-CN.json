@@ -14,7 +14,8 @@
     "login": "登录",
     "export": "导出",
     "logout": "退出",
-    "register": "注册"
+    "register": "注册",
+    "wishlist": "心愿单"
   },
   "common": {
     "loading": "加载中…",
@@ -369,7 +370,8 @@
     "similarHint": "基于共同标签推荐",
     "status": "状态",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "moveToLibrary": "存入图书馆"
   },
   "export": {
     "title": "导出数据",
@@ -390,5 +392,9 @@
       "bookshelves": "书架",
       "collections": "书单"
     }
+  }
+  ,
+  "wishlist": {
+    "empty": "心愿单中暂无图书。添加图书并标记为心愿单即可。"
   }
 }

@@ -61,6 +61,7 @@ def read_category(category_id: int, db: Session = Depends(get_db)):
     category = db.query(Category).options(joinedload(Category.books).joinedload(Book.authors)).filter(Category.id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
+    category.books = [b for b in category.books if not b.in_wish]
     return category
 
 @router.put("/{category_id}", response_model=CategoryResponse)

@@ -55,6 +55,7 @@ def read_publisher(publisher_id: int, db: Session = Depends(get_db)):
     publisher = db.query(Publisher).options(joinedload(Publisher.books).joinedload(Book.authors)).filter(Publisher.id == publisher_id).first()
     if publisher is None:
         raise HTTPException(status_code=404, detail="Publisher not found")
+    publisher.books = [b for b in publisher.books if not b.in_wish]
     return publisher
 
 @publisher_router.put("/{publisher_id}", response_model=PublisherResponse)
@@ -128,6 +129,7 @@ def read_brand(brand_id: int, db: Session = Depends(get_db)):
     brand = db.query(Brand).options(joinedload(Brand.books).joinedload(Book.authors)).filter(Brand.id == brand_id).first()
     if brand is None:
         raise HTTPException(status_code=404, detail="Brand not found")
+    brand.books = [b for b in brand.books if not b.in_wish]
     return brand
 
 @brand_router.put("/{brand_id}", response_model=BrandResponse)

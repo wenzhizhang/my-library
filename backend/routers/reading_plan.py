@@ -96,6 +96,7 @@ def read_reading_plan(plan_id: int, db: Session = Depends(get_db)):
     )
     if plan is None:
         raise HTTPException(status_code=404, detail="Reading plan not found")
+    plan.books = [b for b in plan.books if not b.in_wish]
     return plan
 
 

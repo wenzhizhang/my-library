@@ -190,6 +190,41 @@ def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db
         "similar_books": similar_books,
     }
 
+@router.get("/wishlist")
+def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", db: Session = Depends(get_db)):
+    """Return paginated wishlist books (in_wish=True)."""
+    offset = (page - 1) * limit
+
+    query = db.query(Book).options(selectinload(Book.authors)).filter(Book.in_wish == True)
+
+    total_books = query.with_entities(Book.id).distinct().count()
+    total_pages = (total_books + limit - 1) // limit if total_books > 0 else 1
+
+    if sort_by == "title":
+        query = query.order_by(Book.title)
+    elif sort_by == "created_at":
+        query = query.order_by(Book.created_at.desc())
+    else:
+        query = query.order_by(Book.id)
+
+    books = query.offset(offset).limit(limit).all()
+
+    books_data = []
+    for book in books:
+        books_data.append({
+            "id": book.id,
+            "isbn": book.isbn,
+            "title_cn": book.title_cn,
+            "title": book.title,
+            "thumb_image": book.thumb_image,
+            "authors": [str(author) for author in book.authors]
+        })
+
+    return {
+        "books": books_data,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
 
 @router.get("/{book_id}", response_model=BookResponse)
 def read_book(book_id: int, db: Session = Depends(get_db)):

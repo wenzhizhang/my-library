@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import './Books.css';
@@ -539,6 +539,8 @@ function BookFormPage() {
   const { bookId } = useParams();
   const navigate = useNavigate();
   const mode = bookId ? 'edit' : 'create';
+  const [searchParams] = useSearchParams();
+  const isWishlist = searchParams.get('wishlist') === 'true';
   const { isAuthenticated } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -574,6 +576,7 @@ function BookFormPage() {
     douban_score: null,
     purchase_store: '',
     tags: [],
+    in_wish: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -862,6 +865,9 @@ function BookFormPage() {
         }
       }
       payload = clean;
+    }
+    if (isWishlist) {
+      payload = { ...payload, in_wish: true };
     }
 
     try {
@@ -1760,6 +1766,39 @@ function BookFormPage() {
               Registered in library system
             </label>
           </div>
+
+          {!isWishlist && (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            marginBottom: '24px',
+          }}>
+            <input
+              type="checkbox"
+              id="in_wish"
+              checked={formData.in_wish}
+              onChange={(e) => updateField('in_wish', e.target.checked)}
+              style={{
+                width: '20px',
+                height: '20px',
+                accentColor: COLORS.appleBlue,
+                cursor: 'pointer',
+              }}
+            />
+            <label 
+              htmlFor="in_wish"
+              style={{
+                fontFamily: TYPOGRAPHY.body.fontFamily,
+                fontSize: TYPOGRAPHY.body.fontSize,
+                color: COLORS.white,
+                cursor: 'pointer',
+              }}
+            >
+              {t('bookForm.wishlist')}
+            </label>
+          </div>
+          )}
 
           <div style={{ marginBottom: '24px' }}>
             <label style={{

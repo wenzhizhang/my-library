@@ -269,7 +269,7 @@ async def get_isbn_info(
                     category_id=_category.get("id") if _category else None,
                     category_path=_category.get("path") if _category else None,
                     book_series_id=_series.get("id") if _series else None,
-                    book_series_name=_series.get("name") if _series else None,
+                    book_series_name=_series.get("name") if _series else "",
                     author_names=author_names,
                     author_ids=author_ids,
                 )

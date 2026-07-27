@@ -95,6 +95,9 @@ const Header = () => {
           <Link to={getPath('/series')} className={`nav-link ${isActive('/series') ? 'active' : ''}`}>
             {t('nav.series')}
           </Link>
+          <Link to={getPath('/wishlist')} className={`nav-link ${isActive('/wishlist') ? 'active' : ''}`}>
+            {t('nav.wishlist')}
+          </Link>
           <Link to={getPath('/stats')} className={`nav-link ${isActive('/stats') ? 'active' : ''}`}>
             {t('nav.stats')}
           </Link>

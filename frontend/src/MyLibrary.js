@@ -12,6 +12,7 @@ import Bookshelves from './components/Bookshelves';
 import BookCollections from './components/BookCollections';
 import ReadingPlans from './components/ReadingPlans';
 import Brands from './components/Brands';
+import Wishlist from './components/Wishlist';
 import Series from './components/Series';
 import BookDetails from './components/BookDetails';
 import BookFormPage from './components/BookFormPage';
@@ -40,6 +41,7 @@ function MyLibrary() {
           <Routes>
             <Route path="/" element={<Navigate to="books" replace />} />
             <Route path="login" element={<Login />} />
+            <Route path="wishlist" element={<Wishlist />} />
             <Route path="register" element={<Register />} />
             <Route path="books" element={<Books />} />
             <Route path="books/edit/:bookId" element={<BookFormPage />} />

@@ -14,7 +14,8 @@
     "login": "Login",
     "export": "Export",
     "logout": "Logout",
-    "register": "Register"
+    "register": "Register",
+    "wishlist": "Wishlist"
   },
   "books": {
     "title": "Books",
@@ -387,7 +388,8 @@
     "similarHint": "Based on shared tags",
     "status": "Status",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "moveToLibrary": "Move to Library"
   },
   "export": {
     "title": "Export Data",
@@ -408,5 +410,9 @@
       "bookshelves": "Bookshelves",
       "collections": "Collections"
     }
+  }
+  ,
+  "wishlist": {
+    "empty": "No books in wishlist yet. Add books and mark them as wishlist items."
   }
 }

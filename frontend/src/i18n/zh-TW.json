@@ -14,7 +14,8 @@
     "login": "登入",
     "export": "匯出",
     "logout": "登出",
-    "register": "註冊"
+    "register": "註冊",
+    "wishlist": "心願單"
   },
   "books": {
     "title": "圖書",
@@ -387,7 +388,8 @@
     "similarHint": "基於共同標籤推薦",
     "status": "狀態",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "moveToLibrary": "存入圖書館"
   },
   "export": {
     "title": "匯出資料",
@@ -408,5 +410,9 @@
       "bookshelves": "書架",
       "collections": "書單"
     }
+  }
+  ,
+  "wishlist": {
+    "empty": "心願單中暫無圖書。新增圖書並標記為心願單即可。"
   }
 }
