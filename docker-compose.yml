@@ -33,6 +33,7 @@ services:
       - PYTHONUNBUFFERED=1
       - SERVER_IP=${SERVER_IP:-localhost}
       - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - MEDIA_CACHE_ENABLED=${MEDIA_CACHE_ENABLED:-false}
       - DOUBAN_KEY=${DOUBAN_KEY:-}
       - ROOT_DB_PATH=/app/root-db/root.db
     volumes:

@@ -32,6 +32,7 @@ services:
       - DATA_DIR=/app/data
       - HF_ENDPOINT=https://hf-mirror.com
       - DOUBAN_KEY=${DOUBAN_KEY:-}
+      - MEDIA_CACHE_ENABLED=${MEDIA_CACHE_ENABLED:-false}
       - ROOT_DB_PATH=/app/root-db/root.db
     restart: unless-stopped
     volumes:
