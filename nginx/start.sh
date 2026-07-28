@@ -36,6 +36,19 @@ server {
         proxy_pass $frontend_upstream;
         include /etc/nginx/includes/proxy-common.conf;
     }
+    location /api/media/ {
+        alias /var/cache/media/;
+        error_page 404 = @media_backend;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Cache "HIT";
+    }
+    location @media_backend {
+        set $backend_upstream "http://backend:8000";
+        proxy_pass $backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+        add_header X-Cache "MISS";
+    }
     location /api/ {
         set $backend_upstream "http://backend:8000";
         proxy_pass $backend_upstream;
@@ -107,6 +120,19 @@ server {
     ssl_session_cache shared:SSL:50m;
     ssl_session_tickets off;
 
+    location /api/media/ {
+        alias /var/cache/media/;
+        error_page 404 = @media_backend_ssl;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Cache "HIT";
+    }
+    location @media_backend_ssl {
+        set \$backend_upstream "http://backend:8000";
+        proxy_pass \$backend_upstream;
+        include /etc/nginx/includes/proxy-common.conf;
+        add_header X-Cache "MISS";
+    }
     access_log /var/log/nginx/my-library.access.log main;
     error_log  /var/log/nginx/my-library.error.log warn;
 

@@ -17,6 +17,7 @@ services:
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-www:/var/www/certbot
+      - media-cache:/var/cache/media:ro
     restart: unless-stopped
 
   # ---- my-library 后端 ----
@@ -35,6 +36,7 @@ services:
     restart: unless-stopped
     volumes:
       - backend-data:/app/data
+      - media-cache:/app/data/media-cache
       - ./backend/config:/app/config:ro
       - root-db-data:/app/root-db
 
@@ -60,4 +62,7 @@ volumes:
   root-db-data:
     driver: local
   certbot-www:
+    driver: local
+
+  media-cache:
     driver: local
