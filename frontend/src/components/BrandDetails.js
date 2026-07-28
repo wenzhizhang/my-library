@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import './Books.css';
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
+import PaginationBar from './PaginationBar';
 
 const BrandDetails = () => {
   const { id } = useParams();
@@ -12,10 +13,19 @@ const BrandDetails = () => {
   const [brand, setBrand] = useState(null);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+  const [books, setBooks] = useState([]);
+  const [bookPage, setBookPage] = useState(1);
+  const bookLimit = 10;
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookTotalCount, setBookTotalCount] = useState(0);
+  const [goToPage, setGoToPage] = useState('');
 
   useEffect(() => {
     fetchBrand();
   }, [id]);
+  useEffect(() => {
+    if (id) fetchBooks(bookPage);
+  }, [id, bookPage]);
 
   const fetchBrand = async () => {
     setLoading(true);
@@ -26,6 +36,20 @@ const BrandDetails = () => {
       console.error('Error fetching brand:', error);
     }
     setLoading(false);
+  };
+
+  const fetchBooks = async (p = 1) => {
+    try {
+      const response = await axios.get(
+        `${window.location.origin}${API_BASE_URL}/brands/${id}/books`,
+        { params: { page: p, limit: bookLimit } }
+      );
+      setBooks(response.data.books || []);
+      setBookTotalPages(response.data.total_pages || 1);
+      setBookTotalCount(response.data.total_books || 0);
+    } catch (error) {
+      console.error("Error fetching brand books:", error);
+    }
   };
 
   if (loading) {
@@ -47,13 +71,24 @@ const BrandDetails = () => {
           <p><strong>{t('common.name')}:</strong> {brand.name}</p>
           {brand.intro && <p><strong>{t('common.introduction')}:</strong> {brand.intro}</p>}
         </div>
-        <div className="grid">
-          {brand.books && brand.books.length > 0 && (
-            brand.books.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))
-          )}
-        </div>
+        {bookTotalCount > 0 && (
+          <>
+            <div className="grid">
+              {books.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+            {bookTotalPages > 1 && (
+              <PaginationBar
+                page={bookPage}
+                totalPages={bookTotalPages}
+                goToPage={goToPage}
+                setGoToPage={setGoToPage}
+                onPageChange={(p) => setBookPage(p)}
+              />
+            )}
+          </>
+        )}
       </div>
     </section>
   );

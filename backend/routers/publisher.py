@@ -58,6 +58,25 @@ def read_publisher(publisher_id: int, db: Session = Depends(get_db)):
     publisher.books = [b for b in publisher.books if not b.in_wish]
     return publisher
 
+@publisher_router.get("/{publisher_id}/books")
+def read_publisher_books(publisher_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    publisher = db.query(Publisher).filter(Publisher.id == publisher_id).first()
+    if publisher is None:
+        raise HTTPException(status_code=404, detail="Publisher not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.publisher_id == publisher_id,
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
 @publisher_router.put("/{publisher_id}", response_model=PublisherResponse)
 def update_publisher(publisher_id: int, publisher_update: PublisherUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
     if user_id is None:
@@ -131,6 +150,25 @@ def read_brand(brand_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Brand not found")
     brand.books = [b for b in brand.books if not b.in_wish]
     return brand
+
+@brand_router.get("/{brand_id}/books")
+def read_brand_books(brand_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    brand = db.query(Brand).filter(Brand.id == brand_id).first()
+    if brand is None:
+        raise HTTPException(status_code=404, detail="Brand not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.brand_id == brand_id,
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
 
 @brand_router.put("/{brand_id}", response_model=BrandResponse)
 def update_brand(brand_id: int, brand_update: BrandUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):

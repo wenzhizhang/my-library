@@ -55,6 +55,25 @@ def read_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
     bookshelf.books = [b for b in bookshelf.books if not b.in_wish]
     return bookshelf
 
+@router.get("/{bookshelf_id}/books")
+def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()
+    if bookshelf is None:
+        raise HTTPException(status_code=404, detail="Bookshelf not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.bookshelf_id == bookshelf_id,
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
 @router.put("/{bookshelf_id}", response_model=BookshelfResponse)
 def update_bookshelf(bookshelf_id: int, bookshelf_update: BookshelfUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
     bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()

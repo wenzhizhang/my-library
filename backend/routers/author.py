@@ -80,6 +80,26 @@ def read_author(author_id: int, db: Session = Depends(get_db)):
     return author
 
 
+@router.get("/{author_id}/books")
+def read_author_books(author_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    author = db.query(Author).filter(Author.id == author_id).first()
+    if author is None:
+        raise HTTPException(status_code=404, detail="Author not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.authors.any(Author.id == author_id),
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
+
 # ── Auth-required endpoints ───────────────────────────────────
 
 @router.post("/", response_model=AuthorResponse)

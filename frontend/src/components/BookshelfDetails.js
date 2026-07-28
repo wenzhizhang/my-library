@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
+import PaginationBar from './PaginationBar';
 
 const BookshelfDetails = () => {
   const { id } = useParams();
@@ -12,10 +13,19 @@ const BookshelfDetails = () => {
   const [bookshelf, setBookshelf] = useState(null);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+  const [books, setBooks] = useState([]);
+  const [bookPage, setBookPage] = useState(1);
+  const bookLimit = 10;
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookTotalCount, setBookTotalCount] = useState(0);
+  const [goToPage, setGoToPage] = useState('');
 
   useEffect(() => {
     fetchBookshelf();
   }, [id]);
+  useEffect(() => {
+    if (id) fetchBooks(bookPage);
+  }, [id, bookPage]);
 
   const fetchBookshelf = async () => {
     setLoading(true);
@@ -28,6 +38,20 @@ const BookshelfDetails = () => {
       console.error("Error fetching bookshelf:", error);
     }
     setLoading(false);
+  };
+
+  const fetchBooks = async (p = 1) => {
+    try {
+      const response = await axios.get(
+        `${window.location.origin}${API_BASE_URL}/bookshelves/${id}/books`,
+        { params: { page: p, limit: bookLimit } }
+      );
+      setBooks(response.data.books || []);
+      setBookTotalPages(response.data.total_pages || 1);
+      setBookTotalCount(response.data.total_books || 0);
+    } catch (error) {
+      console.error("Error fetching bookshelf books:", error);
+    }
   };
 
   if (loading) {
@@ -59,13 +83,24 @@ const BookshelfDetails = () => {
             </p>
           )}
         </div>
-        <div className="grid">
-          {bookshelf.books && bookshelf.books.length > 0 && (
-            bookshelf.books.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))
-          )}
-        </div>
+        {bookTotalCount > 0 && (
+          <>
+            <div className="grid">
+              {books.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+            {bookTotalPages > 1 && (
+              <PaginationBar
+                page={bookPage}
+                totalPages={bookTotalPages}
+                goToPage={goToPage}
+                setGoToPage={setGoToPage}
+                onPageChange={(p) => setBookPage(p)}
+              />
+            )}
+          </>
+        )}
       </div>
     </section>
   );

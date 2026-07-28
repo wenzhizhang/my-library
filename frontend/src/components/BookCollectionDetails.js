@@ -6,6 +6,7 @@ import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
 import SearchableSelect from './SearchableSelect';
+import PaginationBar from './PaginationBar';
 
 const BookCollectionDetails = () => {
   const { id } = useParams();
@@ -21,10 +22,21 @@ const BookCollectionDetails = () => {
   const [removingSelected, setRemovingSelected] = useState(false);
   const [manageMode, setManageMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // Paginated books for display
+  const [displayBooks, setDisplayBooks] = useState([]);
+  const [bookPage, setBookPage] = useState(1);
+  const bookLimit = 10;
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookTotalCount, setBookTotalCount] = useState(0);
+  const [goToPage, setGoToPage] = useState('');
 
   useEffect(() => {
     fetchCollection();
   }, [id]);
+
+  useEffect(() => {
+    if (id) fetchPaginatedBooks(bookPage);
+  }, [id, bookPage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +80,20 @@ const BookCollectionDetails = () => {
       setCollection(null);
     }
     setLoading(false);
+  };
+
+  const fetchPaginatedBooks = async (p = 1) => {
+    try {
+      const response = await axios.get(
+        `${window.location.origin}${API_BASE_URL}/book-collections/${id}/books`,
+        { params: { page: p, limit: bookLimit } }
+      );
+      setDisplayBooks(response.data.books || []);
+      setBookTotalPages(response.data.total_pages || 1);
+      setBookTotalCount(response.data.total_books || 0);
+    } catch (error) {
+      console.error("Error fetching collection books:", error);
+    }
   };
 
   const handleSelectBook = (bookId) => {
@@ -131,6 +157,7 @@ const BookCollectionDetails = () => {
         }
       }
     }
+    fetchPaginatedBooks(bookPage);
     setSelectedIds(new Set());
     setRemovingSelected(false);
     if (firstError) setError(firstError);
@@ -176,7 +203,7 @@ const BookCollectionDetails = () => {
             >
               {t('collections.backToList')}
             </button>
-            {(collection.books && collection.books.length > 0) && (
+            {bookTotalCount > 0 && (
               <button
                 className="btn-pill-link"
                 onClick={() => { setManageMode(!manageMode); setSelectedIds(new Set()); }}
@@ -262,8 +289,8 @@ const BookCollectionDetails = () => {
             )}
           </div>
           <div className="grid">
-            {collection.books && collection.books.length > 0 ? (
-              collection.books.map((book) => (
+            {displayBooks.length > 0 ? (
+              displayBooks.map((book) => (
                 <BookCard
                   key={book.id}
                   book={book}
@@ -277,6 +304,15 @@ const BookCollectionDetails = () => {
               <p>{t('collections.noBooks')}</p>
             )}
           </div>
+          {bookTotalPages > 1 && (
+            <PaginationBar
+              page={bookPage}
+              totalPages={bookTotalPages}
+              goToPage={goToPage}
+              setGoToPage={setGoToPage}
+              onPageChange={(p) => setBookPage(p)}
+            />
+          )}
         </div>
       </div>
     </section>

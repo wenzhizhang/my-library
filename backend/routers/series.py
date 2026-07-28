@@ -58,6 +58,25 @@ def read_series_item(series_id: int, db: Session = Depends(get_db)):
     series.books = [b for b in series.books if not b.in_wish]
     return series
 
+@router.get("/{series_id}/books")
+def read_series_books(series_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    series = db.query(BookSeries).filter(BookSeries.id == series_id).first()
+    if series is None:
+        raise HTTPException(status_code=404, detail="Series not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.book_series_id == series_id,
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
 @router.put("/{series_id}", response_model=BookSeriesResponse)
 def update_series(series_id: int, series_update: BookSeriesUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
     if user_id is None:

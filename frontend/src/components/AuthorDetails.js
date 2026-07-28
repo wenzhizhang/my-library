@@ -6,6 +6,7 @@ import BookCard from './BookCard';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
+import PaginationBar from './PaginationBar';
 
 const AuthorDetails = () => {
   const { id } = useParams();
@@ -21,10 +22,20 @@ const AuthorDetails = () => {
   const [formData, setFormData] = useState({ name: '', name_cn: '', nation: '无', dynasty: '', intro: '', photo: '' });
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  // Paginated books
+  const [books, setBooks] = useState([]);
+  const [bookPage, setBookPage] = useState(1);
+  const bookLimit = 10;
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookTotalCount, setBookTotalCount] = useState(0);
+  const [goToPage, setGoToPage] = useState('');
 
   useEffect(() => {
     fetchAuthor();
   }, [id]);
+  useEffect(() => {
+    fetchBooks(bookPage);
+  }, [id, bookPage]);
   useEffect(() => {
     axios.get(`${window.location.origin}${API_BASE_URL}/authors/nations`)
       .then(res => setNations(res.data.nations))
@@ -45,6 +56,20 @@ const AuthorDetails = () => {
       console.error("Error fetching author:", error);
     }
     setLoading(false);
+  };
+
+  const fetchBooks = async (p = 1) => {
+    try {
+      const response = await axios.get(
+        `${window.location.origin}${API_BASE_URL}/authors/${id}/books`,
+        { params: { page: p, limit: bookLimit } }
+      );
+      setBooks(response.data.books || []);
+      setBookTotalPages(response.data.total_pages || 1);
+      setBookTotalCount(response.data.total_books || 0);
+    } catch (error) {
+      console.error("Error fetching author books:", error);
+    }
   };
 
   const openEdit = () => {
@@ -130,14 +155,23 @@ const AuthorDetails = () => {
           )}
         </div>
 
-        {author.books && author.books.length > 0 && (
+        {bookTotalCount > 0 && (
           <>
-            <h2 style={{ marginTop: 40, marginBottom: 16 }}>{t('authors.books', { count: author.books.length })} ({author.books.length})</h2>
+            <h2 style={{ marginTop: 40, marginBottom: 16 }}>{t('authors.books', { count: bookTotalCount })} ({bookTotalCount})</h2>
             <div className="grid">
-              {author.books.map((book) => (
+              {books.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
             </div>
+            {bookTotalPages > 1 && (
+              <PaginationBar
+                page={bookPage}
+                totalPages={bookTotalPages}
+                goToPage={goToPage}
+                setGoToPage={setGoToPage}
+                onPageChange={(p) => setBookPage(p)}
+              />
+            )}
           </>
         )}
       </div>

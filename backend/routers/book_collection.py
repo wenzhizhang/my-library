@@ -83,6 +83,25 @@ def read_book_collection(collection_id: int, db: Session = Depends(get_db)):
     collection.books = [b for b in collection.books if not b.in_wish]
     return collection
 
+@router.get("/{collection_id}/books")
+def read_collection_books(collection_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    collection = db.query(BookCollection).filter(BookCollection.id == collection_id).first()
+    if collection is None:
+        raise HTTPException(status_code=404, detail="Book collection not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.collections.any(BookCollection.id == collection_id),
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
 
 @router.put("/{collection_id}", response_model=BookCollectionResponse)
 def update_book_collection(

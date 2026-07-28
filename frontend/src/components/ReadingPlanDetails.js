@@ -6,6 +6,7 @@ import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
 import SearchableSelect from './SearchableSelect';
+import PaginationBar from './PaginationBar';
 
 const ReadingPlanDetails = () => {
   const { id } = useParams();
@@ -21,10 +22,21 @@ const ReadingPlanDetails = () => {
   const [removingSelected, setRemovingSelected] = useState(false);
   const [manageMode, setManageMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // Paginated books for display
+  const [displayBooks, setDisplayBooks] = useState([]);
+  const [bookPage, setBookPage] = useState(1);
+  const bookLimit = 10;
+  const [bookTotalPages, setBookTotalPages] = useState(1);
+  const [bookTotalCount, setBookTotalCount] = useState(0);
+  const [goToPage, setGoToPage] = useState('');
 
   useEffect(() => {
     fetchPlan();
   }, [id]);
+
+  useEffect(() => {
+    if (id) fetchPaginatedBooks(bookPage);
+  }, [id, bookPage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +80,20 @@ const ReadingPlanDetails = () => {
       setPlan(null);
     }
     setLoading(false);
+  };
+
+  const fetchPaginatedBooks = async (p = 1) => {
+    try {
+      const response = await axios.get(
+        `${window.location.origin}${API_BASE_URL}/reading-plans/${id}/books`,
+        { params: { page: p, limit: bookLimit } }
+      );
+      setDisplayBooks(response.data.books || []);
+      setBookTotalPages(response.data.total_pages || 1);
+      setBookTotalCount(response.data.total_books || 0);
+    } catch (error) {
+      console.error("Error fetching plan books:", error);
+    }
   };
 
   const handleSelectBook = (bookId) => {
@@ -134,6 +160,7 @@ const ReadingPlanDetails = () => {
     setSelectedIds(new Set());
     setRemovingSelected(false);
     if (firstError) setError(firstError);
+    fetchPaginatedBooks(bookPage);
   };
 
 
@@ -177,7 +204,7 @@ const ReadingPlanDetails = () => {
             >
               {t('readingPlans.backToList')}
             </button>
-            {(plan.books && plan.books.length > 0) && (
+            {bookTotalCount > 0 && (
               <button
                 className="btn-pill-link"
                 onClick={() => { setManageMode(!manageMode); setSelectedIds(new Set()); }}
@@ -284,8 +311,8 @@ const ReadingPlanDetails = () => {
             )}
           </div>
           <div className="grid">
-            {plan.books && plan.books.length > 0 ? (
-              plan.books.map((book) => (
+            {displayBooks.length > 0 ? (
+              displayBooks.map((book) => (
                 <BookCard
                   key={book.id}
                   book={book}
@@ -299,6 +326,15 @@ const ReadingPlanDetails = () => {
               <p>{t('readingPlans.noBooks')}</p>
             )}
           </div>
+            {bookTotalPages > 1 && (
+              <PaginationBar
+                page={bookPage}
+                totalPages={bookTotalPages}
+                goToPage={goToPage}
+                setGoToPage={setGoToPage}
+                onPageChange={(p) => setBookPage(p)}
+              />
+            )}
         </div>
       </div>
     </section>

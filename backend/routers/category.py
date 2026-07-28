@@ -64,6 +64,25 @@ def read_category(category_id: int, db: Session = Depends(get_db)):
     category.books = [b for b in category.books if not b.in_wish]
     return category
 
+
+@router.get("/{category_id}/books")
+def read_category_books(category_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    query = db.query(Book).options(joinedload(Book.authors)).filter(
+        Book.category_id == category_id,
+        Book.in_wish == False
+    )
+    total_books = query.count()
+    total_pages = (total_books + limit - 1) // limit
+    offset = (page - 1) * limit
+    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    return {
+        "books": books,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
 @router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(category_id: int, category_update: CategoryUpdate, db: Session = Depends(get_db), user_id: Optional[int] = Depends(get_current_user_id)):
     if user_id is None:
