@@ -1613,16 +1613,16 @@ function BookFormPage() {
             dark
           />
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 16, fontSize: 14, color: '#86868b', cursor: 'pointer' }}>
-            <input type="checkbox" checked={formData.thumb_image === `/books/${formData.isbn}.png`}
+            <input type="checkbox" checked={formData.thumb_image === `images/books/${formData.isbn}.webp`}
               onChange={(e) => {
                 if (e.target.checked) {
-                  updateField('thumb_image', `/books/${formData.isbn}.png`);
+                  updateField('thumb_image', `images/books/${formData.isbn}.webp`);
                 } else {
                   updateField('thumb_image', apiThumbUrl || '');
                 }
               }}
             />
-            Use Default (/books/{formData.isbn || 'ISBN'}.png)
+            Use Default (images/books/{formData.isbn || 'ISBN'}.webp)
           </label>
 
           <AppleInput

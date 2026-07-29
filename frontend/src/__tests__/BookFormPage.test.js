@@ -139,7 +139,7 @@ describe('purchase date', () => {
 });
 
 // ----------------------------------------------------------------
-// 3. Thumbnail checkbox fills /books/{isbn}.png
+// 3. Thumbnail checkbox fills images/books/{isbn}.webp
 // ----------------------------------------------------------------
 describe('thumbnail checkbox', () => {
   test('checkbox not checked when thumb_image is empty', async () => {
@@ -150,7 +150,7 @@ describe('thumbnail checkbox', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  test('checking checkbox sets thumb_image to /books/{isbn}.png', async () => {
+  test('checking checkbox sets thumb_image to images/books/{isbn}.webp', async () => {
     renderForm();
 
     const isbnInput = screen.getByPlaceholderText('978-7-...');
@@ -159,7 +159,7 @@ describe('thumbnail checkbox', () => {
     const checkbox = screen.getByRole('checkbox', { name: /use default/i });
     fireEvent.click(checkbox);
 
-    const thumbInput = screen.getByDisplayValue('/books/9781234567890.png');
+    const thumbInput = screen.getByDisplayValue('images/books/9781234567890.webp');
     expect(thumbInput).toBeInTheDocument();
   });
 

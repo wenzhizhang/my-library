@@ -87,8 +87,9 @@ async def _serve_proxy(path: str):
 
     content, content_type = await _fetch(cdn_url, path)
 
-    return Response(content=content, media_type=content_type)
-
+    resp = Response(content=content, media_type=content_type)
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 async def _fetch(url: str, path: str):
     """Fetch from CDN, return (content, content_type)."""

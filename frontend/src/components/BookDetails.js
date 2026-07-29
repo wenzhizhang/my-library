@@ -487,6 +487,7 @@ const BookDetails = () => {
                       className="bd-similar-card-img"
                       src={`${MEDIA_BASE_URL}/${sb.thumb_image}`}
                       alt={sb.title_cn || sb.title}
+                      loading="lazy"
                     />
                   ) : (
                     <div
