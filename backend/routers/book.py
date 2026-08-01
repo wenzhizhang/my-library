@@ -85,7 +85,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     offset = (page - 1) * limit
 
     # ✅ 1. 基础 query（加 eager load，避免 N+1）
-    query = db.query(Book).options(selectinload(Book.authors)).filter(Book.in_wish == False)
+    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == False)
 
     # ✅ 2. 应用搜索条件
     filters_dict = filter_params.model_dump(exclude_unset=True)
@@ -115,7 +115,9 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
             "title_cn": book.title_cn,
             "title": book.title,
             "thumb_image": book.thumb_image,
-            "authors": [str(author) for author in book.authors]
+            "authors": [str(author) for author in book.authors],
+            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
+            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
         })
 
     return {
@@ -195,7 +197,7 @@ def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", d
     """Return paginated wishlist books (in_wish=True)."""
     offset = (page - 1) * limit
 
-    query = db.query(Book).options(selectinload(Book.authors)).filter(Book.in_wish == True)
+    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == True)
 
     total_books = query.with_entities(Book.id).distinct().count()
     total_pages = (total_books + limit - 1) // limit if total_books > 0 else 1
@@ -217,7 +219,9 @@ def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", d
             "title_cn": book.title_cn,
             "title": book.title,
             "thumb_image": book.thumb_image,
-            "authors": [str(author) for author in book.authors]
+            "authors": [str(author) for author in book.authors],
+            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
+            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
         })
 
     return {

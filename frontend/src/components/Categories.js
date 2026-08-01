@@ -6,6 +6,7 @@ import { API_BASE_URL } from './Config';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
 import SearchableSelect from './SearchableSelect';
+import PageLayout from './PageLayout';
 
 const Categories = () => {
   const { t } = useTranslation();
@@ -14,7 +15,7 @@ const Categories = () => {
   const { isAuthenticated } = useAuth();
 
   const page = parseInt(searchParams.get('page')) || 1;
-  const limit = parseInt(searchParams.get('limit')) || 10;
+  const limit = parseInt(searchParams.get('limit')) || 20;
   const sortBy = searchParams.get('sort_by') || 'name';
 
   const [categories, setCategories] = useState([]);
@@ -36,7 +37,6 @@ const Categories = () => {
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [goToPage, setGoToPage] = useState('');
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -174,144 +174,87 @@ const Categories = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const sortOptions = [
+    { value: 'id', label: 'ID' },
+    { value: 'name', label: t('common.name') },
+  ];
+
+  const listColumns = [t('common.name'), 'Path', 'Actions'];
+
+  const renderItem = (category, viewMode) => {
+    if (viewMode === 'list') {
+      return (
+        <tr key={category.id} onClick={() => navigate(`${category.id}`)}>
+          <td className="list-cell-primary">{category.name}</td>
+          <td className="list-cell-secondary">
+            {category.path || ''}{category.depth != null ? <span style={{ marginLeft: 8 }}>({category.depth})</span> : null}
+          </td>
+          {isAuthenticated && (
+            <td style={{ width: 80, textAlign: 'right' }}>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); openEdit(category); }}
+                style={{ fontSize: 12, padding: '4px 8px' }}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(category); }}
+                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </td>
+          )}
+        </tr>
+      );
     }
-  };
-
-  const handleGoToPage = () => {
-    const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPageParam(pageNum);
-    setGoToPage('');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleGoToPage();
-    }
-  };
-
-  // ── Pagination ─────────────────────────────────────────────
-  const pages = [];
-  const startPage = Math.max(1, page - 2);
-  const endPage = Math.min(totalPages, page + 2);
-
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(
-      <button
-        key={i}
-        className={`btn-pill-link ${i === page ? 'active' : ''}`}
-        onClick={() => setPageParam(i)}
-      >
-        {i}
-      </button>
+    return (
+      <div key={category.id} className="card">
+        <h3 className="card-title">{category.name}</h3>
+        {category.path && <small style={{ display: 'block', color: '#86868b', fontSize: 11 }}>{category.path}</small>}
+        {category.depth != null && <small style={{ display: 'block', color: '#86868b', fontSize: 12 }}>Depth: {category.depth}</small>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button className="btn-pill-link" onClick={() => navigate(`${category.id}`)}>{t('common.view')}</button>
+          {isAuthenticated && (
+            <>
+              <button className="btn-pill-link" onClick={() => openEdit(category)}>{t('common.edit')}</button>
+              <button className="btn-pill-link"
+                onClick={() => setConfirmDelete(category)}
+                style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
+            </>
+          )}
+        </div>
+      </div>
     );
-  }
+  };
 
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
+  if (loading) return <div className="loading">Loading...</div>;
 
   return (
-    <section className="section light">
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">{t('categories.title')}</h1>
-          {isAuthenticated && (
+    <>
+      <PageLayout
+        title={t('categories.title')}
+        createButton={
+          isAuthenticated ? (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               + Create Category
             </button>
-          )}
-        </div>
-
-        <div className="toolbar">
-          <div className="toolbar-search">
-            <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <label className="control-label">
-              <span className="control-label-text">{t('common.sort')}</span>
-              <select value={sortBy} onChange={(e) => setSortByParam(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-            <label className="control-label">
-              <span className="control-label-text">{t('common.perPage')}</span>
-              <select value={limit} onChange={(e) => setLimitParam(parseInt(e.target.value))}>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-info">
-            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalCategories})
-          </div>
-        </div>
-
-        <div className="grid">
-          {categories.map(category => (
-            <div key={category.id} className="card">
-              <h3 className="card-title">{category.name}</h3>
-              {category.path && <small style={{ display: 'block', color: '#86868b', fontSize: 11 }}>{category.path}</small>}
-              {category.depth != null && <small style={{ display: 'block', color: '#86868b', fontSize: 12 }}>Depth: {category.depth}</small>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${category.id}`)}>{t('common.view')}</button>
-                {isAuthenticated && (
-                  <>
-                    <button className="btn-pill-link" onClick={() => openEdit(category)}>{t('common.edit')}</button>
-                    <button className="btn-pill-link"
-                      onClick={() => setConfirmDelete(category)}
-                      style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="pagination">
-          <div className="pagination-links">
-            {page > 1 && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
-              </>
-            )}
-
-            {pages}
-
-            {page < totalPages && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
-              </>
-            )}
-          </div>
-
-          <div className="pagination-input">
-            <input
-              type="number"
-              id="page-input"
-              min="1"
-              max={totalPages}
-              value={goToPage}
-              onChange={(e) => setGoToPage(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
-          </div>
-        </div>
-      </div>
+          ) : null
+        }
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        searchPlaceholder={t('common.search')}
+        sortBy={sortBy}
+        sortOptions={sortOptions}
+        onSort={setSortByParam}
+        limit={limit}
+        onLimitChange={setLimitParam}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalCategories}
+        onPageChange={setPageParam}
+        layoutKey="categories"
+        items={categories}
+        renderItem={renderItem}
+        listColumns={listColumns}
+      />
 
       {/* ── Create / Edit Modal ─────────────────────────────── */}
       {modalOpen && (
@@ -405,7 +348,7 @@ const Categories = () => {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 };
 

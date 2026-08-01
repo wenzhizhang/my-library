@@ -1,0 +1,105 @@
+/* ── PageLayout ── */
+.page-layout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-layout-header .section-heading {
+  margin-bottom: 20px;
+}
+
+/* ── Grid view (replaces .grid) ── */
+.page-layout-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.page-layout-grid {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.page-layout-grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.page-layout-grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.page-layout-grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+.page-layout-grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+/* ── List view (table) ── */
+.list-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: hsla(0, 0%, 100%, .25) border-box;
+  box-shadow: 0 0 0 1px hsla(0, 0%, 100%, .3) inset,
+      0 .5em 1em rgba(0, 0, 0, 0.6);
+}
+
+.list-table thead th {
+  text-align: center;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.list-table tbody td {
+  padding: 14px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  vertical-align: middle;
+  font-size: 14px;
+  text-align: center;
+}
+
+.list-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.list-table tbody tr:hover {
+  background: rgba(0, 122, 255, 0.06);
+}
+
+/* ── Layout controls ── */
+.view-toggle {
+  font-size: 18px;
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.view-toggle.active {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: #86868b;
+  font-size: 15px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page-layout-grid-cols-3,
+  .page-layout-grid-cols-4,
+  .page-layout-grid-cols-5 { grid-template-columns: repeat(2, 1fr); }
+
+}

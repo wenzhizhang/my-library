@@ -5,6 +5,7 @@ import "./Books.css";
 import { API_BASE_URL } from './Config';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
+import PageLayout from './PageLayout';
 
 const Series = () => {
   const { t } = useTranslation();
@@ -13,14 +14,13 @@ const Series = () => {
   const { isAuthenticated } = useAuth();
 
   const page = parseInt(searchParams.get('page')) || 1;
-  const limit = parseInt(searchParams.get('limit')) || 10;
+  const limit = parseInt(searchParams.get('limit')) || 20;
   const sortBy = searchParams.get('sort_by') || 'name';
 
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalSeries, setTotalSeries] = useState(0);
-  const [goToPage, setGoToPage] = useState("");
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [submittedQuery, setSubmittedQuery] = useState(searchParams.get('q') || '');
@@ -48,10 +48,11 @@ const Series = () => {
       setTotalPages(data.total_pages || 1);
       setTotalSeries(data.total_series || 0);
     } catch (error) {
-      console.error("Error fetching series:", error);
+      console.error('Error fetching series:', error);
     }
     setLoading(false);
   }, [page, limit, sortBy, submittedQuery]);
+
 
   useEffect(() => {
     fetchSeries();
@@ -84,29 +85,6 @@ const Series = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const handleSortChange = (newSortBy) => {
-    setSortByParam(newSortBy);
-  };
-
-  const handleLimitChange = (newLimit) => {
-    setLimitParam(parseInt(newLimit));
-  };
-
-  const handleGoToPage = () => {
-    const pageNum = Math.min(
-      Math.max(parseInt(goToPage) || 1, 1),
-      totalPages
-    );
-    setPageParam(pageNum);
-    setGoToPage("");
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleGoToPage();
-    }
-  };
-
   const handleSearch = () => {
     const q = searchQuery.trim();
     setSubmittedQuery(q);
@@ -116,14 +94,7 @@ const Series = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
-
   // ── Modal helpers ──────────────────────────────────────────
-
   const openCreate = () => {
     setEditingItem(null);
     setFormData({ name: '', intro: '' });
@@ -140,15 +111,12 @@ const Series = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     setSaving(true);
-
-    // Strip empty strings so Pydantic validators don't reject them
     const payload = {};
     for (const [k, v] of Object.entries(formData)) {
       if (v !== '' && v !== null && v !== undefined) {
         payload[k] = v;
       }
     }
-
     try {
       if (editingItem) {
         await axios.put(
@@ -180,79 +148,65 @@ const Series = () => {
       alert(msg);
     }
   };
+  // ── PageLayout props ──────────────────────────────────────
 
-  // ── Pagination ─────────────────────────────────────────────
+  const sortOptions = [
+    { value: 'name', label: t('common.name') },
+    { value: 'updated_at', label: t('common.recentlyUpdated') },
+    { value: 'created_at', label: t('common.recentlyCreated') },
+  ];
 
-  const renderPagination = () => {
-    const pages = [];
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
+  const listColumns = [t('common.name'), t('common.introduction'), 'Actions'];
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`btn-pill-link ${i === page ? "active" : ""}`}
-          onClick={() => setPageParam(i)}
-        >
-          {i}
-        </button>
+  const renderItem = (item, viewMode) => {
+    if (viewMode === 'list') {
+      return (
+        <tr key={item.id} onClick={() => navigate(`${item.id}`)}>
+          <td className="list-cell-primary">{item.name}</td>
+          <td className="list-cell-secondary" style={{ maxWidth: 300 }}>
+            {item.intro ? (item.intro.length > 80 ? item.intro.substring(0, 80) + '...' : item.intro) : ''}
+          </td>
+          {isAuthenticated && (
+            <td style={{ width: 80, textAlign: 'right' }}>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+                style={{ fontSize: 12, padding: '4px 8px' }}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(item); }}
+                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </td>
+          )}
+        </tr>
       );
     }
-
     return (
-      <div className="pagination">
-        <div className="pagination-links">
-          {page > 1 && (
-            <>
-              <button
-                className="btn-pill-link"
-                onClick={() => setPageParam(1)}
-              >
-                {t('common.first')}
-              </button>
-              <button
-                className="btn-pill-link"
-                onClick={() => setPageParam(page - 1)}
-              >
-                {t('common.previous')}
-              </button>
-            </>
-          )}
-
-          {pages}
-
-          {page < totalPages && (
-            <>
-              <button
-                className="btn-pill-link"
-                onClick={() => setPageParam(page + 1)}
-              >
-                {t('common.next')}
-              </button>
-              <button
-                className="btn-pill-link"
-                onClick={() => setPageParam(totalPages)}
-              >
-                {t('common.last')}
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="pagination-input">
-          <input
-            type="number"
-            id="page-input"
-            min="1"
-            max={totalPages}
-            value={goToPage}
-            onChange={(e) => setGoToPage(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <button className="btn-pill-link" onClick={handleGoToPage}>
-            {t('common.goToPage')}
+      <div key={item.id} className="card">
+        <h3 className="card-title">{item.name}</h3>
+        {item.intro && (
+          <p className="caption">
+            {item.intro.length > 100
+              ? item.intro.substring(0, 100) + "..."
+              : item.intro}
+          </p>
+        )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button className="btn-pill-link" onClick={() => navigate(`${item.id}`)}>
+            {t('common.view')}
           </button>
+          {isAuthenticated && (
+            <>
+              <button className="btn-pill-link" onClick={() => openEdit(item)}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link"
+                onClick={() => setConfirmDelete(item)}
+                style={{ color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -263,88 +217,34 @@ const Series = () => {
   }
 
   return (
-    <section className="section light">
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">{t('series.title')}</h1>
-          {isAuthenticated && (
+    <>
+      <PageLayout
+        title={t('series.title')}
+        createButton={
+          isAuthenticated ? (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               + Create Series
             </button>
-          )}
-        </div>
-
-        <div className="toolbar">
-          <div className="toolbar-search">
-            <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <label className="control-label">
-              <span className="control-label-text">{t('common.sort')}</span>
-              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-            <label className="control-label">
-              <span className="control-label-text">{t('common.perPage')}</span>
-              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-info">
-            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalSeries})
-          </div>
-        </div>
-
-        <div className="grid">
-          {series.map((item) => (
-            <div key={item.id} className="card">
-              <h3 className="card-title">{item.name}</h3>
-
-              {item.intro && (
-                <p className="caption">
-                  {item.intro.length > 100
-                    ? item.intro.substring(0, 100) + "..."
-                    : item.intro}
-                </p>
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button
-                  className="btn-pill-link"
-                  onClick={() => navigate(`${item.id}`)}
-                >
-                  {t('common.view')}
-                </button>
-                {isAuthenticated && (
-                  <>
-                    <button className="btn-pill-link" onClick={() => openEdit(item)}>
-                      {t('common.edit')}
-                    </button>
-                    <button className="btn-pill-link"
-                      onClick={() => setConfirmDelete(item)}
-                      style={{ color: '#ff3b30' }}>
-                      {t('common.delete')}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {renderPagination()}
-      </div>
+          ) : null
+        }
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        searchPlaceholder={t('common.search')}
+        sortBy={sortBy}
+        sortOptions={sortOptions}
+        onSort={setSortByParam}
+        limit={limit}
+        onLimitChange={setLimitParam}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalSeries}
+        onPageChange={setPageParam}
+        layoutKey="series"
+        items={series}
+        renderItem={renderItem}
+        listColumns={listColumns}
+      />
 
       {/* ── Create / Edit Modal ─────────────────────────────── */}
       {modalOpen && (
@@ -427,7 +327,7 @@ const Series = () => {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 };
 

@@ -5,7 +5,7 @@ import './Books.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
-
+import PageLayout from './PageLayout';
 
 const Authors = () => {
   const { t } = useTranslation();
@@ -13,16 +13,14 @@ const Authors = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Derive state from URL search params
   const page = parseInt(searchParams.get('page')) || 1;
-  const limit = parseInt(searchParams.get('limit')) || 10;
+  const limit = parseInt(searchParams.get('limit')) || 20;
   const sortBy = searchParams.get('sort_by') || 'name';
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [totalPages, setTotalPages] = useState(1);
   const [totalAuthors, setTotalAuthors] = useState(0);
-  const [goToPage, setGoToPage] = useState('');
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,13 +60,10 @@ const Authors = () => {
     setSearchParams(next, { replace: true });
   };
 
-  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
-
   useEffect(() => {
     fetchAuthors();
   }, [fetchAuthors]);
 
-  // ── Modal helpers ──────────────────────────────────────────
   useEffect(() => {
     const fetchLists = async () => {
       try {
@@ -110,15 +105,12 @@ const Authors = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     setSaving(true);
-
-    // Strip empty strings so Pydantic validators don't reject them
     const payload = {};
     for (const [k, v] of Object.entries(formData)) {
       if (v !== '' && v !== null && v !== undefined) {
         payload[k] = v;
       }
     }
-
     try {
       if (editingAuthor) {
         await axios.put(
@@ -151,167 +143,141 @@ const Authors = () => {
     }
   };
 
-  // ── Pagination ─────────────────────────────────────────────
-
   const setPageParam = (p) => {
     const next = new URLSearchParams(searchParams);
     next.set('page', String(p));
     setSearchParams(next, { replace: true });
   };
 
-  const handleSortChange = (newSortBy) => {
+  const setSortByParam = (s) => {
     const next = new URLSearchParams(searchParams);
-    next.set('sort_by', newSortBy);
+    next.set('sort_by', s);
     next.set('page', '1');
     setSearchParams(next, { replace: true });
   };
 
-  const handleLimitChange = (newLimit) => {
+  const setLimitParam = (l) => {
     const next = new URLSearchParams(searchParams);
-    next.set('limit', newLimit);
+    next.set('limit', String(l));
     next.set('page', '1');
     setSearchParams(next, { replace: true });
   };
 
-  const handleGoToPage = () => {
-    const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPageParam(pageNum);
-    setGoToPage('');
-  };
-  const handleKeyPress = (e) => { if (e.key === 'Enter') handleGoToPage(); };
+  const sortOptions = [
+    { value: 'id', label: 'ID' },
+    { value: 'name', label: t('common.name') },
+  ];
 
-  const renderPagination = () => {
-    const pages = [];
-    const startPage = Math.max(1, page - 2);
-    const endPage = Math.min(totalPages, page + 2);
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPageParam(i)}>
-          {i}
-        </button>
+  const listColumns = ['', t('common.name'), 'Nation', 'Dynasty', 'Intro', 'Actions'];
+
+  const renderItem = (author, viewMode) => {
+    if (viewMode === 'list') {
+      return (
+        <tr key={author.id} onClick={() => navigate(`${author.id}`)}>
+          <td style={{ width: 44, padding: '6px 4px' }}>
+            {author.photo ? (
+              <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt="" style={{ width: 36, height: 36, borderRadius: 18, objectFit: 'cover', display: 'block' }} />
+            ) : (
+              <div style={{ width: 36, height: 36, borderRadius: 18, background: '#e5e5ea', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#86868b' }}>
+                {(author.name_cn || author.name)?.[0] || '?'}
+              </div>
+            )}
+          </td>
+          <td className="list-cell-primary">
+            {author.name_cn || author.name}
+            {author.name_cn && author.name && author.name !== author.name_cn && (
+              <span className="list-cell-secondary" style={{ marginLeft: 6 }}>({author.name})</span>
+            )}
+          </td>
+          <td className="list-cell-secondary">{author.nation || '\u65e0'}</td>
+          <td className="list-cell-secondary">{author.dynasty || ''}</td>
+          <td className="list-cell-secondary" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{author.intro || ''}</td>
+          {isAuthenticated && (
+            <td style={{ width: 80, textAlign: 'right' }}>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); openEdit(author); }}
+                style={{ fontSize: 12, padding: '4px 8px' }}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(author); }}
+                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </td>
+          )}
+        </tr>
       );
     }
     return (
-      <div className="pagination">
-        <div className="pagination-links">
-          {page > 1 && (
+      <div key={author.id} className="card">
+        {author.photo && (
+          <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={author.name_cn || author.name}
+            className="card-image authors-image hvr-float-shadow" />
+        )}
+        <p className="caption">
+          {author.nation === '中国' && author.dynasty
+            ? `[${author.dynasty}] `
+            : `[${author.nation || '无'}] `}
+          {author.name}
+        </p>
+        {author.intro && (
+          <p className="caption">
+            {author.intro.length > 80 ? author.intro.substring(0, 80) + '...' : author.intro}
+          </p>
+        )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
+            {t('common.view')}
+          </button>
+          {isAuthenticated && (
             <>
-              <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
-              <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
+              <button className="btn-pill-link" onClick={() => openEdit(author)}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link"
+                onClick={() => setConfirmDelete(author)}
+                style={{ color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
             </>
           )}
-          {pages}
-          {page < totalPages && (
-            <>
-              <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
-              <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
-            </>
-          )}
-        </div>
-        <div className="pagination-input">
-          <input type="number" id="page-input" min="1" max={totalPages} value={goToPage}
-            onChange={(e) => setGoToPage(e.target.value)} onKeyPress={handleKeyPress} />
-          <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
         </div>
       </div>
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────
-
-  if (loading) {
-    return <div className="loading">{t('common.loading')}</div>;
-  }
+  if (loading) return <div className="loading">{t('common.loading')}</div>;
 
   return (
-    <section className="section light">
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">{t('authors.title')}</h1>
-          {isAuthenticated && (
+    <>
+      <PageLayout
+        title={t('authors.title')}
+        createButton={
+          isAuthenticated ? (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               {t('authors.create')}
             </button>
-          )}
-        </div>
+          ) : null
+        }
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        searchPlaceholder={t('authors.searchPlaceholder')}
+        sortBy={sortBy}
+        sortOptions={sortOptions}
+        onSort={setSortByParam}
+        limit={limit}
+        onLimitChange={setLimitParam}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalAuthors}
+        onPageChange={setPageParam}
+        layoutKey="authors"
+        items={authors}
+        renderItem={renderItem}
+        listColumns={listColumns}
+      />
 
-        {/* Toolbar */}
-        <div className="toolbar">
-          <div className="toolbar-search">
-            <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder={t('authors.searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <label className="control-label">
-              <span className="control-label-text">{t('common.sort')}</span>
-              <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-            <label className="control-label">
-              <span className="control-label-text">{t('common.perPage')}</span>
-              <select value={limit} onChange={(e) => handleLimitChange(e.target.value)}>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-info">
-            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalAuthors})
-          </div>
-        </div>
-
-        <div className="grid">
-          {authors.map(author => (
-            <div key={author.id} className="card">
-              {author.photo && (
-                <img src={`${MEDIA_BASE_URL}/${author.photo}`} alt={author.name_cn || author.name}
-                  className="card-image authors-image hvr-float-shadow" />
-              )}
-              <p className="caption">
-                {author.nation === '中国' && author.dynasty
-                  ? `[${author.dynasty}] `
-                  : `[${author.nation || '无'}] `}
-                {author.name}
-              </p>
-              {author.intro && (
-                <p className="caption">
-                  {author.intro.length > 80 ? author.intro.substring(0, 80) + '...' : author.intro}
-                </p>
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${author.id}`)}>
-                  {t('common.view')}
-                </button>
-                {isAuthenticated && (
-                  <>
-                    <button className="btn-pill-link" onClick={() => openEdit(author)}>
-                      {t('common.edit')}
-                    </button>
-                    <button className="btn-pill-link"
-                      onClick={() => setConfirmDelete(author)}
-                      style={{ color: '#ff3b30' }}>
-                      {t('common.delete')}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {renderPagination()}
-      </div>
-
-      {/* ── Create / Edit Modal ─────────────────────────────── */}
+      {/* Create / Edit Modal */}
       {modalOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
@@ -387,7 +353,7 @@ const Authors = () => {
         </div>
       )}
 
-      {/* ── Delete Confirmation ─────────────────────────────── */}
+      {/* Delete Confirmation */}
       {confirmDelete && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10001,
@@ -415,7 +381,7 @@ const Authors = () => {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 };
 

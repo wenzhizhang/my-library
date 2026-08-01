@@ -5,6 +5,7 @@ import './Books.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
+import PageLayout from './PageLayout';
 
 const labelStyle = {
   display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
@@ -29,7 +30,7 @@ const Publishers = () => {
   const { isAuthenticated } = useAuth();
 
   const page = parseInt(searchParams.get('page')) || 1;
-  const limit = parseInt(searchParams.get('limit')) || 10;
+  const limit = parseInt(searchParams.get('limit')) || 20;
   const sortBy = searchParams.get('sort_by') || 'name';
 
   const [publishers, setPublishers] = useState([]);
@@ -46,7 +47,6 @@ const Publishers = () => {
   const [formData, setFormData] = useState({ name: '', intro: '', logo: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [goToPage, setGoToPage] = useState('');
 
   const fetchPublishers = useCallback(async () => {
     setLoading(true);
@@ -103,17 +103,6 @@ const Publishers = () => {
     next.set('page', '1');
     setSearchParams(next, { replace: true });
   };
-  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
-  const handleGoToPage = () => {
-    const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPageParam(pageNum);
-    setGoToPage('');
-  };
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleGoToPage();
-    }
-  };
 
   // ── Modal helpers ──────────────────────────────────────────
   const openCreate = () => {
@@ -159,119 +148,95 @@ const Publishers = () => {
     }
   };
 
-  // ── Pagination ─────────────────────────────────────────────
-  const pages = [];
-  const startPage = Math.max(1, page - 2);
-  const endPage = Math.min(totalPages, page + 2);
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(
-      <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPageParam(i)}>
-        {i}
-      </button>
+  const sortOptions = [
+    { value: 'id', label: 'ID' },
+    { value: 'name', label: t('common.name') },
+  ];
+
+  const listColumns = ['', t('common.name'), t('common.introduction'), 'Actions'];
+
+  const renderItem = (publisher, viewMode) => {
+    if (viewMode === 'list') {
+      return (
+        <tr key={publisher.id} onClick={() => navigate(`${publisher.id}`)}>
+          <td style={{ width: 44, padding: '6px 4px' }}>
+            {publisher.logo && (
+              <img src={publisher.logo.startsWith('http') ? publisher.logo : `${MEDIA_BASE_URL}/${publisher.logo}`}
+                alt={publisher.name} style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 4, display: 'block' }} />
+            )}
+          </td>
+          <td className="list-cell-primary">{publisher.name}</td>
+          <td className="list-cell-secondary" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{publisher.intro || ''}</td>
+          {isAuthenticated && (
+            <td style={{ width: 80, textAlign: 'right' }}>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); openEdit(publisher); }}
+                style={{ fontSize: 12, padding: '4px 8px' }}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(publisher); }}
+                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </td>
+          )}
+        </tr>
+      );
+    }
+    return (
+      <div key={publisher.id} className="card">
+        {publisher.logo && (
+          <img src={publisher.logo.startsWith('http') ? publisher.logo : `${MEDIA_BASE_URL}/${publisher.logo}`}
+            alt={publisher.name}
+            className="card-image" style={{ maxHeight: 120, objectFit: 'contain' }} />
+        )}
+        <h3 className="card-title">{publisher.name}</h3>
+        {publisher.intro && <p className="caption">{publisher.intro.length > 100 ? publisher.intro.substring(0, 100) + '...' : publisher.intro}</p>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button className="btn-pill-link" onClick={() => navigate(`${publisher.id}`)}>{t('common.view')}</button>
+          {isAuthenticated && (
+            <>
+              <button className="btn-pill-link" onClick={() => openEdit(publisher)}>{t('common.edit')}</button>
+              <button className="btn-pill-link"
+                onClick={() => setConfirmDelete(publisher)}
+                style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
+            </>
+          )}
+        </div>
+      </div>
     );
-  }
+  };
 
   if (loading) return <div className="loading">Loading...</div>;
 
   return (
-    <section className="section light">
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">{t('publishers.title')}</h1>
-          {isAuthenticated && (
+    <>
+      <PageLayout
+        title={t('publishers.title')}
+        createButton={
+          isAuthenticated ? (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               + Create Publisher
             </button>
-          )}
-        </div>
-
-        <div className="toolbar">
-          <div className="toolbar-search">
-            <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <label className="control-label">
-              <span className="control-label-text">{t('common.sort')}</span>
-              <select value={sortBy} onChange={(e) => setSortByParam(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-            <label className="control-label">
-              <span className="control-label-text">{t('common.perPage')}</span>
-              <select value={limit} onChange={(e) => setLimitParam(parseInt(e.target.value))}>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-info">
-            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalPublishers})
-          </div>
-        </div>
-
-        <div className="grid">
-          {publishers.map(publisher => (
-            <div key={publisher.id} className="card">
-              {publisher.logo && (
-                <img src={publisher.logo.startsWith('http') ? publisher.logo : `${MEDIA_BASE_URL}/${publisher.logo}`}
-                  alt={publisher.name}
-                  className="card-image" style={{ maxHeight: 120, objectFit: 'contain' }} />
-              )}
-              <h3 className="card-title">{publisher.name}</h3>
-              {publisher.intro && <p className="caption">{publisher.intro.length > 100 ? publisher.intro.substring(0, 100) + '...' : publisher.intro}</p>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => navigate(`${publisher.id}`)}>{t('common.view')}</button>
-                {isAuthenticated && (
-                  <>
-                    <button className="btn-pill-link" onClick={() => openEdit(publisher)}>{t('common.edit')}</button>
-                    <button className="btn-pill-link"
-                      style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="pagination">
-          <div className="pagination-links">
-            {page > 1 && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
-              </>
-            )}
-            {pages}
-            {page < totalPages && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
-              </>
-            )}
-          </div>
-          <div className="pagination-input">
-            <input
-              type="number"
-              id="page-input"
-              min="1"
-              max={totalPages}
-              value={goToPage}
-              onChange={(e) => setGoToPage(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
-          </div>
-        </div>
-      </div>
+          ) : null
+        }
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        searchPlaceholder={t('common.search')}
+        sortBy={sortBy}
+        sortOptions={sortOptions}
+        onSort={setSortByParam}
+        limit={limit}
+        onLimitChange={setLimitParam}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalPublishers}
+        onPageChange={setPageParam}
+        layoutKey="publishers"
+        items={publishers}
+        renderItem={renderItem}
+        listColumns={listColumns}
+      />
 
       {/* ── Create / Edit Modal ─────────────────────────────── */}
       {modalOpen && (
@@ -350,7 +315,7 @@ const Publishers = () => {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 };
 

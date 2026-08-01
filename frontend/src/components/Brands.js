@@ -5,6 +5,7 @@ import './Books.css';
 import { API_BASE_URL } from './Config';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../AuthContext';
+import PageLayout from './PageLayout';
 
 const labelStyle = {
   display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600, color: '#1d1d1f',
@@ -29,7 +30,7 @@ const Brands = () => {
   const { isAuthenticated } = useAuth();
 
   const page = parseInt(searchParams.get('page')) || 1;
-  const limit = parseInt(searchParams.get('limit')) || 10;
+  const limit = parseInt(searchParams.get('limit')) || 20;
   const sortBy = searchParams.get('sort_by') || 'name';
 
   const [brands, setBrands] = useState([]);
@@ -46,7 +47,6 @@ const Brands = () => {
   const [formData, setFormData] = useState({ name: '', intro: '' });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [goToPage, setGoToPage] = useState('');
 
   const fetchBrands = useCallback(async () => {
     setLoading(true);
@@ -68,7 +68,6 @@ const Brands = () => {
     fetchBrands();
   }, [fetchBrands]);
 
-  // Sync submittedQuery from URL on mount
   useEffect(() => {
     const q = searchParams.get('q');
     if (q !== null) {
@@ -103,22 +102,6 @@ const Brands = () => {
     next.set('page', '1');
     setSearchParams(next, { replace: true });
   };
-
-  const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
-
-  const handleGoToPage = () => {
-    const pageNum = Math.min(Math.max(parseInt(goToPage) || 1, 1), totalPages);
-    setPageParam(pageNum);
-    setGoToPage('');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleGoToPage();
-    }
-  };
-
-  // ── Modal helpers ──────────────────────────────────────────
 
   const openCreate = () => {
     setFormData({ name: '', intro: '' });
@@ -166,125 +149,94 @@ const Brands = () => {
     }
   };
 
-  // ── Pagination ─────────────────────────────────────────────
-  const pages = [];
-  const startPage = Math.max(1, page - 2);
-  const endPage = Math.min(totalPages, page + 2);
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(
-      <button key={i} className={`btn-pill-link ${i === page ? 'active' : ''}`} onClick={() => setPageParam(i)}>
-        {i}
-      </button>
+  const sortOptions = [
+    { value: 'id', label: 'ID' },
+    { value: 'name', label: t('common.name') },
+  ];
+
+  const listColumns = [t('common.name'), t('common.introduction'), 'Actions'];
+
+  const renderItem = (item, viewMode) => {
+    if (viewMode === 'list') {
+      return (
+        <tr key={item.id} onClick={() => navigate(`${item.id}`)}>
+          <td className="list-cell-primary">{item.name}</td>
+          <td className="list-cell-secondary" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {item.intro ? (item.intro.length > 80 ? item.intro.substring(0, 80) + '...' : item.intro) : ''}
+          </td>
+          {isAuthenticated && (
+            <td style={{ width: 80, textAlign: 'right' }}>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+                style={{ fontSize: 12, padding: '4px 8px' }}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(item); }}
+                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </td>
+          )}
+        </tr>
+      );
+    }
+    return (
+      <div key={item.id} className="card">
+        <h3 className="card-title">{item.name}</h3>
+        {item.intro && <p className="caption">{item.intro.length > 100 ? item.intro.substring(0, 100) + '...' : item.intro}</p>}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button className="btn-pill-link" onClick={() => navigate(`${item.id}`)}>
+            {t('common.view')}
+          </button>
+          {isAuthenticated && (
+            <>
+              <button className="btn-pill-link" onClick={() => openEdit(item)}>
+                {t('common.edit')}
+              </button>
+              <button className="btn-pill-link"
+                onClick={() => setConfirmDelete(item)}
+                style={{ color: '#ff3b30' }}>
+                {t('common.delete')}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     );
-  }
+  };
 
   if (loading) return <div className="loading">Loading...</div>;
 
   return (
-    <section className="section light">
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="section-heading">{t('brands.title')}</h1>
-          {isAuthenticated && (
+    <>
+      <PageLayout
+        title={t('brands.title')}
+        createButton={
+          isAuthenticated ? (
             <button className="btn-pill-link" onClick={openCreate} style={{ marginBottom: 20 }}>
               + Create Brand
             </button>
-          )}
-        </div>
+          ) : null
+        }
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearch={handleSearch}
+        searchPlaceholder={t('common.search')}
+        sortBy={sortBy}
+        sortOptions={sortOptions}
+        onSort={setSortByParam}
+        limit={limit}
+        onLimitChange={setLimitParam}
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalBrands}
+        onPageChange={setPageParam}
+        layoutKey="brands"
+        items={brands}
+        renderItem={renderItem}
+        listColumns={listColumns}
+      />
 
-        <div className="toolbar">
-          <div className="toolbar-search">
-            <div className="toolbar-search-row">
-              <input className="toolbar-search-input" placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} />
-              <button className="btn-pill-link" onClick={handleSearch}>{t('common.search')}</button>
-            </div>
-          </div>
-          <div className="toolbar-actions">
-            <label className="control-label">
-              <span className="control-label-text">{t('common.sort')}</span>
-              <select value={sortBy} onChange={(e) => setSortByParam(e.target.value)}>
-                <option value="id">ID</option>
-                <option value="name">Name</option>
-              </select>
-            </label>
-            <label className="control-label">
-              <span className="control-label-text">{t('common.perPage')}</span>
-              <select value={limit} onChange={(e) => setLimitParam(e.target.value)}>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </label>
-          </div>
-          <div className="toolbar-info">
-            {t('common.page')} {page} {t('common.of')} {totalPages} ({t('common.total')} {totalBrands})
-          </div>
-        </div>
-
-        <div className="grid">
-          {brands.map(brand => (
-            <div key={brand.id} className="card">
-              <h3 className="card-title">{brand.name}</h3>
-              {brand.intro && <p className="caption">{brand.intro.length > 100 ? brand.intro.substring(0, 100) + '...' : brand.intro}</p>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                <button className="btn-pill-link" onClick={() => { navigate(`${brand.id}`); }}>
-                  {t('common.view')}
-                </button>
-                {isAuthenticated && (
-                  <>
-                    <button className="btn-pill-link" onClick={() => { openEdit(brand); }}>
-                      {t('common.edit')}
-                    </button>
-                    <button className="btn-pill-link"
-                      onClick={() => setConfirmDelete(brand)}
-                      style={{ color: '#ff3b30' }}>
-                      {t('common.delete')}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="pagination" style={{ marginTop: 24 }}>
-          <div className="pagination-links">
-            {page > 1 && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(1)}>{t('common.first')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(page - 1)}>{t('common.previous')}</button>
-              </>
-            )}
-
-            {pages}
-
-            {page < totalPages && (
-              <>
-                <button className="btn-pill-link" onClick={() => setPageParam(page + 1)}>{t('common.next')}</button>
-                <button className="btn-pill-link" onClick={() => setPageParam(totalPages)}>{t('common.last')}</button>
-              </>
-            )}
-          </div>
-
-          <div className="pagination-input">
-            <input
-              type="number"
-              id="page-input"
-              min="1"
-              max={totalPages}
-              value={goToPage}
-              onChange={(e) => setGoToPage(e.target.value)}
-              onKeyPress={handleKeyPress}
-            />
-            <button className="btn-pill-link" onClick={handleGoToPage}>{t('common.goToPage')}</button>
-          </div>
-        </div>
-      </div>
-      {/* ── Create / Edit Modal ─────────────────────────────── */}
+      {/* Create / Edit Modal */}
       {modalOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
@@ -328,7 +280,7 @@ const Brands = () => {
         </div>
       )}
 
-      {/* ── Delete Confirmation ─────────────────────────────── */}
+      {/* Delete Confirmation */}
       {confirmDelete && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10001,
@@ -355,7 +307,7 @@ const Brands = () => {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 };
 
