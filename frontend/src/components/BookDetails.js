@@ -103,6 +103,8 @@ const BookDetails = () => {
   const [similarBooks, setSimilarBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState(false);
   const [movingToLibrary, setMovingToLibrary] = useState(false);
   const [moveError, setMoveError] = useState(false);
 
@@ -155,6 +157,19 @@ const BookDetails = () => {
       setMoveError(true);
     }
     setMovingToLibrary(false);
+  };
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    setArchiveError(false);
+    try {
+      await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}/archive`);
+      setBook(prev => ({ ...prev, archived: true }));
+    } catch (err) {
+      console.error('Error archiving book:', err);
+      setArchiveError(true);
+    }
+    setArchiving(false);
   };
 
   /* ---- Loading Skeleton ---- */
@@ -210,17 +225,37 @@ const BookDetails = () => {
     <div className="bd-page">
       <div className="bd-container">
 
-        {/* Back */}
-        <button
-          className="bd-back"
-          onClick={() => navigate(`${LIBRARY_PATH}/books`)}
-        >
-          <span className="bd-back-arrow">←</span> {t('books.backToList')}
-        </button>
+        {/* Header toolbar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <h1 className="bd-title">{title}</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn-pill-link"
+              onClick={() => navigate(`${LIBRARY_PATH}/books`)}
+            >
+              {t('books.backToList')}
+            </button>
+            {isAuthenticated && !book.archived && (
+              <>
+                <button
+                  className="btn-pill-link"
+                  onClick={handleArchive}
+                  disabled={archiving}
+                >
+                  {archiving ? '…' : t('bookDetails.archive')}
+                </button>
+                {archiveError && (
+                  <span style={{ fontSize: 13, color: '#ff3b30' }}>
+                    {t('common.error')}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* ── Hero ── */}
         <header className="bd-hero">
-          <h1 className="bd-title">{title}</h1>
 
           {/* Subtitle: authors + publisher */}
           <div className="bd-subtitle">
@@ -238,6 +273,7 @@ const BookDetails = () => {
               </>
             )}
           </div>
+
           {isAuthenticated && book.in_wish && (
             <div style={{ marginTop: '12px', marginBottom: '4px' }}>
               <button

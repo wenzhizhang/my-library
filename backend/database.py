@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from typing import Optional
 
 from fastapi import Depends
@@ -199,3 +200,28 @@ def init_root_db():
                 conn.exec_driver_sql(f"DROP TABLE IF EXISTS [{name}]")
 
     print(f"[init_root_db] Done, tables: {wanted}", flush=True)
+
+def migrate_schema():
+    """Apply missing schema migrations to all existing databases."""
+    import glob
+    db_files = glob.glob(os.path.join(DATA_DIR, "*.db"))
+    for db_path in db_files:
+        try:
+            conn = sqlite3.connect(db_path)
+            # Check if books table exists
+            tables = [r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='books'"
+            ).fetchall()]
+            if not tables:
+                conn.close()
+                continue
+            # Check if archived column exists
+            cols = [r[1] for r in conn.execute("PRAGMA table_info(books)").fetchall()]
+            if 'archived' not in cols:
+                conn.execute("ALTER TABLE books ADD COLUMN archived BOOLEAN DEFAULT 0 NOT NULL")
+                conn.commit()
+                print(f"[migrate_schema] Added archived column to {db_path}", flush=True)
+            conn.close()
+        except Exception as e:
+            print(f"[migrate_schema] Skipping {db_path}: {e}", flush=True)
+    print("[migrate_schema] Done", flush=True)

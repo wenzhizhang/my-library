@@ -13,6 +13,7 @@ import BookCollections from './components/BookCollections';
 import ReadingPlans from './components/ReadingPlans';
 import Brands from './components/Brands';
 import Wishlist from './components/Wishlist';
+import Archived from './components/Archived';
 import Series from './components/Series';
 import BookDetails from './components/BookDetails';
 import BookFormPage from './components/BookFormPage';
@@ -71,6 +72,7 @@ function MyLibrary() {
             <Route path="series" element={<Series />} />
             <Route path="series/:id" element={<SeriesDetails />} />
             <Route path="stats" element={<StatsPage />} />
+            <Route path="archived" element={<Archived />} />
             <Route path="export" element={<ExportPage />} />
           </Routes>
         </main>

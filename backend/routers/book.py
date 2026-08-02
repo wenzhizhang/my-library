@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/books", tags=["books"])
 def search_books(filter_params: FilterParams = Depends(), db: Session = Depends(get_db)):
     # query = db.query(Book).options(joinedload(Book.authors))
 
-    stmt = select(Book).options(selectinload(Book.authors)).where(Book.in_wish == False)
+    stmt = select(Book).options(selectinload(Book.authors)).where(Book.in_wish == False, Book.archived == False)
 
     filters_dict = filter_params.model_dump(exclude_unset=True)
     stmt = BookSearchStrategy.apply_filters(stmt, filters_dict)
@@ -85,7 +85,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     offset = (page - 1) * limit
 
     # ✅ 1. 基础 query（加 eager load，避免 N+1）
-    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == False)
+    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == False, Book.archived == False)
 
     # ✅ 2. 应用搜索条件
     filters_dict = filter_params.model_dump(exclude_unset=True)
@@ -132,7 +132,7 @@ def get_book_titles(db: Session = Depends(get_db)):
     """Return all books as lightweight {id, name, thumb_image, book_count} tuples for dropdowns, excluding wishlist items."""
     rows = db.execute(
         select(Book.id, Book.title_cn, Book.title, Book.thumb_image, Book.book_count)
-        .where(Book.in_wish == False)
+        .where(Book.in_wish == False, Book.archived == False)
         .order_by(Book.title)
     ).all()
     return [
@@ -157,6 +157,7 @@ def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db
     tag_conditions = [Book.tags.like(f'%"{tag}"%') for tag in current_tags]
     candidates = db.query(Book).options(selectinload(Book.authors)).filter(
         Book.id != book_id,
+        Book.archived == False,
         Book.tags.isnot(None),
         or_(*tag_conditions)
     ).all()
@@ -196,11 +197,47 @@ def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db
 def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", db: Session = Depends(get_db)):
     """Return paginated wishlist books (in_wish=True)."""
     offset = (page - 1) * limit
-
-    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == True)
+    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.in_wish == True, Book.archived == False)
 
     total_books = query.with_entities(Book.id).distinct().count()
     total_pages = (total_books + limit - 1) // limit if total_books > 0 else 1
+
+    if sort_by == "title":
+        query = query.order_by(Book.title)
+    elif sort_by == "created_at":
+        query = query.order_by(Book.created_at.desc())
+    else:
+        query = query.order_by(Book.id)
+
+    books = query.offset(offset).limit(limit).all()
+
+    books_data = []
+    for book in books:
+        books_data.append({
+            "id": book.id,
+            "isbn": book.isbn,
+            "title_cn": book.title_cn,
+            "title": book.title,
+            "thumb_image": book.thumb_image,
+            "authors": [str(author) for author in book.authors],
+            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
+            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
+        })
+
+    return {
+        "books": books_data,
+        "total_pages": total_pages,
+        "total_books": total_books
+    }
+
+@router.get("/archived")
+def read_archived_books(page: int = 1, limit: int = 10, sort_by: str = "title", db: Session = Depends(get_db)):
+    offset = (page - 1) * limit
+
+    query = db.query(Book).options(selectinload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(Book.archived == True)
+
+    total_books = query.with_entities(Book.id).distinct().count()
+    total_pages = (total_books + limit - 1) // limit
 
     if sort_by == "title":
         query = query.order_by(Book.title)
@@ -272,7 +309,18 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
         "purchase_store": book.purchase_store,
         "tags": book.tags or [],
         "in_wish": book.in_wish,
+        "archived": book.archived,
     }
+
+
+@router.put("/{book_id}/archive")
+def archive_book(book_id: int, db: Session = Depends(get_db)):
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    book.archived = True
+    db.commit()
+    return {"message": "Book archived"}
 
 @router.put("/{book_id}", response_model=BookResponse)
 def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get_db)):
@@ -331,6 +379,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
         "purchase_store": book.purchase_store,
         "tags": book.tags or [],
         "in_wish": book.in_wish,
+        "archived": book.archived,
     }
 
 @router.delete("/{book_id}")

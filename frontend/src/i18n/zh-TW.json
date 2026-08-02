@@ -389,7 +389,13 @@
     "status": "狀態",
     "yes": "是",
     "no": "否",
-    "moveToLibrary": "存入圖書館"
+    "moveToLibrary": "存入圖書館",
+    "archive": "歸檔",
+    "archived": "已歸檔"
+  },
+  "archived": {
+    "title": "已歸檔圖書",
+    "empty": "暫無已歸檔的圖書。"
   },
   "export": {
     "title": "匯出資料",

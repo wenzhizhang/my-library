@@ -301,3 +301,4 @@ class BookResponse(BaseModel):
     purchase_store: Optional[str] = None
     tags: Optional[List[str]] = None
     in_wish: Optional[bool] = None
+    archived: Optional[bool] = None

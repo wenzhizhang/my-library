@@ -389,7 +389,13 @@
     "status": "Status",
     "yes": "Yes",
     "no": "No",
-    "moveToLibrary": "Move to Library"
+    "moveToLibrary": "Move to Library",
+    "archive": "Archive",
+    "archived": "Archived"
+  },
+  "archived": {
+    "title": "Archived Books",
+    "empty": "No archived books yet."
   },
   "export": {
     "title": "Export Data",

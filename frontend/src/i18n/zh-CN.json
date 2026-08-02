@@ -371,7 +371,13 @@
     "status": "状态",
     "yes": "是",
     "no": "否",
-    "moveToLibrary": "存入图书馆"
+    "moveToLibrary": "存入图书馆",
+    "archive": "归档",
+    "archived": "已归档"
+  },
+  "archived": {
+    "title": "已归档图书",
+    "empty": "暂无已归档的图书。"
   },
   "export": {
     "title": "导出数据",

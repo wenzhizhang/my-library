@@ -135,6 +135,13 @@ const Header = () => {
             style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
           >
             <Link
+              to={getPath('/archived')}
+              className="nav-user-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t('archived.title')}
+            </Link>
+            <Link
               to={getPath('/export')}
               className="nav-user-menu-item"
               onClick={() => setMenuOpen(false)}

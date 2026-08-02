@@ -62,6 +62,7 @@ class Book(Base):
     purchase_store: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     tags: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
     in_wish: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
 

@@ -20,8 +20,9 @@ app = FastAPI(title="My Library", description="A book library management system"
 
 @app.on_event("startup")
 def startup():
-    from database import init_root_db
+    from database import init_root_db, migrate_schema
     init_root_db()
+    migrate_schema()
 
 
 @app.get("/openapi.json", include_in_schema=False)
