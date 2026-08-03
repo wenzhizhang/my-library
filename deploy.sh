@@ -2,6 +2,8 @@
 
 # Deploy Script for My Library (Production Server)
 # Run this on the production server to pull latest images and restart containers.
+# Images use per-service versioning — each service has its own version and
+# :latest tag. Deploy with :latest (default) to always get the newest of each service.
 
 set -e
 
@@ -23,7 +25,6 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --tag TAG       Set image tag to deploy (default: latest)
   --no-pull       Skip pulling new images
   --init          (Re)generate .env template and exit
   --seed-db FILE  Copy local SQLite database into the persistent volume
@@ -35,27 +36,30 @@ First-time setup:
   $0 --seed-db ./demo.db           # Deploy and import local database
 
 Examples:
-  $0                               # Deploy latest
-  $0 --tag v1.2.0                  # Deploy specific version
+  $0                               # Deploy latest of each service (recommended)
+  $0 --no-pull                     # Restart containers without pulling
   $0 --seed-db /path/to/demo.db    # Import database on deploy
-  TAG=latest $0                    # Deploy latest via env var
 
 Environment:
-  TAG                  Image tag to deploy (default: latest)
   CCR_NAMESPACE        Tencent CCR namespace (default: my-library)
+
+Per-service versioning:
+  Each service (nginx, backend, frontend) has its own version and :latest tag.
+  Deploy always pulls :latest by default — the newest image of each service.
+
+  To roll back a specific service, edit docker-compose.prod.yml and pin the
+  image tag, then redeploy. Example:
+    image: ccr.ccs.tencentyun.com/my-library/my-library-backend:v0.3.17
+  Then run: $0 --no-pull
 EOF
     exit 0
 }
-
 NO_PULL=false
 INIT_ONLY=false
 SEED_DB_FILE=""
-CLI_TAG=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --tag)
-            CLI_TAG="$2"; shift 2 ;;
         --no-pull)
             NO_PULL=true; shift ;;
         --init)
@@ -136,8 +140,8 @@ fi
 # Load .env
 export $(grep -v '^#' "${ENV_FILE}" | xargs)
 
-# TAG 优先级: CLI --tag > .env TAG > latest
-TAG="${CLI_TAG:-${TAG:-latest}}"
+# TAG defaults to latest; can be overridden via .env TAG=...
+TAG="${TAG:-latest}"
 export TAG
 
 print_info "Deploying with TAG=${TAG}"

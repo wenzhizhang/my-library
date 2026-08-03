@@ -22,3 +22,9 @@ backend/config/nginx.conf
 
 # Database files
 *.db
+
+# Build change-detection marker
+.build-marker
+
+# Per-service version tracking
+.version-*
