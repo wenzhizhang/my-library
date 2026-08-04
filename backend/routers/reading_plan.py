@@ -14,6 +14,7 @@ from schemas.reading_plan import (
     BatchAddBooks,
 )
 from database import get_db
+from serializers import serialize_book
 
 router = APIRouter(prefix="/api/reading-plans", tags=["reading-plans"])
 
@@ -105,7 +106,7 @@ def read_plan_books(plan_id: int, page: int = 1, limit: int = 10, db: Session = 
     plan = db.query(ReadingPlan).filter(ReadingPlan.id == plan_id).first()
     if plan is None:
         raise HTTPException(status_code=404, detail="Reading plan not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.reading_plans.any(ReadingPlan.id == plan_id),
         Book.in_wish == False
     )
@@ -114,7 +115,7 @@ def read_plan_books(plan_id: int, page: int = 1, limit: int = 10, db: Session = 
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }

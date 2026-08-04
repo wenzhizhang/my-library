@@ -13,6 +13,7 @@ from schemas.book_collection import (
     BatchAddBooks,
 )
 from database import get_db
+from serializers import serialize_book
 
 router = APIRouter(prefix="/api/book-collections", tags=["book-collections"])
 
@@ -88,7 +89,7 @@ def read_collection_books(collection_id: int, page: int = 1, limit: int = 10, db
     collection = db.query(BookCollection).filter(BookCollection.id == collection_id).first()
     if collection is None:
         raise HTTPException(status_code=404, detail="Book collection not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.collections.any(BookCollection.id == collection_id),
         Book.in_wish == False
     )
@@ -97,7 +98,7 @@ def read_collection_books(collection_id: int, page: int = 1, limit: int = 10, db
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }

@@ -7,6 +7,7 @@ from models import Book, Author, book_authors
 from models.book import BookSearchStrategy
 from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
+from serializers import serialize_book
 from services.sync_to_root import sync_book as sync_book_to_root, sync_book_author as sync_book_author_to_root
 from rag.pipeline import sync_book, remove_book
 
@@ -106,19 +107,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     # ✅ 5. 分页
     books = query.offset(offset).limit(limit).all()
 
-    # ✅ 6. 序列化（你原来的逻辑）
-    books_data = []
-    for book in books:
-        books_data.append({
-            "id": book.id,
-            "isbn": book.isbn,
-            "title_cn": book.title_cn,
-            "title": book.title,
-            "thumb_image": book.thumb_image,
-            "authors": [str(author) for author in book.authors],
-            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
-            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
-        })
+    books_data = [serialize_book(book) for book in books]
 
     return {
         "books": books_data,
@@ -211,18 +200,7 @@ def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", d
 
     books = query.offset(offset).limit(limit).all()
 
-    books_data = []
-    for book in books:
-        books_data.append({
-            "id": book.id,
-            "isbn": book.isbn,
-            "title_cn": book.title_cn,
-            "title": book.title,
-            "thumb_image": book.thumb_image,
-            "authors": [str(author) for author in book.authors],
-            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
-            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
-        })
+    books_data = [serialize_book(book) for book in books]
 
     return {
         "books": books_data,
@@ -248,18 +226,7 @@ def read_archived_books(page: int = 1, limit: int = 10, sort_by: str = "title", 
 
     books = query.offset(offset).limit(limit).all()
 
-    books_data = []
-    for book in books:
-        books_data.append({
-            "id": book.id,
-            "isbn": book.isbn,
-            "title_cn": book.title_cn,
-            "title": book.title,
-            "thumb_image": book.thumb_image,
-            "authors": [str(author) for author in book.authors],
-            "publisher": {"id": book.publisher.id, "name": book.publisher.name} if book.publisher else None,
-            "category": {"id": book.category.id, "name": book.category.name} if book.category else None,
-        })
+    books_data = [serialize_book(book) for book in books]
 
     return {
         "books": books_data,

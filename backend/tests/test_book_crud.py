@@ -304,3 +304,68 @@ def test_book_10_filter_purchase_month(client, db):
     titles = [b["title"] for b in resp.json()["books"]]
     assert "June Book" in titles
     assert "July Book" not in titles
+
+
+def test_book_11_detail_lists_authors_as_strings(client, db):
+    """Detail /books endpoints → authors are display strings, not objects.
+
+    The BookCard renders authors via `join(', ')`, which only works with
+    string entries; every book-list endpoint must match the /api/books/
+    contract (str(Author) → "[dynasty] name_cn").
+    """
+    from models import (
+        Author, Book, Category, Publisher, Brand, BookSeries,
+        Bookshelf, BookCollection, ReadingPlan,
+    )
+
+    author = Author(name="Rowling", name_cn="罗琳", dynasty="当代")
+    category = Category(name="Sci-fi")
+    publisher = Publisher(name="ACM Press")
+    brand = Brand(name="Brand One")
+    series = BookSeries(name="Series One")
+    bookshelf = Bookshelf(name="Shelf One")
+    collection = BookCollection(name="Collection One")
+    plan = ReadingPlan(name="Plan One")
+    db.add_all([author, category, publisher, brand, series, bookshelf, collection, plan])
+    db.commit()
+
+    book = Book(title="Test Book", isbn="978-7-01-000100-1")
+    book.authors.append(author)
+    book.category = category
+    book.publisher = publisher
+    book.brand = brand
+    book.book_series = series
+    book.bookshelf = bookshelf
+    book.collections.append(collection)
+    book.reading_plans.append(plan)
+    db.add(book)
+
+    # Wishlist/archived books exercise the /api/books/* list endpoints,
+    # which filter by in_wish/archived respectively.
+    wishlist_book = Book(title="Wish Book", isbn="978-7-01-000101-8", in_wish=True)
+    wishlist_book.authors.append(author)
+    db.add(wishlist_book)
+    archived_book = Book(title="Archived Book", isbn="978-7-01-000102-5", archived=True)
+    db.add(archived_book)
+    db.commit()
+
+    # url → expected authors (the archived book has no author)
+    endpoints = {
+        f"/api/authors/{author.id}/books": ["[当代] 罗琳"],
+        f"/api/categories/{category.id}/books": ["[当代] 罗琳"],
+        f"/api/publishers/{publisher.id}/books": ["[当代] 罗琳"],
+        f"/api/brands/{brand.id}/books": ["[当代] 罗琳"],
+        f"/api/series/{series.id}/books": ["[当代] 罗琳"],
+        f"/api/bookshelves/{bookshelf.id}/books": ["[当代] 罗琳"],
+        f"/api/book-collections/{collection.id}/books": ["[当代] 罗琳"],
+        f"/api/reading-plans/{plan.id}/books": ["[当代] 罗琳"],
+        "/api/books/": ["[当代] 罗琳"],
+        "/api/books/wishlist": ["[当代] 罗琳"],
+        "/api/books/archived": [],
+    }
+    for url, expected_authors in endpoints.items():
+        resp = client.get(url)
+        assert resp.status_code == 200, (url, resp.text)
+        books = resp.json()["books"]
+        assert len(books) == 1, url
+        assert books[0]["authors"] == expected_authors, (url, books[0]["authors"])

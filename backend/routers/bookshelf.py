@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Bookshelf, Book
 from schemas.bookshelf import BookshelfCreation, BookshelfUpdate, BookshelfResponse
 from database import get_db
+from serializers import serialize_book
 from auth import get_current_user_id
 
 router = APIRouter(prefix="/api/bookshelves", tags=["bookshelves"])
@@ -60,7 +61,7 @@ def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, db: 
     bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.bookshelf_id == bookshelf_id,
         Book.in_wish == False
     )
@@ -69,7 +70,7 @@ def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, db: 
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }
