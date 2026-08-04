@@ -167,8 +167,11 @@ init_apps_db()
 # Shared root database — public reference data (authors, publishers, etc.)
 # =============================================================================
 ROOT_DB_PATH = os.environ.get("ROOT_DB_PATH", os.path.join(DATA_DIR, "root.db"))
-root_engine = create_engine(
-    f"sqlite:///{ROOT_DB_PATH}", connect_args={"check_same_thread": False}
+# Use the shared helper so sqlite-vec (vec0) is loaded: the root DB can
+# contain stale vec0 tables (book_vectors) from older schemas, and the
+# init_root_db cleanup drops them — without vec0 the DROP fails at startup.
+root_engine = _create_sqlite_engine(
+    ROOT_DB_PATH, connect_args={"check_same_thread": False}
 )
 RootSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=root_engine)
 

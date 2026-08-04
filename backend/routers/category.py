@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Category, Book
 from schemas.category import CategoryCreation, CategoryUpdate, CategoryResponse
 from database import get_db
+from serializers import serialize_book
 from auth import get_current_user_id
 from services.sync_to_root import sync_category
 
@@ -70,7 +71,7 @@ def read_category_books(category_id: int, page: int = 1, limit: int = 10, db: Se
     category = db.query(Category).filter(Category.id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.category_id == category_id,
         Book.in_wish == False
     )
@@ -79,7 +80,7 @@ def read_category_books(category_id: int, page: int = 1, limit: int = 10, db: Se
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }

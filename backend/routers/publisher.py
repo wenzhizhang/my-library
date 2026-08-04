@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Publisher, Brand, Book
 from schemas.publisher import PublisherCreation, PublisherUpdate, PublisherResponse, BrandCreation, BrandUpdate, BrandResponse
 from database import get_db
+from serializers import serialize_book
 from auth import get_current_user_id
 from services.sync_to_root import sync_publisher, sync_brand
 
@@ -63,7 +64,7 @@ def read_publisher_books(publisher_id: int, page: int = 1, limit: int = 10, db: 
     publisher = db.query(Publisher).filter(Publisher.id == publisher_id).first()
     if publisher is None:
         raise HTTPException(status_code=404, detail="Publisher not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.publisher_id == publisher_id,
         Book.in_wish == False
     )
@@ -72,7 +73,7 @@ def read_publisher_books(publisher_id: int, page: int = 1, limit: int = 10, db: 
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }
@@ -156,7 +157,7 @@ def read_brand_books(brand_id: int, page: int = 1, limit: int = 10, db: Session 
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if brand is None:
         raise HTTPException(status_code=404, detail="Brand not found")
-    query = db.query(Book).options(joinedload(Book.authors)).filter(
+    query = db.query(Book).options(joinedload(Book.authors), selectinload(Book.publisher), selectinload(Book.category)).filter(
         Book.brand_id == brand_id,
         Book.in_wish == False
     )
@@ -165,7 +166,7 @@ def read_brand_books(brand_id: int, page: int = 1, limit: int = 10, db: Session 
     offset = (page - 1) * limit
     books = query.order_by(Book.title).offset(offset).limit(limit).all()
     return {
-        "books": books,
+        "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
         "total_books": total_books
     }
