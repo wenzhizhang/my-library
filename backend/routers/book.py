@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Book, Author, book_authors
-from models.book import BookSearchStrategy
+from models.book import BookSearchStrategy, _tag_match_condition
 from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
 from serializers import serialize_book
@@ -143,11 +143,10 @@ def get_similar_books(book_id: int, limit: int = 5, db: Session = Depends(get_db
     
     # Find other books (excluding current) with at least one matching tag
     from sqlalchemy import or_
-    tag_conditions = [Book.tags.like(f'%"{tag}"%') for tag in current_tags]
+    tag_conditions = [_tag_match_condition(tag) for tag in current_tags]
     candidates = db.query(Book).options(selectinload(Book.authors)).filter(
         Book.id != book_id,
         Book.archived == False,
-        Book.tags.isnot(None),
         or_(*tag_conditions)
     ).all()
     

@@ -1,6 +1,6 @@
 from typing import List, Optional, TYPE_CHECKING, Dict, Any
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON, or_, extract
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Table, JSON, or_, extract, exists, func, select, and_
 from sqlalchemy.orm import relationship, Mapped, mapped_column, Query
 from datetime import datetime
 
@@ -82,6 +82,29 @@ class Book(Base):
         return f"<Book(id={self.id}, title='{self.title}')>"
 
 
+def _tag_match_condition(tag: str):
+    """SQL condition matching books whose stored tag list contains ``tag``.
+
+    Matches when any decoded tag element equals ``tag``, or contains it as a
+    space-delimited word — so a stored tag like "限量编号 钤印本" is found by a
+    search for either "限量编号" or "钤印本". ``json_each`` compares decoded
+    tag strings instead of raw JSON text, and LIKE metacharacters in ``tag``
+    are escaped.
+    """
+    escaped = tag.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    tags_each = func.json_each(Book.tags).table_valued("value")
+    # Note: build the padded string with the `||` operator (not func.concat) —
+    # concat() only exists in SQLite >= 3.44, while || works in every version.
+    return and_(
+        func.json_valid(Book.tags),
+        exists(
+            select(1).select_from(tags_each).where(
+                (" " + tags_each.c.value + " ").like(f"% {escaped} %", escape="\\")
+            )
+        ),
+    )
+
+
 class BookSearchStrategy:
 
     @staticmethod
@@ -126,7 +149,7 @@ class BookSearchStrategy:
             conditions.append(Publisher.name.ilike(f"%{filters['publisher']}%"))
 
         if filters.get("tag"):
-            conditions.append(Book.tags.like(f'%"{filters["tag"]}"%'))
+            conditions.append(_tag_match_condition(filters["tag"]))
 
         if filters.get("min_price"):
             conditions.append(Book.price >= filters["min_price"])
