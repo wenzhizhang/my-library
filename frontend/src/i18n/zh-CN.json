@@ -66,6 +66,8 @@
     "sortBy": "排序",
     "sortId": "ID",
     "sortTitle": "书名",
+    "sortCreated": "入库时间",
+    "sortSeries": "书系",
     "searchPlaceholder": "搜索书名、中文名、ISBN…",
     "searchTitle": "书名",
     "searchIsbn": "ISBN",

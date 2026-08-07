@@ -32,15 +32,29 @@ BUILD_MARKER=".build-marker"
 # Order: check specific paths first, then general patterns.
 detect_changed_services() {
     local base_commit="$1"
-    local changed_files
+    local committed working untracked
     local diff_rc=0
-    changed_files=$(git diff --name-only "${base_commit}..HEAD" 2>/dev/null) || diff_rc=$?
+    committed=$(git diff --name-only "${base_commit}..HEAD" 2>/dev/null) || diff_rc=$?
 
     if [ "${diff_rc}" -ne 0 ]; then
         # git diff failed (shallow clone, corrupted index, etc.) → signal caller to build all
         echo "__GIT_ERROR__"
         return
     fi
+
+    # Include uncommitted work (staged + unstaged tracked changes, untracked
+    # files). Without this, a dirty tree is silently skipped by change
+    # detection and its images never get rebuilt.
+    working=$(git diff --name-only HEAD 2>/dev/null || true)
+    untracked=$(git ls-files --others --exclude-standard 2>/dev/null || true)
+
+    if [ -n "${working}${untracked}" ]; then
+        print_warning "Working tree has uncommitted changes — included in change detection" >&2
+    fi
+
+    changed_files=$(printf '%s\n%s\n%s\n' "${committed}" "${working}" "${untracked}" \
+        | sed '/^[[:space:]]*$/d' \
+        | sort -u)
 
     if [ -z "${changed_files}" ]; then
         echo ""
@@ -71,7 +85,7 @@ detect_changed_services() {
                 svc_nginx=1; svc_backend=1; svc_frontend=1 ;;
 
             # ---- Root data scripts → backend ----
-            sync_book_collections.py|sync-projects.sh|scripts/sync-projects.py)
+            sync_book_collections.py|sync-projects.sh|scripts/sync-projects.py|split_combined_tags.py)
                 svc_backend=1 ;;
 
             # ---- Docs / runtime config only → no rebuild ----
@@ -83,7 +97,9 @@ detect_changed_services() {
             # ---- Root-level unknowns → conservative: rebuild all ----
             *)
                 svc_nginx=1; svc_backend=1; svc_frontend=1
-                print_warning "Unrecognized changed file '${file}' → rebuilding all services"
+                # Note: stderr — this function's stdout is captured into
+                # CHANGED_SERVICES; a stdout warning would break the build.
+                print_warning "Unrecognized changed file '${file}' → rebuilding all services" >&2
                 ;;
         esac
     done <<< "${changed_files}"
@@ -148,8 +164,9 @@ Environment variables:
   TENCENT_PASSWORD  Tencent cloud password (optional; reads from stdin if unset)
 
 Change detection (push mode):
-  Compares HEAD against the last successful push commit (stored in .build-marker).
-  Only services with changes are rebuilt and pushed. Use --all to override.
+  Compares committed AND uncommitted changes against the last successful push
+  commit (stored in .build-marker). Only services with changes are rebuilt and
+  pushed. Use --all to override.
 EOF
     exit 1
 }

@@ -5,8 +5,9 @@ import axios from 'axios';
 import './Books.css';
 import './hover.css';
 import BookCard from './BookCard';
+import BookListRow from './BookListRow';
 import { useAuth } from '../AuthContext';
-import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 import PageLayout from './PageLayout';
 
@@ -20,7 +21,6 @@ const Books = () => {
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBooks, setTotalBooks] = useState(0);
-  const [confirmDelete, setConfirmDelete] = useState(null);
 
   // Derive state from URL search params
   const page = parseInt(searchParams.get('page')) || 1;
@@ -111,64 +111,19 @@ const Books = () => {
     setSearchParams(newParams, { replace: true });
   };
 
-  const handleDelete = async (bookId) => {
-    try {
-      await axios.delete(`${window.location.origin}${API_BASE_URL}/books/${bookId}`);
-      setConfirmDelete(null);
-      fetchBooks();
-    } catch (err) {
-      const msg = err.response?.data?.detail || 'Delete failed';
-      alert(msg);
-    }
-  };
-
   const activeTag = searchParams.get('tag');
 
   const sortOptions = [
     { value: 'id', label: t('books.sortId') },
     { value: 'title', label: t('books.sortTitle') },
+    { value: 'book_series', label: t('books.sortSeries') },
   ];
 
   const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', 'Category', 'Actions'];
 
   const renderItem = (book, viewMode, cols) => {
     if (viewMode === 'list') {
-      return (
-        <tr key={book.id} onClick={() => navigate(`${LIBRARY_PATH}/books/${book.id}`)}>
-          <td style={{ width: 48, padding: '6px 8px' }}>
-            {book.thumb_image ? (
-              <img src={`${MEDIA_BASE_URL}/${book.thumb_image}`} alt="" style={{ width: 40, height: 52, borderRadius: 3, objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <div style={{ width: 40, height: 52, borderRadius: 3, background: '#e5e5ea', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#86868b' }}>
-                {book.title?.[0] || 'B'}
-              </div>
-            )}
-          </td>
-          <td className="list-cell-secondary" style={{ width: 130, fontSize: 12, fontFamily: 'monospace' }}>{book.isbn || ''}</td>
-          <td className="list-cell-primary">{book.title}</td>
-          <td className="list-cell-secondary">
-            {book.authors?.join(', ') || ''}
-          </td>
-          <td className="list-cell-secondary">
-            {book.publisher?.name || ''}
-          </td>
-          <td className="list-cell-secondary">
-            {book.category?.name || ''}
-          </td>
-          {isAuthenticated && (
-            <td style={{ width: 80, textAlign: 'right' }}>
-              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); navigate(`${LIBRARY_PATH}/books/edit/${book.id}`); }}
-                style={{ fontSize: 12, padding: '4px 8px' }}>
-                {t('common.edit')}
-              </button>
-              <button className="btn-pill-link" onClick={(e) => { e.stopPropagation(); setConfirmDelete(book); }}
-                style={{ fontSize: 12, padding: '4px 8px', color: '#ff3b30' }}>
-                {t('common.delete')}
-              </button>
-            </td>
-          )}
-        </tr>
-      );
+      return <BookListRow key={book.id} book={book} onDeleted={fetchBooks} />;
     }
     return <BookCard key={book.id} book={book} onDelete={fetchBooks} compact={cols === '4' || cols === '5'} />;
   };
@@ -270,35 +225,6 @@ const Books = () => {
           </button>
         }
       />
-
-      {/* Delete Confirmation */}
-      {confirmDelete && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 10001,
-          background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }} onClick={() => setConfirmDelete(null)}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 20, padding: '24px 28px',
-            width: Math.min(560, window.innerWidth - 32),
-            boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-            textAlign: 'center',
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 18 }}>
-              {t('common.deleteConfirm')} &quot;{confirmDelete.title}&quot;?
-            </h3>
-            <p style={{ color: '#86868b', margin: '0 0 20px', fontSize: 15 }}>
-              {t('common.cannotUndo')}
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button className="btn-pill-link" onClick={() => setConfirmDelete(null)}>{t('common.cancel')}</button>
-              <button className="btn-pill-link" onClick={() => handleDelete(confirmDelete.id)}
-                style={{ color: '#ff3b30' }}>{t('common.delete')}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

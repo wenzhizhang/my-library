@@ -25,6 +25,8 @@
     "sortBy": "排序",
     "sortId": "ID",
     "sortTitle": "書名",
+    "sortCreated": "入庫時間",
+    "sortSeries": "書系",
     "perPage": "每頁",
     "page": "頁",
     "of": "/",

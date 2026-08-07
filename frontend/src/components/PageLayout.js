@@ -27,6 +27,7 @@ function savePrefs(key, prefs) {
 }
 
 export default function PageLayout({
+  embedded = false,
   title,
   createButton,
   searchValue,
@@ -91,16 +92,16 @@ export default function PageLayout({
     return result;
   }, [page, totalPages]);
 
-  return (
-    <section className="section light">
-      <div className="container">
-        {/* Header row */}
+  const layout = (
+    <>
+      {!embedded && (
         <div className="page-layout-header">
           <h1 className="section-heading">{title}</h1>
           {createButton}
         </div>
+      )}
 
-        {/* Toolbar */}
+      {/* Toolbar */}
         <div className="toolbar">
           {/* Search */}
           {onSearch && (
@@ -261,7 +262,13 @@ export default function PageLayout({
             </div>
           </div>
         )}
-      </div>
+    </>
+  );
+
+  if (embedded) return layout;
+  return (
+    <section className="section light">
+      <div className="container">{layout}</div>
     </section>
   );
 }

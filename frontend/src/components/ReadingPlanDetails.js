@@ -6,7 +6,8 @@ import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
 import SearchableSelect from './SearchableSelect';
-import PaginationBar from './PaginationBar';
+import PageLayout from './PageLayout';
+import BookListRow from './BookListRow';
 
 const ReadingPlanDetails = () => {
   const { id } = useParams();
@@ -25,10 +26,12 @@ const ReadingPlanDetails = () => {
   // Paginated books for display
   const [displayBooks, setDisplayBooks] = useState([]);
   const [bookPage, setBookPage] = useState(1);
-  const bookLimit = 10;
+  const [bookLimit, setBookLimit] = useState(10);
   const [bookTotalPages, setBookTotalPages] = useState(1);
   const [bookTotalCount, setBookTotalCount] = useState(0);
-  const [goToPage, setGoToPage] = useState('');
+  const [bookSort, setBookSort] = useState('title');
+  const [bookSearchInput, setBookSearchInput] = useState('');
+  const [bookQuery, setBookQuery] = useState('');
 
   useEffect(() => {
     fetchPlan();
@@ -36,7 +39,7 @@ const ReadingPlanDetails = () => {
 
   useEffect(() => {
     if (id) fetchPaginatedBooks(bookPage);
-  }, [id, bookPage]);
+  }, [id, bookPage, bookSort, bookLimit, bookQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,9 +87,11 @@ const ReadingPlanDetails = () => {
 
   const fetchPaginatedBooks = async (p = 1) => {
     try {
+      const params = { page: p, limit: bookLimit, sort_by: bookSort };
+      if (bookQuery) params.q = bookQuery;
       const response = await axios.get(
         `${window.location.origin}${API_BASE_URL}/reading-plans/${id}/books`,
-        { params: { page: p, limit: bookLimit } }
+        { params }
       );
       setDisplayBooks(response.data.books || []);
       setBookTotalPages(response.data.total_pages || 1);
@@ -94,6 +99,41 @@ const ReadingPlanDetails = () => {
     } catch (error) {
       console.error("Error fetching plan books:", error);
     }
+  };
+
+  const sortOptions = [
+    { value: 'title', label: t('books.sortTitle') },
+    { value: 'created_at', label: t('books.sortCreated') },
+    { value: 'book_series', label: t('books.sortSeries') },
+  ];
+
+  const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', 'Category', 'Actions'];
+
+  const renderItem = (book, viewMode, cols) => {
+    if (viewMode === 'list') {
+      return (
+        <BookListRow
+          key={book.id}
+          book={book}
+          protectLevel={1}
+          showCheckbox={manageMode}
+          checked={selectedIds.has(book.id)}
+          onCheckChange={handleCheckChange}
+          onDeleted={() => fetchPaginatedBooks(bookPage)}
+        />
+      );
+    }
+    return (
+      <BookCard
+        key={book.id}
+        book={book}
+        protectLevel={1}
+        showCheckbox={manageMode}
+        checked={selectedIds.has(book.id)}
+        onCheckChange={handleCheckChange}
+        compact={cols === '4' || cols === '5'}
+      />
+    );
   };
 
   const handleSelectBook = (bookId) => {
@@ -310,31 +350,26 @@ const ReadingPlanDetails = () => {
               </button>
             )}
           </div>
-          <div className="grid">
-            {displayBooks.length > 0 ? (
-              displayBooks.map((book) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  protectLevel={1}
-                  showCheckbox={manageMode}
-                  checked={selectedIds.has(book.id)}
-                  onCheckChange={handleCheckChange}
-                />
-              ))
-            ) : (
-              <p>{t('readingPlans.noBooks')}</p>
-            )}
-          </div>
-            {bookTotalPages > 1 && (
-              <PaginationBar
-                page={bookPage}
-                totalPages={bookTotalPages}
-                goToPage={goToPage}
-                setGoToPage={setGoToPage}
-                onPageChange={(p) => setBookPage(p)}
-              />
-            )}
+          <PageLayout
+            embedded
+            searchValue={bookSearchInput}
+            onSearchChange={setBookSearchInput}
+            onSearch={() => { setBookQuery(bookSearchInput.trim()); setBookPage(1); }}
+            searchPlaceholder={t('books.searchPlaceholder')}
+            sortBy={bookSort}
+            sortOptions={sortOptions}
+            onSort={(s) => { setBookSort(s); setBookPage(1); }}
+            limit={bookLimit}
+            onLimitChange={(l) => { setBookLimit(l); setBookPage(1); }}
+            page={bookPage}
+            totalPages={bookTotalPages}
+            totalItems={bookTotalCount}
+            onPageChange={setBookPage}
+            layoutKey="plan-books"
+            items={displayBooks}
+            renderItem={renderItem}
+            listColumns={listColumns}
+          />
         </div>
       </div>
     </section>

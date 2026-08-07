@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
-import PaginationBar from './PaginationBar';
+import PageLayout from './PageLayout';
+import BookListRow from './BookListRow';
 
 const BookshelfDetails = () => {
   const { id } = useParams();
@@ -15,17 +16,19 @@ const BookshelfDetails = () => {
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState([]);
   const [bookPage, setBookPage] = useState(1);
-  const bookLimit = 10;
+  const [bookLimit, setBookLimit] = useState(10);
   const [bookTotalPages, setBookTotalPages] = useState(1);
   const [bookTotalCount, setBookTotalCount] = useState(0);
-  const [goToPage, setGoToPage] = useState('');
+  const [bookSort, setBookSort] = useState('title');
+  const [bookSearchInput, setBookSearchInput] = useState('');
+  const [bookQuery, setBookQuery] = useState('');
 
   useEffect(() => {
     fetchBookshelf();
   }, [id]);
   useEffect(() => {
     if (id) fetchBooks(bookPage);
-  }, [id, bookPage]);
+  }, [id, bookPage, bookSort, bookLimit, bookQuery]);
 
   const fetchBookshelf = async () => {
     setLoading(true);
@@ -42,9 +45,11 @@ const BookshelfDetails = () => {
 
   const fetchBooks = async (p = 1) => {
     try {
+      const params = { page: p, limit: bookLimit, sort_by: bookSort };
+      if (bookQuery) params.q = bookQuery;
       const response = await axios.get(
         `${window.location.origin}${API_BASE_URL}/bookshelves/${id}/books`,
-        { params: { page: p, limit: bookLimit } }
+        { params }
       );
       setBooks(response.data.books || []);
       setBookTotalPages(response.data.total_pages || 1);
@@ -52,6 +57,21 @@ const BookshelfDetails = () => {
     } catch (error) {
       console.error("Error fetching bookshelf books:", error);
     }
+  };
+
+  const sortOptions = [
+    { value: 'title', label: t('books.sortTitle') },
+    { value: 'created_at', label: t('books.sortCreated') },
+    { value: 'book_series', label: t('books.sortSeries') },
+  ];
+
+  const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', 'Category', 'Actions'];
+
+  const renderItem = (book, viewMode, cols) => {
+    if (viewMode === 'list') {
+      return <BookListRow key={book.id} book={book} onDeleted={() => fetchBooks(bookPage)} />;
+    }
+    return <BookCard key={book.id} book={book} compact={cols === '4' || cols === '5'} />;
   };
 
   if (loading) {
@@ -84,22 +104,26 @@ const BookshelfDetails = () => {
           )}
         </div>
         {bookTotalCount > 0 && (
-          <>
-            <div className="grid">
-              {books.map((book) => (
-                <BookCard key={book.id} book={book} />
-              ))}
-            </div>
-            {bookTotalPages > 1 && (
-              <PaginationBar
-                page={bookPage}
-                totalPages={bookTotalPages}
-                goToPage={goToPage}
-                setGoToPage={setGoToPage}
-                onPageChange={(p) => setBookPage(p)}
-              />
-            )}
-          </>
+          <PageLayout
+            embedded
+            searchValue={bookSearchInput}
+            onSearchChange={setBookSearchInput}
+            onSearch={() => { setBookQuery(bookSearchInput.trim()); setBookPage(1); }}
+            searchPlaceholder={t('books.searchPlaceholder')}
+            sortBy={bookSort}
+            sortOptions={sortOptions}
+            onSort={(s) => { setBookSort(s); setBookPage(1); }}
+            limit={bookLimit}
+            onLimitChange={(l) => { setBookLimit(l); setBookPage(1); }}
+            page={bookPage}
+            totalPages={bookTotalPages}
+            totalItems={bookTotalCount}
+            onPageChange={setBookPage}
+            layoutKey="bookshelf-books"
+            items={books}
+            renderItem={renderItem}
+            listColumns={listColumns}
+          />
         )}
       </div>
     </section>

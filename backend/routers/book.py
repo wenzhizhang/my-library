@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Book, Author, book_authors
-from models.book import BookSearchStrategy, _tag_match_condition
+from models.book import BookSearchStrategy, _tag_match_condition, apply_book_sort
 from schemas.book import BookCreation, BookUpdate, BookResponse, FilterParams
 from database import get_db
 from serializers import serialize_book
@@ -97,12 +97,7 @@ def read_books(page: int = 1, limit: int = 10, sort_by: str = "title", filter_pa
     total_pages = (total_books + limit - 1) // limit
 
     # ✅ 4. 排序
-    if sort_by == "title":
-        query = query.order_by(Book.title)
-    elif sort_by == "created_at":
-        query = query.order_by(Book.created_at.desc())
-    else:
-        query = query.order_by(Book.id)
+    query = apply_book_sort(query, sort_by)
 
     # ✅ 5. 分页
     books = query.offset(offset).limit(limit).all()
@@ -190,12 +185,7 @@ def read_wishlist(page: int = 1, limit: int = 10, sort_by: str = "created_at", d
     total_books = query.with_entities(Book.id).distinct().count()
     total_pages = (total_books + limit - 1) // limit if total_books > 0 else 1
 
-    if sort_by == "title":
-        query = query.order_by(Book.title)
-    elif sort_by == "created_at":
-        query = query.order_by(Book.created_at.desc())
-    else:
-        query = query.order_by(Book.id)
+    query = apply_book_sort(query, sort_by)
 
     books = query.offset(offset).limit(limit).all()
 
@@ -216,12 +206,7 @@ def read_archived_books(page: int = 1, limit: int = 10, sort_by: str = "title", 
     total_books = query.with_entities(Book.id).distinct().count()
     total_pages = (total_books + limit - 1) // limit
 
-    if sort_by == "title":
-        query = query.order_by(Book.title)
-    elif sort_by == "created_at":
-        query = query.order_by(Book.created_at.desc())
-    else:
-        query = query.order_by(Book.id)
+    query = apply_book_sort(query, sort_by)
 
     books = query.offset(offset).limit(limit).all()
 
