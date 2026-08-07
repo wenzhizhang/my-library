@@ -25,6 +25,8 @@
     "sortBy": "Sort",
     "sortId": "ID",
     "sortTitle": "Title",
+    "sortCreated": "Created",
+    "sortSeries": "Series",
     "perPage": "Per page",
     "page": "Page",
     "of": "of",

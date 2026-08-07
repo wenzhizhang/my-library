@@ -659,7 +659,7 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at] } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
         - { name: isbn, in: query, schema: { type: string } }
         - { name: title, in: query, schema: { type: string } }
         - { name: author, in: query, schema: { type: string } }

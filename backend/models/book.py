@@ -7,6 +7,7 @@ from datetime import datetime
 from .publisher import Publisher, Brand
 from .category import Category
 from .bookshelf import Bookshelf
+from .series import BookSeries
 from .base import Base
 
 # Association tables
@@ -80,6 +81,39 @@ class Book(Base):
 
     def __repr__(self):
         return f"<Book(id={self.id}, title='{self.title}')>"
+
+
+def apply_book_sort(query, sort_by: str):
+    """Apply ordering to a ``Book`` query.
+
+    Supported ``sort_by`` values:
+      - ``"title"``: by title ascending
+      - ``"created_at"``: newest first
+      - ``"book_series"``: group by series name (books without a series last),
+        title ascending within each series
+      - anything else: by id
+    """
+    if sort_by == "title":
+        return query.order_by(Book.title)
+    if sort_by == "created_at":
+        return query.order_by(Book.created_at.desc())
+    if sort_by == "book_series":
+        query = query.outerjoin(BookSeries, Book.book_series_id == BookSeries.id)
+        return query.order_by(BookSeries.name.nulls_last(), Book.title)
+    return query.order_by(Book.id)
+
+
+def apply_book_q(query, q: Optional[str]):
+    """Filter books by a free-text query across title, title_cn, and ISBN."""
+    if q:
+        query = query.filter(
+            or_(
+                Book.title.ilike(f"%{q}%"),
+                Book.title_cn.ilike(f"%{q}%"),
+                Book.isbn.ilike(f"%{q}%"),
+            )
+        )
+    return query
 
 
 def _tag_match_condition(tag: str):

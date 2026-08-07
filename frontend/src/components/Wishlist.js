@@ -63,6 +63,7 @@ const Wishlist = () => {
   const sortOptions = [
     { value: 'created_at', label: t('books.sortId') },
     { value: 'title', label: t('books.sortTitle') },
+    { value: 'book_series', label: t('books.sortSeries') },
   ];
 
   const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', ''];

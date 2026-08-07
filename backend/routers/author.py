@@ -4,6 +4,7 @@ from sqlalchemy import or_
 from typing import Optional
 
 from models import Author, Book
+from models.book import apply_book_sort, apply_book_q
 from schemas.author import (
     AuthorCreation, AuthorUpdate, AuthorResponse,
     NATIONS, DYNASTIES,
@@ -82,7 +83,7 @@ def read_author(author_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{author_id}/books")
-def read_author_books(author_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def read_author_books(author_id: int, page: int = 1, limit: int = 10, sort_by: str = "title", q: Optional[str] = None, db: Session = Depends(get_db)):
     author = db.query(Author).filter(Author.id == author_id).first()
     if author is None:
         raise HTTPException(status_code=404, detail="Author not found")
@@ -90,10 +91,12 @@ def read_author_books(author_id: int, page: int = 1, limit: int = 10, db: Sessio
         Book.authors.any(Author.id == author_id),
         Book.in_wish == False
     )
+    query = apply_book_q(query, q)
     total_books = query.count()
     total_pages = (total_books + limit - 1) // limit
     offset = (page - 1) * limit
-    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    query = apply_book_sort(query, sort_by)
+    books = query.offset(offset).limit(limit).all()
     return {
         "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,

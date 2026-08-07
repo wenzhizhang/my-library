@@ -6,7 +6,8 @@ import BookCard from './BookCard';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
-import PaginationBar from './PaginationBar';
+import PageLayout from './PageLayout';
+import BookListRow from './BookListRow';
 
 const AuthorDetails = () => {
   const { id } = useParams();
@@ -25,17 +26,19 @@ const AuthorDetails = () => {
   // Paginated books
   const [books, setBooks] = useState([]);
   const [bookPage, setBookPage] = useState(1);
-  const bookLimit = 10;
+  const [bookLimit, setBookLimit] = useState(10);
   const [bookTotalPages, setBookTotalPages] = useState(1);
   const [bookTotalCount, setBookTotalCount] = useState(0);
-  const [goToPage, setGoToPage] = useState('');
+  const [bookSort, setBookSort] = useState('title');
+  const [bookSearchInput, setBookSearchInput] = useState('');
+  const [bookQuery, setBookQuery] = useState('');
 
   useEffect(() => {
     fetchAuthor();
   }, [id]);
   useEffect(() => {
     fetchBooks(bookPage);
-  }, [id, bookPage]);
+  }, [id, bookPage, bookSort, bookLimit, bookQuery]);
   useEffect(() => {
     axios.get(`${window.location.origin}${API_BASE_URL}/authors/nations`)
       .then(res => setNations(res.data.nations))
@@ -60,9 +63,11 @@ const AuthorDetails = () => {
 
   const fetchBooks = async (p = 1) => {
     try {
+      const params = { page: p, limit: bookLimit, sort_by: bookSort };
+      if (bookQuery) params.q = bookQuery;
       const response = await axios.get(
         `${window.location.origin}${API_BASE_URL}/authors/${id}/books`,
-        { params: { page: p, limit: bookLimit } }
+        { params }
       );
       setBooks(response.data.books || []);
       setBookTotalPages(response.data.total_pages || 1);
@@ -82,6 +87,21 @@ const AuthorDetails = () => {
       photo: author.photo || '',
     });
     setModalOpen(true);
+  };
+
+  const sortOptions = [
+    { value: 'title', label: t('books.sortTitle') },
+    { value: 'created_at', label: t('books.sortCreated') },
+    { value: 'book_series', label: t('books.sortSeries') },
+  ];
+
+  const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', 'Category', 'Actions'];
+
+  const renderItem = (book, viewMode, cols) => {
+    if (viewMode === 'list') {
+      return <BookListRow key={book.id} book={book} onDeleted={() => fetchBooks(bookPage)} />;
+    }
+    return <BookCard key={book.id} book={book} compact={cols === '4' || cols === '5'} />;
   };
 
   const handleSave = async (e) => {
@@ -158,20 +178,26 @@ const AuthorDetails = () => {
         {bookTotalCount > 0 && (
           <>
             <h2 style={{ marginTop: 40, marginBottom: 16 }}>{t('authors.books', { count: bookTotalCount })} ({bookTotalCount})</h2>
-            <div className="grid">
-              {books.map((book) => (
-                <BookCard key={book.id} book={book} />
-              ))}
-            </div>
-            {bookTotalPages > 1 && (
-              <PaginationBar
-                page={bookPage}
-                totalPages={bookTotalPages}
-                goToPage={goToPage}
-                setGoToPage={setGoToPage}
-                onPageChange={(p) => setBookPage(p)}
-              />
-            )}
+            <PageLayout
+              embedded
+              searchValue={bookSearchInput}
+              onSearchChange={setBookSearchInput}
+              onSearch={() => { setBookQuery(bookSearchInput.trim()); setBookPage(1); }}
+              searchPlaceholder={t('books.searchPlaceholder')}
+              sortBy={bookSort}
+              sortOptions={sortOptions}
+              onSort={(s) => { setBookSort(s); setBookPage(1); }}
+              limit={bookLimit}
+              onLimitChange={(l) => { setBookLimit(l); setBookPage(1); }}
+              page={bookPage}
+              totalPages={bookTotalPages}
+              totalItems={bookTotalCount}
+              onPageChange={setBookPage}
+              layoutKey="author-books"
+              items={books}
+              renderItem={renderItem}
+              listColumns={listColumns}
+            />
           </>
         )}
       </div>

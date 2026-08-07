@@ -61,6 +61,7 @@ const Archived = () => {
   const sortOptions = [
     { value: 'title', label: t('books.sortTitle') },
     { value: 'created_at', label: t('books.sortCreated') },
+    { value: 'book_series', label: t('books.sortSeries') },
   ];
 
   const listColumns = ['', 'ISBN', t('books.sortTitle'), 'Author', 'Publisher', 'Category'];

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List, Optional
 
 from models import Bookshelf, Book
+from models.book import apply_book_sort, apply_book_q
 from schemas.bookshelf import BookshelfCreation, BookshelfUpdate, BookshelfResponse
 from database import get_db
 from serializers import serialize_book
@@ -57,7 +58,7 @@ def read_bookshelf(bookshelf_id: int, db: Session = Depends(get_db)):
     return bookshelf
 
 @router.get("/{bookshelf_id}/books")
-def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, sort_by: str = "title", q: Optional[str] = None, db: Session = Depends(get_db)):
     bookshelf = db.query(Bookshelf).filter(Bookshelf.id == bookshelf_id).first()
     if bookshelf is None:
         raise HTTPException(status_code=404, detail="Bookshelf not found")
@@ -65,10 +66,12 @@ def read_bookshelf_books(bookshelf_id: int, page: int = 1, limit: int = 10, db: 
         Book.bookshelf_id == bookshelf_id,
         Book.in_wish == False
     )
+    query = apply_book_q(query, q)
     total_books = query.count()
     total_pages = (total_books + limit - 1) // limit
     offset = (page - 1) * limit
-    books = query.order_by(Book.title).offset(offset).limit(limit).all()
+    query = apply_book_sort(query, sort_by)
+    books = query.offset(offset).limit(limit).all()
     return {
         "books": [serialize_book(b) for b in books],
         "total_pages": total_pages,
