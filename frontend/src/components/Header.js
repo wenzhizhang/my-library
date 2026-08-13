@@ -8,12 +8,19 @@ import i18n from '../i18n';
 import './Header.css';
 const Header = () => {
   const triggerRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const [visitCount, setVisitCount] = useState(null);
   const location = useLocation();
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Report page view on every navigation, update displayed count
   useEffect(() => {
@@ -22,18 +29,33 @@ const Header = () => {
       .then((data) => setVisitCount(data.total_visits))
       .catch(() => {});
   }, [location.pathname]);
-  // Close dropdown on outside click (covers both trigger and portal)
+  // Close dropdowns on outside click (trigger, both portals) and Escape
   useEffect(() => {
     const handleClick = (e) => {
       const portal = document.getElementById('nav-user-menu-portal');
       const hitTrigger = triggerRef.current?.contains(e.target);
       const hitPortal = portal?.contains(e.target);
+      const hitMobile = mobileMenuRef.current?.contains(e.target);
+      const hitHamburger = e.target.closest?.('.nav-hamburger');
       if (!hitTrigger && !hitPortal) {
         setMenuOpen(false);
       }
+      if (!hitMobile && !hitHamburger) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setMobileMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
   const toggleMenu = useCallback(() => {
     if (!menuOpen && triggerRef.current) {
@@ -60,7 +82,22 @@ const Header = () => {
     );
   };
 
+  const navItems = [
+    { path: '/books', label: t('nav.books') },
+    { path: '/authors', label: t('nav.authors') },
+    { path: '/publishers', label: t('nav.publishers') },
+    { path: '/categories', label: t('nav.categories') },
+    { path: '/bookshelves', label: t('nav.bookshelves') },
+    { path: '/book-collections', label: t('nav.collections') },
+    { path: '/reading-plans', label: t('nav.readingPlans') },
+    { path: '/brands', label: t('nav.brands') },
+    { path: '/series', label: t('nav.series') },
+    { path: '/wishlist', label: t('nav.wishlist') },
+    { path: '/stats', label: t('nav.stats') },
+  ];
+
   return (
+    <>
     <nav className="nav">
       <Link to={getPath('/')} className="nav-brand">
         <img src="/images/logo/logo-my-library.png" alt="" className="nav-brand-img" />
@@ -68,42 +105,34 @@ const Header = () => {
       </Link>
       <div className="nav-center">
         <div className="nav-menu">
-          <Link to={getPath('/books')} className={`nav-link ${isActive('/books') ? 'active' : ''}`}>
-            {t('nav.books')}
-          </Link>
-          <Link to={getPath('/authors')} className={`nav-link ${isActive('/authors') ? 'active' : ''}`}>
-            {t('nav.authors')}
-          </Link>
-          <Link to={getPath('/publishers')} className={`nav-link ${isActive('/publishers') ? 'active' : ''}`}>
-            {t('nav.publishers')}
-          </Link>
-          <Link to={getPath('/categories')} className={`nav-link ${isActive('/categories') ? 'active' : ''}`}>
-            {t('nav.categories')}
-          </Link>
-          <Link to={getPath('/bookshelves')} className={`nav-link ${isActive('/bookshelves') ? 'active' : ''}`}>
-            {t('nav.bookshelves')}
-          </Link>
-          <Link to={getPath('/book-collections')} className={`nav-link ${isActive('/book-collections') ? 'active' : ''}`}>
-            {t('nav.collections')}
-          </Link>
-          <Link to={getPath('/reading-plans')} className={`nav-link ${isActive('/reading-plans') ? 'active' : ''}`}>
-            {t('nav.readingPlans')}
-          </Link>
-          <Link to={getPath('/brands')} className={`nav-link ${isActive('/brands') ? 'active' : ''}`}>
-            {t('nav.brands')}
-          </Link>
-          <Link to={getPath('/series')} className={`nav-link ${isActive('/series') ? 'active' : ''}`}>
-            {t('nav.series')}
-          </Link>
-          <Link to={getPath('/wishlist')} className={`nav-link ${isActive('/wishlist') ? 'active' : ''}`}>
-            {t('nav.wishlist')}
-          </Link>
-          <Link to={getPath('/stats')} className={`nav-link ${isActive('/stats') ? 'active' : ''}`}>
-            {t('nav.stats')}
-          </Link>
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={getPath(item.path)}
+              className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
       <div className="nav-right">
+        <button
+          type="button"
+          className="nav-hamburger"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={t('nav.menu')}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="nav-mobile-menu"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            {mobileMenuOpen ? (
+              <path d="M18 6L6 18M6 6l12 12" />
+            ) : (
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            )}
+          </svg>
+        </button>
         <div className="nav-lang">
           <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)}
             style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: 13, cursor: 'pointer', outline: 'none' }}>
@@ -116,7 +145,7 @@ const Header = () => {
           <div className="nav-user-menu">
             <span
               ref={triggerRef}
-              className="nav-username nav-user-menu-trigger"
+              className="nav-user-menu-trigger"
               onClick={toggleMenu}
             >
               {user?.username}
@@ -159,6 +188,26 @@ const Header = () => {
         )}
       </div>
     </nav>
+    {mobileMenuOpen && createPortal(
+      <div
+        id="nav-mobile-menu"
+        ref={mobileMenuRef}
+        className="nav-mobile-menu open"
+      >
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={getPath(item.path)}
+            className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 export default Header;
