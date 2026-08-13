@@ -1,9 +1,13 @@
 import csv
 import io
 import json
+import os
+import sqlite3
+import tempfile
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -143,6 +147,53 @@ BUILDERS = {
     "sql":      _build_sql,
     "excel":    _build_excel,
 }
+
+
+def _snapshot_db(db_path: str) -> str:
+    """Copy the SQLite file to a temp path via the backup API.
+
+    The backup API produces a consistent, self-contained snapshot even if the
+    live database has concurrent connections or uncommitted transactions."""
+    fd, tmp = tempfile.mkstemp(prefix="my-library-export-", suffix=".db")
+    os.close(fd)
+    src = dst = None
+    try:
+        src = sqlite3.connect(db_path)
+        dst = sqlite3.connect(tmp)
+        src.backup(dst)
+    except BaseException:
+        os.unlink(tmp)
+        raise
+    finally:
+        if dst is not None:
+            dst.close()
+        if src is not None:
+            src.close()
+    return tmp
+
+
+@router.get("/database")
+def export_database(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
+):
+    """Download the current user's entire database as a SQLite file."""
+    bind = db.get_bind()
+    engine = getattr(bind, "engine", bind)
+    db_path = engine.url.database
+    if not db_path or not os.path.isfile(db_path):
+        raise HTTPException(status_code=404, detail="Database file not found")
+
+    snapshot = _snapshot_db(db_path)
+    background_tasks.add_task(os.unlink, snapshot)
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return FileResponse(
+        snapshot,
+        media_type="application/vnd.sqlite3",
+        filename=f"my-library-database-{stamp}.db",
+    )
 
 
 @router.get("/")

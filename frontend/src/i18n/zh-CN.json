@@ -390,6 +390,8 @@
     "selectFormat": "选择格式",
     "selectScope": "选择导出内容",
     "exporting": "导出中…",
+    "downloadDatabase": "下载完整数据库 (.db)",
+    "databaseHint": "将你的整个数据库以单个 SQLite 文件下载，包含所有图书、笔记、书单与设置。",
     "scopes": {
       "books": "图书",
       "authors": "作者",

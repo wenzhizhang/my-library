@@ -408,6 +408,8 @@
     "selectFormat": "Select format",
     "selectScope": "Select what to export",
     "exporting": "Exporting…",
+    "downloadDatabase": "Download Full Database (.db)",
+    "databaseHint": "Download your entire database as a single SQLite file, including all books, notes, collections, and settings.",
     "scopes": {
       "books": "Books",
       "authors": "Authors",

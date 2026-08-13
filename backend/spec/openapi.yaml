@@ -1949,6 +1949,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPError"
 
+  /api/export/database:
+    get:
+      tags: [Export]
+      summary: Download the current user's entire database as a SQLite file
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: SQLite database file download
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "404":
+          description: Database file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   /api/export/sync-to-root:
     post:
       tags: [Export]

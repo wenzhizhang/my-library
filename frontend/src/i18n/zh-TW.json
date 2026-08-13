@@ -408,6 +408,8 @@
     "selectFormat": "選擇格式",
     "selectScope": "選擇匯出內容",
     "exporting": "匯出中…",
+    "downloadDatabase": "下載完整資料庫 (.db)",
+    "databaseHint": "將你的整個資料庫以單一 SQLite 檔案下載，包含所有圖書、筆記、書單與設定。",
     "scopes": {
       "books": "圖書",
       "authors": "作者",

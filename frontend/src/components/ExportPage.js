@@ -24,6 +24,49 @@ const ExportPage = () => {
   const [scope, setScope] = useState('books');
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [exportingDb, setExportingDb] = useState(false);
+
+  const handleExportDatabase = async () => {
+    setExportingDb(true);
+    setError('');
+    try {
+      const response = await axios.get('/api/export/database', {
+        responseType: 'blob',
+      });
+
+      const disposition = response.headers['content-disposition'];
+      const match = disposition && /filename="?([^";]+)"?/i.exec(disposition);
+      const pad = (n) => String(n).padStart(2, '0');
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+      const filename = match ? match[1] : `my-library-database-${stamp}.db`;
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError(t('export.loginRequired'));
+      } else if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          setError(parsed.detail || t('common.error'));
+        } catch {
+          setError(t('common.error'));
+        }
+      } else {
+        setError(err.response?.data?.detail || t('common.error'));
+      }
+    } finally {
+      setExportingDb(false);
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -129,7 +172,7 @@ const ExportPage = () => {
 
         <button
           onClick={handleExport}
-          disabled={!isAuthenticated || exporting}
+          disabled={!isAuthenticated || exporting || exportingDb}
           style={{
             width: '100%', padding: '12px 0', borderRadius: 10,
             border: 'none', backgroundColor: isAuthenticated ? '#0071e3' : '#a1a1a6',
@@ -139,6 +182,25 @@ const ExportPage = () => {
         >
           {exporting ? t('export.exporting') : t('export.download')}
         </button>
+
+        <div style={{ marginTop: 16, padding: '16px 18px', borderRadius: 10, backgroundColor: '#f5f5f7' }}>
+          <p style={{ margin: 0, fontSize: 13, color: '#6e6e73', lineHeight: 1.5 }}>
+            {t('export.databaseHint')}
+          </p>
+          <button
+            onClick={handleExportDatabase}
+            disabled={!isAuthenticated || exporting || exportingDb}
+            style={{
+              width: '100%', marginTop: 12, padding: '12px 0', borderRadius: 10,
+              border: '1px solid #0071e3', backgroundColor: '#fff',
+              color: isAuthenticated ? '#0071e3' : '#a1a1a6', fontSize: 16, fontWeight: 600,
+              cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            {exportingDb ? t('export.exporting') : t('export.downloadDatabase')}
+          </button>
+        </div>
 
       </div>
     </section>
