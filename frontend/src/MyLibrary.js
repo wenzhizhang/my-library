@@ -36,7 +36,7 @@ function MyLibrary() {
   
   return (
     <AuthProvider>
-      <div className="MyLibrary" style={{ minHeight: '100vh', backgroundColor: '#f5f5f7' }}>
+      <div className="MyLibrary">
         <Header isMyLibrary={true}/>
         <main className="mylibrary-main">
           <Routes>
