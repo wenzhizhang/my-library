@@ -4,6 +4,8 @@
  * fixed keeps the cover image viewport-sized regardless of scrolling, because
  * mobile browsers ignore `background-attachment: fixed` and `scroll` on a tall
  * document-scrolled element crops/zooms the cover image to the full height.
+ * The frosted look is made with filter: blur on the image layer + a tint layer
+ * above it — no backdrop-filter, which can't reliably sample a sibling layer.
  */
 
 .MyLibrary {
@@ -14,7 +16,10 @@
   background-color: #f5f5f7; /* fallback while/if the CDN image is unavailable */
 }
 
-/* Background image layer — fixed, always exactly viewport-sized */
+/* Background image layer — fixed, always exactly viewport-sized.
+   Blurred + slightly scaled (scale hides the blur edge halo) on every
+   breakpoint; the blur is a static filter on the layer itself, so it does
+   not trigger the Quark/UC backdrop-filter flicker. */
 .MyLibrary::before {
   content: "";
   position: fixed;
@@ -24,11 +29,13 @@
   height: 100%;
   background: url("https://cdn.dingfengbo.top/media/background/bg4.jpg") no-repeat center center;
   background-size: cover;
+  filter: blur(10px);
+  transform: scale(1.1);
   z-index: 0;
   pointer-events: none;
 }
 
-/* Frosted overlay above the image (painted after ::before) */
+/* Frosted tint above the blurred image (painted after ::before) */
 .MyLibrary::after {
   content: "";
   position: fixed;
@@ -37,8 +44,6 @@
   width: 100%;
   height: 100%;
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   z-index: 0;
   pointer-events: none;
 }
@@ -91,14 +96,18 @@
   box-shadow: none;
 }
 
-/* ── Mobile (≤768px): kill backdrop-filter on full-screen layers only ── */
+/* ── Mobile (≤768px): kill the full-screen blur layer only ── */
 /* Small elements (toolbar/cards) keep their backdrop-filter — they don't
-   cause the flicker. Only the full-screen ::after blur is the problem. */
+   cause the flicker. Only the full-screen image blur is the problem. */
 @media (max-width: 768px) {
-  /* Replace full-screen blur with a translucent solid overlay */
+  /* Frosted via filter: blur on the image layer + the translucent wash.
+     Static filter on a fixed layer is safe for Quark/UC — the flicker was
+     caused by backdrop-filter re-compositing, which isn't used here. */
+  .MyLibrary::before {
+    filter: blur(10px);
+    transform: scale(1.1);
+  }
   .MyLibrary::after {
     background: rgba(245, 245, 247, 0.35);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 }
