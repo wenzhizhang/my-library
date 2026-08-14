@@ -177,6 +177,13 @@ const Header = () => {
             >
               {t('nav.export')}
             </Link>
+            <Link
+              to={getPath('/settings')}
+              className="nav-user-menu-item"
+              onClick={() => setMenuOpen(false)}
+            >
+              {t('nav.settings')}
+            </Link>
             <button
               className="nav-user-menu-item"
               onClick={() => { setMenuOpen(false); logout(); }}
@@ -204,6 +211,15 @@ const Header = () => {
             {item.label}
           </Link>
         ))}
+        {isAuthenticated && (
+          <Link
+            to={getPath('/settings')}
+            className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            {t('nav.settings')}
+          </Link>
+        )}
       </div>,
       document.body
     )}

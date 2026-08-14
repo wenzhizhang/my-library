@@ -1,0 +1,13 @@
+{
+  "default": "bg8",
+  "backgrounds": [
+    {"id": "bg1", "name": "背景 1", "url": "https://cdn.dingfengbo.top/media/background/bg.jpg" },
+    { "id": "bg2", "name": "背景 2", "url": "https://cdn.dingfengbo.top/media/background/bg2.jpg" },
+    { "id": "bg3", "name": "背景 3", "url": "https://cdn.dingfengbo.top/media/background/bg3.jpg" },
+    { "id": "bg4", "name": "背景 4", "url": "https://cdn.dingfengbo.top/media/background/bg4.jpg" },
+    { "id": "bg5", "name": "背景 5", "url": "https://cdn.dingfengbo.top/media/background/bg5.jpg" },
+    { "id": "bg6", "name": "背景 6", "url": "https://cdn.dingfengbo.top/media/background/bg6.jpg" },
+    {"id": "bg7", "name": "背景 7", "url": "https://cdn.dingfengbo.top/media/background/background.jpg" },
+    {"id": "bg8", "name": "背景 8", "url": "https://cdn.dingfengbo.top/media/background/bg_ruihetu.webp" }
+  ]
+}

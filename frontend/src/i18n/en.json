@@ -16,7 +16,8 @@
     "export": "Export",
     "logout": "Logout",
     "register": "Register",
-    "wishlist": "Wishlist"
+    "wishlist": "Wishlist",
+    "settings": "Settings"
   },
   "books": {
     "title": "Books",
@@ -421,8 +422,17 @@
       "bookshelves": "Bookshelves",
       "collections": "Collections"
     }
-  }
-  ,
+  },
+  "settings": {
+    "title": "Settings",
+    "backgroundSection": "Background",
+    "backgroundHint": "Pick your personal background. It only applies to your account, not to other users or guests.",
+    "guestHint": "Guests use the default background. Log in to customize.",
+    "saving": "Saving…",
+    "saveFailed": "Failed to save, please retry.",
+    "authRequired": "Please log in to save your background.",
+    "currentBackground": "Current background"
+  },
   "wishlist": {
     "empty": "No books in wishlist yet. Add books and mark them as wishlist items."
   }

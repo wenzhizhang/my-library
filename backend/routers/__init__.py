@@ -12,6 +12,7 @@ from .rag import router as rag_router
 from .isbn import router as isbn_router
 from .stats import router as stats_router
 from .config_router import router as config_router
+from .background import router as background_router
 from .export import router as export_router
 from .media import router as media_router
 
@@ -30,6 +31,7 @@ __all__ = [
     "reading_plan_router",
     "stats_router",
     "config_router",
+    "background_router",
     "isbn_router",
     "export_router",
     "media_router",

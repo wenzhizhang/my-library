@@ -82,6 +82,20 @@ if [ ! -f "${COMPOSE_FILE}" ]; then
 fi
 
 # =============================================================================
+# 配置文件检查
+# backend/config 通过 bind mount 进入容器: 新文件若未同步到服务器仓库,
+# 容器不会启动失败, 但对应功能会报错 —— 提前警告并给出修复方式
+# =============================================================================
+CONFIG_DIR="${SCRIPT_DIR}/backend/config"
+for CFG in backgrounds.json purchase_stores.json; do
+    if [ ! -f "${CONFIG_DIR}/${CFG}" ]; then
+        print_warn "config/${CFG} not found at ${CONFIG_DIR}/${CFG}"
+        print_warn "  Run 'git pull' in this repository (or copy the file), then redeploy."
+        print_warn "  Background selection will use the built-in fallback until the file is present."
+    fi
+done
+
+# =============================================================================
 # .env 自举: 如果 .env 不存在, 生成模板并引导用户配置
 # =============================================================================
 ENV_FILE="${SCRIPT_DIR}/.env"

@@ -31,6 +31,7 @@ tags:
   - name: ISBN
   - name: Export
   - name: Config
+  - name: Backgrounds
 components:
   securitySchemes:
     BearerAuth:
@@ -66,6 +67,30 @@ components:
         id: { type: integer }
         username: { type: string }
         uuid: { type: string }
+
+    # ── Backgrounds ──
+    BackgroundItem:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        url: { type: string }
+    BackgroundListResponse:
+      type: object
+      properties:
+        default_id: { type: string }
+        backgrounds:
+          type: array
+          items: { $ref: "#/components/schemas/BackgroundItem" }
+    BackgroundSelectionRequest:
+      type: object
+      required: [background_id]
+      properties:
+        background_id: { type: string }
+    BackgroundSelectionResponse:
+      type: object
+      properties:
+        background_id: { type: string, nullable: true }
 
     # ── Book ──
     BookCreation:
@@ -2026,6 +2051,68 @@ paths:
                   purchase_stores:
                     type: array
                     items: { type: string }
+
+  # ═══════════════════════════════════════════════
+  # Backgrounds
+  # ═══════════════════════════════════════════════
+  /api/backgrounds:
+    get:
+      tags: [Backgrounds]
+      summary: List available background images
+      description: |
+        Hot-reloaded from `backend/config/backgrounds.json` on every request —
+        updating that file does not require rebuilding the image or container.
+      responses:
+        "200":
+          description: Background list with the configured default id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackgroundListResponse"
+  /api/backgrounds/me:
+    get:
+      tags: [Backgrounds]
+      summary: Get the caller's saved background id
+      description: |
+        Requires no auth for guests, who always receive `background_id: null`
+        (default background). Authenticated users get their own saved choice.
+      responses:
+        "200":
+          description: The caller's background selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackgroundSelectionResponse"
+    put:
+      tags: [Backgrounds]
+      summary: Save the caller's background choice
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackgroundSelectionRequest"
+      responses:
+        "200":
+          description: Saved selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackgroundSelectionResponse"
+        "400":
+          description: Unknown background id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
 
   # ═══════════════════════════════════════════════
   # Stats — Books
