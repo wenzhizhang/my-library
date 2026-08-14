@@ -39,9 +39,11 @@ AuthSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=auth_eng
 
 
 def init_auth_db():
-    from models.user import User  # noqa: F401
+    from models.user import User, UserSetting  # noqa: F401
 
-    Base.metadata.create_all(bind=auth_engine, tables=[User.__table__])
+    Base.metadata.create_all(
+        bind=auth_engine, tables=[User.__table__, UserSetting.__table__]
+    )
 
 
 def get_auth_db():
