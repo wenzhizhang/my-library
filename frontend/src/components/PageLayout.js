@@ -50,6 +50,7 @@ export default function PageLayout({
   items = [],
   renderItem,
   listColumns,
+  sphereView,
 }) {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState(() => loadPrefs(layoutKey));
@@ -69,6 +70,10 @@ export default function PageLayout({
 
   const viewMode = prefs.viewMode || 'grid';
   const columns = prefs.columns || 'auto';
+
+  const VIEW_MODES = sphereView ? ['grid', 'list', 'sphere'] : ['grid', 'list'];
+  const effectiveViewMode = viewMode === 'sphere' && !sphereView ? 'grid' : viewMode;
+  const nextViewMode = VIEW_MODES[(VIEW_MODES.indexOf(effectiveViewMode) + 1) % VIEW_MODES.length];
 
   const gridClass = columns === 'auto'
     ? 'page-layout-grid-auto'
@@ -152,25 +157,27 @@ export default function PageLayout({
             )}
 
             {/* Column selector */}
-            <label className="control-label">
-              <span className="control-label-text">Cols</span>
-              <select
-                value={columns}
-                onChange={(e) => updatePrefs({ columns: e.target.value })}
-              >
-                {COLUMN_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </label>
+            {effectiveViewMode !== 'sphere' && (
+              <label className="control-label">
+                <span className="control-label-text">Cols</span>
+                <select
+                  value={columns}
+                  onChange={(e) => updatePrefs({ columns: e.target.value })}
+                >
+                  {COLUMN_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             {/* View mode toggle */}
             <button
-              className={`btn-pill-link view-toggle ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => updatePrefs({ viewMode: viewMode === 'grid' ? 'list' : 'grid' })}
-              title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+              className={`btn-pill-link view-toggle ${effectiveViewMode !== 'grid' ? 'active' : ''}`}
+              onClick={() => updatePrefs({ viewMode: nextViewMode })}
+              title={`Switch to ${nextViewMode} view`}
             >
-              {viewMode === 'grid' ? '☰' : '▦'}
+              {nextViewMode === 'list' ? '☰' : nextViewMode === 'sphere' ? '◍' : '▦'}
             </button>
           </div>
 
@@ -184,7 +191,13 @@ export default function PageLayout({
         {extraToolbar}
 
         {/* Items */}
-        {viewMode === 'list' && listColumns ? (
+        {effectiveViewMode === 'sphere' && sphereView ? (
+          items.length === 0 ? (
+            <div className="empty-state">No items found.</div>
+          ) : (
+            sphereView
+          )
+        ) : viewMode === 'list' && listColumns ? (
           <>
             {items.length === 0 ? (
               <div className="empty-state">No items found.</div>
