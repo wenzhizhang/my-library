@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import "./Books.css";
 import BookCard from './BookCard';
@@ -25,13 +25,14 @@ const AuthorDetails = () => {
   const [saving, setSaving] = useState(false);
   // Paginated books
   const [books, setBooks] = useState([]);
-  const [bookPage, setBookPage] = useState(1);
-  const [bookLimit, setBookLimit] = useState(10);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const bookPage = parseInt(searchParams.get('page')) || 1;
+  const bookLimit = parseInt(searchParams.get('limit')) || 10;
   const [bookTotalPages, setBookTotalPages] = useState(1);
   const [bookTotalCount, setBookTotalCount] = useState(0);
-  const [bookSort, setBookSort] = useState('title');
-  const [bookSearchInput, setBookSearchInput] = useState('');
-  const [bookQuery, setBookQuery] = useState('');
+  const bookSort = searchParams.get('sort_by') || 'title';
+  const [bookSearchInput, setBookSearchInput] = useState(searchParams.get('q') || '');
+  const bookQuery = searchParams.get('q') || '';
 
   useEffect(() => {
     fetchAuthor();
@@ -39,6 +40,29 @@ const AuthorDetails = () => {
   useEffect(() => {
     fetchBooks(bookPage);
   }, [id, bookPage, bookSort, bookLimit, bookQuery]);
+  const setPageParam = (p) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('page', String(p));
+    setSearchParams(next, { replace: true });
+  };
+  const setSortParam = (s) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('sort_by', s);
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+  const setLimitParam = (l) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('limit', String(l));
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
+  const setQueryParam = (q) => {
+    const next = new URLSearchParams(searchParams);
+    if (q) next.set('q', q); else next.delete('q');
+    next.set('page', '1');
+    setSearchParams(next, { replace: true });
+  };
   useEffect(() => {
     axios.get(`${window.location.origin}${API_BASE_URL}/authors/nations`)
       .then(res => setNations(res.data.nations))
@@ -182,17 +206,17 @@ const AuthorDetails = () => {
               embedded
               searchValue={bookSearchInput}
               onSearchChange={setBookSearchInput}
-              onSearch={() => { setBookQuery(bookSearchInput.trim()); setBookPage(1); }}
+              onSearch={() => { setQueryParam(bookSearchInput.trim()); }}
               searchPlaceholder={t('books.searchPlaceholder')}
               sortBy={bookSort}
               sortOptions={sortOptions}
-              onSort={(s) => { setBookSort(s); setBookPage(1); }}
+              onSort={(s) => { setSortParam(s) }}
               limit={bookLimit}
-              onLimitChange={(l) => { setBookLimit(l); setBookPage(1); }}
+              onLimitChange={(l) => { setLimitParam(l) }}
               page={bookPage}
               totalPages={bookTotalPages}
               totalItems={bookTotalCount}
-              onPageChange={setBookPage}
+              onPageChange={setPageParam}
               layoutKey="author-books"
               items={books}
               renderItem={renderItem}

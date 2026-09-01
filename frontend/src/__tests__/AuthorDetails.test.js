@@ -5,10 +5,18 @@ import AuthorDetails from '../components/AuthorDetails';
 import '../i18n';
 
 // react-router-dom v7 has a broken "main" field; map to react-router and stub hooks.
+// useSearchParams is stateful so page/query changes driven through the URL still re-render.
+let mockInitialSearch = ''; // seeded by tests to simulate a restored URL on mount
 jest.mock('react-router-dom', () => {
   const actual = jest.requireActual('react-router');
+  const React = require('react');
   const mockNavigate = jest.fn();
-  return { ...actual, useNavigate: () => mockNavigate, useParams: () => ({ id: '1' }) };
+  const useSearchParams = () => {
+    const [sp, setSp] = React.useState(new URLSearchParams(mockInitialSearch));
+    const setSearchParams = (next) => setSp(new URLSearchParams(next));
+    return [sp, setSearchParams];
+  };
+  return { ...actual, useNavigate: () => mockNavigate, useParams: () => ({ id: '1' }), useSearchParams };
 });
 
 jest.mock('axios');
@@ -30,6 +38,7 @@ const mockBooks = [
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockInitialSearch = '';
   sessionStorage.clear();
   axios.get.mockImplementation((url) => {
     if (String(url).includes('/authors/1/books')) {
@@ -55,7 +64,7 @@ test('detail page book list uses the shared toolbar', async () => {
   });
   render(<AuthorDetails />);
 
-  await waitFor(() => expect(screen.getByText('Book One')).toBeInTheDocument());
+  await screen.findByText('Book One');
 
   // Same search bar as BookList: search input, sort, per-page, cols, view toggle
   expect(screen.getByPlaceholderText('Search title, title_cn, ISBN\u2026')).toBeInTheDocument();
@@ -65,6 +74,23 @@ test('detail page book list uses the shared toolbar', async () => {
   expect(screen.getByTitle('Switch to list view')).toBeInTheDocument();
   // Page info mirrors BookList format
   expect(screen.getByText(/Page 1 of 1 total\(2\)/)).toBeInTheDocument();
+});
+
+test('detail page restores book page from URL params on mount', async () => {
+  jest.spyOn(require('../AuthContext'), 'useAuth').mockReturnValue({
+    isAuthenticated: false,
+    user: null,
+    token: null,
+    login: jest.fn(),
+    logout: jest.fn(),
+  });
+  mockInitialSearch = '?page=2';
+  render(<AuthorDetails />);
+
+  await screen.findByText('Book One');
+
+  const bookCalls = axios.get.mock.calls.filter((c) => String(c[0]).includes('/authors/1/books'));
+  expect(bookCalls[0][1].params.page).toBe(2);
 });
 
 test('detail page search submits q to the books endpoint', async () => {
@@ -77,7 +103,7 @@ test('detail page search submits q to the books endpoint', async () => {
   });
   const { fireEvent } = require('@testing-library/react');
   render(<AuthorDetails />);
-  await waitFor(() => expect(screen.getByText('Book One')).toBeInTheDocument());
+  await screen.findByText('Book One');
 
   const input = screen.getByPlaceholderText('Search title, title_cn, ISBN\u2026');
   fireEvent.change(input, { target: { value: 'Gatsby' } });
