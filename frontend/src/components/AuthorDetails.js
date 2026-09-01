@@ -7,6 +7,7 @@ import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 import PageLayout from './PageLayout';
+import BookSphere from './BookSphere';
 import BookListRow from './BookListRow';
 
 const AuthorDetails = () => {
@@ -221,6 +222,7 @@ const AuthorDetails = () => {
               items={books}
               renderItem={renderItem}
               listColumns={listColumns}
+              sphereView={<BookSphere books={books} />}
             />
           </>
         )}

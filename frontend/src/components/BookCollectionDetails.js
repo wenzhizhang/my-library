@@ -7,6 +7,7 @@ import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
 import SearchableSelect from './SearchableSelect';
 import PageLayout from './PageLayout';
+import BookSphere from './BookSphere';
 import BookListRow from './BookListRow';
 
 const BookCollectionDetails = () => {
@@ -371,6 +372,7 @@ const BookCollectionDetails = () => {
             items={displayBooks}
             renderItem={renderItem}
             listColumns={listColumns}
+            sphereView={<BookSphere books={displayBooks} />}
           />
         </div>
       </div>
