@@ -6,6 +6,7 @@ import "./Books.css";
 import BookCard from './BookCard';
 import { API_BASE_URL } from './Config';
 import PageLayout from './PageLayout';
+import BookSphere from './BookSphere';
 import BookListRow from './BookListRow';
 
 const CategoryDetails = () => {
@@ -163,6 +164,7 @@ const CategoryDetails = () => {
             items={books}
             renderItem={renderItem}
             listColumns={listColumns}
+            sphereView={<BookSphere books={books} />}
           />
         )}
       </div>

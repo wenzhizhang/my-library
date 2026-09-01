@@ -7,6 +7,7 @@ import BookCard from './BookCard';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 import PageLayout from './PageLayout';
+import BookSphere from './BookSphere';
 
 const Archived = () => {
   const { t } = useTranslation();
@@ -122,6 +123,7 @@ const Archived = () => {
       items={books}
       renderItem={renderItem}
       listColumns={listColumns}
+      sphereView={<BookSphere books={books} />}
     />
   );
 };

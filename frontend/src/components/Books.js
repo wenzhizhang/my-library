@@ -6,9 +6,9 @@ import './Books.css';
 import './hover.css';
 import { useAuth } from '../AuthContext';
 import BookListRow from './BookListRow';
+import BookSphere from './BookSphere';
 import BookCard from './BookCard';
-import SphereView from './SphereView';
-import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
+import { API_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
 import PageLayout from './PageLayout';
 
@@ -217,18 +217,7 @@ const Books = () => {
         items={books}
         renderItem={renderItem}
         listColumns={listColumns}
-        sphereView={
-          <SphereView
-            items={books}
-            getThumb={(b) => (b.thumb_image ? `${MEDIA_BASE_URL}/${b.thumb_image}` : null)}
-            getTitle={(b) => b.title_cn || b.title}
-            getSubtitle={(b) => [
-              b.authors && b.authors.length ? b.authors.join(', ') : null,
-              b.isbn ? `ISBN ${b.isbn}` : null,
-            ].filter(Boolean).join(' · ')}
-            onSelect={(b) => navigate(`${LIBRARY_PATH}/books/${b.id}`)}
-          />
-        }
+        sphereView={<BookSphere books={books} />}
         extraToolbar={extraToolbar}
         extraSearchSlot={
           <button
