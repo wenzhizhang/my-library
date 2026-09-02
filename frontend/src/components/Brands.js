@@ -31,7 +31,7 @@ const Brands = () => {
 
   const page = parseInt(searchParams.get('page')) || 1;
   const limit = parseInt(searchParams.get('limit')) || 20;
-  const sortBy = searchParams.get('sort_by') || 'name';
+  const sortBy = searchParams.get('sort_by') || 'weight';
 
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +150,7 @@ const Brands = () => {
   };
 
   const sortOptions = [
+    { value: 'weight', label: t('common.bookCount') },
     { value: 'id', label: 'ID' },
     { value: 'name', label: t('common.name') },
   ];

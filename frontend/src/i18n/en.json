@@ -223,7 +223,8 @@
     "deleteConfirm": "Delete",
     "cannotUndo": "This action cannot be undone.",
     "editEntity": "Edit",
-    "createEntity": "Create"
+    "createEntity": "Create",
+    "bookCount": "Book count"
   },
   "auth": {
     "username": "Username",

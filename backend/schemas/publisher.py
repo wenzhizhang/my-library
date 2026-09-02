@@ -59,6 +59,7 @@ class PublisherResponse(BaseModel):
     name: str
     intro: Optional[str] = None
     logo: Optional[str] = None
+    weight: int = 0
     books: Optional[List[BookSimple]]
 
 
@@ -93,4 +94,5 @@ class BrandResponse(BaseModel):
     id: int
     name: str
     intro: Optional[str] = None
+    weight: int = 0
     books: Optional[List[BookSimple]]

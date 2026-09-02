@@ -223,7 +223,8 @@
     "deleteConfirm": "確定要刪除",
     "cannotUndo": "此操作不可撤銷",
     "editEntity": "編輯",
-    "createEntity": "新增"
+    "createEntity": "新增",
+    "bookCount": "藏書量"
   },
   "auth": {
     "username": "使用者名稱",

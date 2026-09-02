@@ -15,7 +15,7 @@ const Series = () => {
 
   const page = parseInt(searchParams.get('page')) || 1;
   const limit = parseInt(searchParams.get('limit')) || 20;
-  const sortBy = searchParams.get('sort_by') || 'name';
+  const sortBy = searchParams.get('sort_by') || 'weight';
 
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +151,7 @@ const Series = () => {
   // ── PageLayout props ──────────────────────────────────────
 
   const sortOptions = [
+    { value: 'weight', label: t('common.bookCount') },
     { value: 'name', label: t('common.name') },
     { value: 'updated_at', label: t('common.recentlyUpdated') },
     { value: 'created_at', label: t('common.recentlyCreated') },

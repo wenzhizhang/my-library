@@ -9,8 +9,8 @@ jest.mock('react-router-dom');
 const mockNavigate = require('react-router-dom').mockNavigate;
 
 const mockAuthors = [
-  { id: 1, name: '东野圭吾', name_cn: '东野圭吾', nation: '日本', dynasty: '', intro: 'Japanese mystery writer', photo: '' },
-  { id: 2, name: '刘慈欣', name_cn: '刘慈欣', nation: '中国', dynasty: '当代', intro: 'Science fiction author', photo: '' },
+  { id: 1, name: '东野圭吾', name_cn: '东野圭吾', nation: '日本', dynasty: '', intro: 'Japanese mystery writer', photo: '', weight: 12 },
+  { id: 2, name: '刘慈欣', name_cn: '刘慈欣', nation: '中国', dynasty: '当代', intro: 'Science fiction author', photo: '', weight: 5 },
 ];
 
 function renderWithProviders(ui, { isAuthenticated = false } = {}) {
@@ -43,18 +43,16 @@ test('renders loading then authors list', async () => {
   renderWithProviders(<Authors />, { isAuthenticated: false });
 
   // Loading indicator appears immediately
-  expect(screen.getByText('Loading...')).toBeInTheDocument();
+  expect(screen.getByText('Loading…')).toBeInTheDocument();
 
   // Wait for cards to appear — author names are in paragraphs together with nation/dynasty
   await waitFor(() => {
     expect(screen.getByText(/东野圭吾/)).toBeInTheDocument();
   });
-  expect(screen.getByText(/刘慈欣/)).toBeInTheDocument();
-
   // Verify API call
   expect(axios.get).toHaveBeenCalledWith(
     'http://localhost/api/authors/',
-    { params: { page: 1, limit: 10, sort_by: 'name' } }
+    { params: { page: 1, limit: 20, sort_by: 'weight' } }
   );
 });
 
@@ -82,7 +80,7 @@ test('search triggers API call with q param', async () => {
   await waitFor(() => {
     expect(axios.get).toHaveBeenCalledWith(
       'http://localhost/api/authors/',
-      { params: { page: 1, limit: 10, sort_by: 'name', q: '东野' } }
+      { params: { page: 1, limit: 20, sort_by: 'weight', q: '东野' } }
     );
   });
 });

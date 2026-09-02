@@ -17,6 +17,7 @@ class Author(Base):
     dynasty: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, default=None)
     intro: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     photo: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    weight: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     books: Mapped[List["Book"]] = relationship("Book", secondary="book_authors", back_populates="authors")
 
     def __repr__(self):
@@ -28,4 +29,3 @@ class Author(Base):
             return f"[{self.dynasty}] {author_name}"
         else:
             return f"[{self.nation}] {author_name}"
-
