@@ -61,4 +61,5 @@ class CategoryResponse(BaseModel):
     intro: Optional[str] = None
     depth: Optional[int] = None
     path: Optional[str] = None
+    weight: int = 0
     books: Optional[List[BookSimple]]

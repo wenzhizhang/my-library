@@ -31,7 +31,7 @@ const BookCollections = () => {
 
   const page = parseInt(searchParams.get('collectionsPage')) || 1;
   const limit = parseInt(searchParams.get('limit')) || 20;
-  const sortBy = searchParams.get('sort_by') || 'name';
+  const sortBy = searchParams.get('sort_by') || 'weight';
 
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,6 +165,7 @@ const BookCollections = () => {
   };
 
   const sortOptions = [
+    { value: 'weight', label: t('common.bookCount') },
     { value: 'id', label: 'ID' },
     { value: 'name', label: t('common.name') },
   ];

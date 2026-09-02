@@ -211,6 +211,9 @@ def migrate_schema():
     import glob
     db_files = glob.glob(os.path.join(DATA_DIR, "*.db"))
     for db_path in db_files:
+        # root.db is shared reference data synced from local DBs; never alter it here
+        if os.path.abspath(db_path) == os.path.abspath(ROOT_DB_PATH):
+            continue
         try:
             conn = sqlite3.connect(db_path)
             # Check if books table exists
@@ -220,13 +223,34 @@ def migrate_schema():
             if not tables:
                 conn.close()
                 continue
+            all_tables = {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()}
             # Check if archived column exists
             cols = [r[1] for r in conn.execute("PRAGMA table_info(books)").fetchall()]
             if 'archived' not in cols:
                 conn.execute("ALTER TABLE books ADD COLUMN archived BOOLEAN DEFAULT 0 NOT NULL")
                 conn.commit()
                 print(f"[migrate_schema] Added archived column to {db_path}", flush=True)
+            # Add weight columns (book counts) to the six weight-bearing tables
+            for table in ("authors", "publishers", "brands", "book_series", "categories", "book_collections"):
+                if table not in all_tables:
+                    continue
+                tcols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+                if 'weight' not in tcols:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN weight INTEGER DEFAULT 0 NOT NULL")
+                    conn.commit()
+                    print(f"[migrate_schema] Added weight column to {table} in {db_path}", flush=True)
             conn.close()
+            # Backfill weights so existing data sorts correctly immediately
+            engine = _get_or_create_engine(db_path)
+            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+            from services.weights import recompute_weights
+            session = SessionLocal()
+            try:
+                recompute_weights(session)
+            finally:
+                session.close()
         except Exception as e:
             print(f"[migrate_schema] Skipping {db_path}: {e}", flush=True)
     print("[migrate_schema] Done", flush=True)

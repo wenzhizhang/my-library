@@ -24,13 +24,15 @@ def create_publisher(publisher: PublisherCreation, db: Session = Depends(get_db)
     return db_publisher
 
 @publisher_router.get("/")
-def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
+def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'weight', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Publisher)
     if sort_by == 'name':
         query = query.order_by(Publisher.name)
     elif sort_by == 'created_at':
         query = query.order_by(Publisher.created_at)
+    elif sort_by == 'weight':
+        query = query.order_by(Publisher.weight.desc(), Publisher.name.asc(), Publisher.id.asc())
     if q:
         query = query.filter(Publisher.name.ilike(f'%{q}%'))
     publishers = query.offset(offset).limit(limit).all()
@@ -44,6 +46,7 @@ def read_publishers(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Op
             "name": p.name,
             "intro": p.intro,
             "logo": p.logo,
+            "weight": p.weight,
         })
 
     return {
@@ -120,13 +123,15 @@ def create_brand(brand: BrandCreation, db: Session = Depends(get_db), user_id: O
     return db_brand
 
 @brand_router.get("/")
-def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Optional[str] = None, db: Session = Depends(get_db)):
+def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'weight', q: Optional[str] = None, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(Brand)
     if sort_by == 'name':
         query = query.order_by(Brand.name)
     elif sort_by == 'created_at':
         query = query.order_by(Brand.created_at)
+    elif sort_by == 'weight':
+        query = query.order_by(Brand.weight.desc(), Brand.name.asc(), Brand.id.asc())
     if q:
         query = query.filter(Brand.name.ilike(f'%{q}%'))
     brands = query.offset(offset).limit(limit).all()
@@ -139,6 +144,7 @@ def read_brands(page: int = 1, limit: int = 10, sort_by: str = 'name', q: Option
             "id": b.id,
             "name": b.name,
             "intro": b.intro,
+            "weight": b.weight,
         })
 
     return {

@@ -63,6 +63,7 @@ class BookCollectionResponse(BaseModel):
     intro: Optional[str] = None
     created_at: Optional[datetime] = None
     total_books: Optional[int] = None
+    weight: int = 0
     books: Optional[List[BookSimple]] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -82,6 +83,7 @@ class BookCollectionSummary(BaseModel):
     intro: Optional[str] = None
     created_at: Optional[str] = None
     total_books: int = 0
+    weight: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/authors", tags=["authors"])
 def read_authors(
     page: int = 1,
     limit: int = 10,
-    sort_by: str = "name",
+    sort_by: str = "weight",
     q: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -33,6 +33,8 @@ def read_authors(
         query = query.order_by(Author.name)
     elif sort_by == "created_at":
         query = query.order_by(Author.created_at)
+    elif sort_by == "weight":
+        query = query.order_by(Author.weight.desc(), Author.name.asc(), Author.id.asc())
     if q:
         query = query.filter(or_(Author.name.ilike(f'%{q}%'), Author.name_cn.ilike(f'%{q}%')))
     authors = query.offset(offset).limit(limit).all()
@@ -49,6 +51,7 @@ def read_authors(
             "dynasty": a.dynasty,
             "intro": a.intro,
             "photo": a.photo,
+            "weight": a.weight,
         })
 
     return {

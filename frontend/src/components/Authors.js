@@ -15,7 +15,7 @@ const Authors = () => {
 
   const page = parseInt(searchParams.get('page')) || 1;
   const limit = parseInt(searchParams.get('limit')) || 20;
-  const sortBy = searchParams.get('sort_by') || 'name';
+  const sortBy = searchParams.get('sort_by') || 'weight';
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -164,6 +164,7 @@ const Authors = () => {
   };
 
   const sortOptions = [
+    { value: 'weight', label: t('common.bookCount') },
     { value: 'id', label: 'ID' },
     { value: 'name', label: t('common.name') },
   ];

@@ -55,4 +55,5 @@ class BookSeriesResponse(BaseModel):
     id: int
     name: str
     intro: Optional[str] = None
+    weight: int = 0
     books: List[BookSimple]

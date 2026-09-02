@@ -108,6 +108,7 @@ class AuthorResponse(BaseModel):
     dynasty: Optional[str] = None
     intro: Optional[str] = None
     photo: Optional[str] = None
+    weight: int = 0
     books: Optional[list[BookSimple]] = None
 
     model_config = ConfigDict(from_attributes=True)

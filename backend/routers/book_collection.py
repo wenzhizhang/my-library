@@ -15,6 +15,7 @@ from schemas.book_collection import (
 )
 from database import get_db
 from serializers import serialize_book
+from services.weights import recompute_weights
 
 router = APIRouter(prefix="/api/book-collections", tags=["book-collections"])
 
@@ -27,6 +28,7 @@ def create_book_collection(
     db.add(db_collection)
     db.commit()
     db.refresh(db_collection)
+    recompute_weights(db)
     return db_collection
 
 
@@ -34,7 +36,7 @@ def create_book_collection(
 def read_book_collections(
     page: int = 1,
     limit: int = 10,
-    sort_by: str = "name",
+    sort_by: str = "weight",
     q: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -44,6 +46,8 @@ def read_book_collections(
         query = query.order_by(BookCollection.name)
     elif sort_by == "created_at":
         query = query.order_by(BookCollection.created_at.desc())
+    elif sort_by == "weight":
+        query = query.order_by(BookCollection.weight.desc(), BookCollection.name.asc(), BookCollection.id.asc())
     if q:
         query = query.filter(BookCollection.name.ilike(f"%{q}%"))
 
@@ -60,6 +64,7 @@ def read_book_collections(
                 "intro": c.intro,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
                 "total_books": len(c.books),
+                "weight": c.weight,
             }
         )
 
@@ -124,6 +129,7 @@ def update_book_collection(
     for key, value in collection_update.model_dump(exclude_unset=True).items():
         setattr(collection, key, value)
     db.commit()
+    recompute_weights(db)
     collection = (
         db.query(BookCollection)
         .options(joinedload(BookCollection.books).joinedload(Book.authors))
@@ -150,6 +156,7 @@ def delete_book_collection(collection_id: int, db: Session = Depends(get_db)):
     )
     db.delete(collection)
     db.commit()
+    recompute_weights(db)
     return {"message": "Book collection deleted"}
 
 
@@ -184,6 +191,7 @@ def batch_add_books_to_collection(
     for book in books:
         collection.books.append(book)
     db.commit()
+    recompute_weights(db)
     collection = (
         db.query(BookCollection)
         .options(joinedload(BookCollection.books).joinedload(Book.authors))
@@ -216,6 +224,7 @@ def add_book_to_collection(
 
     collection.books.append(book)
     db.commit()
+    recompute_weights(db)
     collection = (
         db.query(BookCollection)
         .options(joinedload(BookCollection.books).joinedload(Book.authors))
@@ -250,6 +259,7 @@ def remove_book_from_collection(
 
     collection.books.remove(book)
     db.commit()
+    recompute_weights(db)
     collection = (
         db.query(BookCollection)
         .options(joinedload(BookCollection.books).joinedload(Book.authors))

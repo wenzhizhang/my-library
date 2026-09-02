@@ -25,7 +25,7 @@ def create_series(series: BookSeriesCreation, db: Session = Depends(get_db), use
     return db_series
 
 @router.get("/")
-def read_series(page: int = 1, limit: int = 10, q: Optional[str] = None, sort_by: str = 'name', db: Session = Depends(get_db)):
+def read_series(page: int = 1, limit: int = 10, q: Optional[str] = None, sort_by: str = 'weight', db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     query = db.query(BookSeries)
     if q:
@@ -34,6 +34,8 @@ def read_series(page: int = 1, limit: int = 10, q: Optional[str] = None, sort_by
         query = query.order_by(BookSeries.name)
     elif sort_by == 'created_at':
         query = query.order_by(BookSeries.created_at)
+    elif sort_by == 'weight':
+        query = query.order_by(BookSeries.weight.desc(), BookSeries.name.asc(), BookSeries.id.asc())
     series = query.offset(offset).limit(limit).all()
     total_series = query.count()
     total_pages = (total_series + limit - 1) // limit
@@ -44,6 +46,7 @@ def read_series(page: int = 1, limit: int = 10, q: Optional[str] = None, sort_by
             "id": s.id,
             "name": s.name,
             "intro": s.intro,
+            "weight": s.weight,
         })
 
     return {

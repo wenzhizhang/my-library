@@ -15,6 +15,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     parent_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey('categories.id'), nullable=True)
     intro: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    weight: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     depth: Mapped[int] = mapped_column(Integer, default=0)
     path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 

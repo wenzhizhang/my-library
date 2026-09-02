@@ -23,6 +23,7 @@ class BookCollection(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     intro: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    weight: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     books: Mapped[List["Book"]] = relationship(secondary=book_collection_items, back_populates="collections")
 

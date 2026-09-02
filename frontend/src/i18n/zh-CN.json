@@ -52,7 +52,8 @@
     "deleteConfirm": "确定要删除",
     "cannotUndo": "此操作不可撤销",
     "editEntity": "编辑",
-    "createEntity": "新增"
+    "createEntity": "新增",
+    "bookCount": "藏书量"
   },
   "auth": {
     "username": "用户名",

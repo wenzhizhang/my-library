@@ -10,6 +10,7 @@ from database import get_db
 from serializers import serialize_book
 from services.sync_to_root import sync_book as sync_book_to_root, sync_book_author as sync_book_author_to_root
 from rag.pipeline import sync_book, remove_book
+from services.weights import recompute_weights
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
@@ -44,6 +45,7 @@ def create_book(book: BookCreation, db: Session = Depends(get_db)):
     sync_book_to_root(db_book)
     for author in authors:
         sync_book_author_to_root(db_book.id, author.id)
+    recompute_weights(db)
     return {
         "id": db_book.id,
         "isbn": db_book.isbn,
@@ -271,6 +273,7 @@ def archive_book(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Book not found")
     book.archived = True
     db.commit()
+    recompute_weights(db)
     return {"message": "Book archived"}
 
 @router.put("/{book_id}", response_model=BookResponse)
@@ -293,6 +296,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
     if has_author_update:
         for author in book.authors:
             sync_book_author_to_root(book.id, author.id)
+    recompute_weights(db)
     db.refresh(book)
     return {
         "id": book.id,
@@ -341,4 +345,5 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     # remove_book(db, book_id)  # RAG disabled
     db.delete(book)
     db.commit()
+    recompute_weights(db)
     return {"message": "Book deleted"}

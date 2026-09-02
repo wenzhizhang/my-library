@@ -10,6 +10,7 @@ from database import get_db
 from sqlalchemy.orm import Session
 from models import Author, Book, Bookshelf, Category, Publisher, Brand, BookSeries
 from rag.pipeline import sync_book
+from services.weights import recompute_weights
 from typing import List
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -179,6 +180,7 @@ async def add_book(request: Request, isbn: str = Form(...), title_cn: str = Form
     # Index for RAG search (best-effort)
     sync_book(db, db_book.id)
     db.refresh(db_book)
+    recompute_weights(db)
 
     return templates.TemplateResponse("books_add.html", {"request": request, "message": "Book added successfully!"})
 
