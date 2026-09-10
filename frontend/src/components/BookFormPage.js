@@ -883,9 +883,9 @@ function BookFormPage() {
         setSubmitSuccess(false);
         // Restore previous page state if available, otherwise default
         const prevState = sessionStorage.getItem('booksPageState');
-        if (prevState) {
-          navigate(`/my-library/books${prevState}`);
-          sessionStorage.removeItem('booksPageState');
+        sessionStorage.removeItem('booksPageState');
+        if (prevState && prevState.startsWith('/')) {
+          navigate(prevState);
         } else {
           navigate(-1);
         }

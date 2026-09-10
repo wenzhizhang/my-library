@@ -27,7 +27,7 @@ const BookListRow = ({
 
   const handleEdit = (e) => {
     e.stopPropagation();
-    sessionStorage.setItem('booksPageState', window.location.search);
+    sessionStorage.setItem('booksPageState', window.location.pathname + window.location.search);
     navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
   };
 
