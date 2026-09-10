@@ -345,7 +345,7 @@ def test_book_11_detail_lists_authors_as_strings(client, db):
     wishlist_book = Book(title="Wish Book", isbn="978-7-01-000101-8", in_wish=True)
     wishlist_book.authors.append(author)
     db.add(wishlist_book)
-    archived_book = Book(title="Archived Book", isbn="978-7-01-000102-5", archived=True)
+    archived_book = Book(title="Archived Book", isbn="978-7-01-000102-5", archived=True, bookshelf=bookshelf)
     db.add(archived_book)
     db.commit()
 

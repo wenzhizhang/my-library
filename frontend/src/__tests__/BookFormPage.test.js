@@ -231,10 +231,28 @@ describe('submit', () => {
 
     // Component uses setTimeout(1500) before navigating
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/my-library/books');
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     }, { timeout: 3000 });
   });
 
+  test('returns to the page that launched the form (e.g. bookshelf detail)', async () => {
+    sessionStorage.setItem('booksPageState', '/my-library/bookshelves/7?page=2&limit=20');
+    axios.post.mockResolvedValue({ data: { id: 1 } });
+    renderForm();
+
+    const isbnInput = screen.getByPlaceholderText('978-7-...');
+    fireEvent.change(isbnInput, { target: { value: '9781234567890' } });
+
+    const titleCnInput = screen.getByPlaceholderText('书名');
+    fireEvent.change(titleCnInput, { target: { value: '测试书名' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /create book/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/my-library/bookshelves/7?page=2&limit=20');
+    }, { timeout: 3000 });
+    expect(sessionStorage.getItem('booksPageState')).toBeNull();
+  });
   test('shows success message before navigation', async () => {
     axios.post.mockResolvedValue({ data: { id: 1 } });
     renderForm();
