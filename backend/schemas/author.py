@@ -56,17 +56,19 @@ class AuthorCreation(BaseModel):
     intro: Optional[str] = None
     photo: Optional[str] = None
 
-    @field_validator("nation")
+    @field_validator("nation", mode="before")
     @classmethod
     def validate_nation(cls, v):
+        if v is None or v == "":
+            return "无"
         if v not in NATIONS:
             raise ValueError(f"Invalid nation '{v}'. Must be one of: {', '.join(NATIONS)}")
         return v
 
-    @field_validator("dynasty")
+    @field_validator("dynasty", mode="before")
     @classmethod
     def validate_dynasty(cls, v):
-        if v is None:
+        if v is None or v == "":
             return None
         if v not in DYNASTIES:
             raise ValueError(f"Invalid dynasty '{v}'. Must be one of: {', '.join(DYNASTIES)}")
@@ -81,19 +83,20 @@ class AuthorUpdate(BaseModel):
     intro: Optional[str] = None
     photo: Optional[str] = None
 
-    @field_validator("nation")
+    @field_validator("nation", mode="before")
     @classmethod
     def validate_nation(cls, v):
-        if v is None:
-            return None
+        # nation is NOT NULL, so both null and blank mean "no nation" -> the NATIONS sentinel.
+        if v is None or v == "":
+            return "无"
         if v not in NATIONS:
             raise ValueError(f"Invalid nation '{v}'. Must be one of: {', '.join(NATIONS)}")
         return v
 
-    @field_validator("dynasty")
+    @field_validator("dynasty", mode="before")
     @classmethod
     def validate_dynasty(cls, v):
-        if v is None:
+        if v is None or v == "":
             return None
         if v not in DYNASTIES:
             raise ValueError(f"Invalid dynasty '{v}'. Must be one of: {', '.join(DYNASTIES)}")

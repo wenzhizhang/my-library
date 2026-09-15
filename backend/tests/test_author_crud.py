@@ -299,3 +299,76 @@ class TestNationsAndDynasties:
         assert "dynasties" in data
         assert "上古" in data["dynasties"]
         assert "当代" in data["dynasties"]
+
+
+# ── Blank enum fields (regression) ──────────────────────────────
+
+class TestBlankEnumFields:
+    """Regression guard for "Create Author" returning 422.
+
+    Every author form renders dynasty as a <select> whose "None" option is "",
+    and BookFormPage posts its form state verbatim, so the API receives
+    dynasty="".  The first fix (889f99f) stripped blank keys in Authors.js
+    only, so author creation from the book form kept failing; blanks are
+    normalized once, in the AuthorCreation/AuthorUpdate validators.
+    """
+
+    CREATE = "/api/authors/"
+    UPDATE = "/api/authors/{author_id}"
+
+    def test_create_author_with_blank_selects(self, authed_client):
+        """POST as BookFormPage.js sends it (dynasty="" for "None") → 200, no dynasty."""
+        payload = {"name": "Homer", "name_cn": "", "nation": "无",
+                   "dynasty": "", "intro": "", "photo": ""}
+        resp = authed_client.post(self.CREATE, json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dynasty"] is None
+        assert data["nation"] == "无"
+
+    def test_create_author_with_cleared_nation(self, authed_client):
+        """Blank nation falls back to '无' instead of 422 (nation column is NOT NULL)."""
+        payload = {**AUTHOR_PAYLOAD, "nation": ""}
+        resp = authed_client.post(self.CREATE, json=payload)
+        assert resp.status_code == 200
+        assert resp.json()["nation"] == "无"
+
+    def test_create_author_with_null_nation(self, authed_client):
+        """Explicit JSON null nation → '无' (create accepts null for a NOT NULL column)."""
+        payload = {**AUTHOR_PAYLOAD, "nation": None}
+        resp = authed_client.post(self.CREATE, json=payload)
+        assert resp.status_code == 200
+        assert resp.json()["nation"] == "无"
+
+    def test_update_author_blank_nation(self, authed_client, db):
+        """PUT nation="" → '无'."""
+        author = create_author_via_db(db, name="Original", name_cn="原始", nation="中国")
+        resp = authed_client.put(
+            self.UPDATE.format(author_id=author.id),
+            json={"nation": ""},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["nation"] == "无"
+
+    def test_update_author_null_nation(self, authed_client, db):
+        """PUT nation=null → '无', not a 500 from writing NULL into a NOT NULL column."""
+        author = create_author_via_db(db, name="Original", name_cn="原始", nation="中国")
+        resp = authed_client.put(
+            self.UPDATE.format(author_id=author.id),
+            json={"nation": None},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["nation"] == "无"
+
+    def test_update_author_clears_dynasty(self, authed_client, db):
+        """PUT with blank selects clears the dynasty instead of 422ing."""
+        author = create_author_via_db(db, name="Original", name_cn="原始",
+                                        nation="中国", dynasty="当代")
+        resp = authed_client.put(
+            self.UPDATE.format(author_id=author.id),
+            json={"dynasty": ""},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dynasty"] is None
+        assert data["nation"] == "中国"
