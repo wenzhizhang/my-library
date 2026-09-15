@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import './Books.css';
@@ -538,6 +538,7 @@ function BookFormPage() {
   const { t } = useTranslation();
   const { bookId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const mode = bookId ? 'edit' : 'create';
   const [searchParams] = useSearchParams();
   const isWishlist = searchParams.get('wishlist') === 'true';
@@ -881,14 +882,8 @@ function BookFormPage() {
 
       setTimeout(() => {
         setSubmitSuccess(false);
-        // Restore previous page state if available, otherwise default
-        const prevState = sessionStorage.getItem('booksPageState');
-        sessionStorage.removeItem('booksPageState');
-        if (prevState && prevState.startsWith('/')) {
-          navigate(prevState);
-        } else {
-          navigate(-1);
-        }
+        // Return to the page that opened the form, otherwise the book list
+        navigate(location.state?.from || `${LIBRARY_PATH}/books`);
       }, 1500);
     } catch (error) {
       console.error('Error saving book:', error);

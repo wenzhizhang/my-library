@@ -16,8 +16,9 @@ const BookCard = ({ book, onDelete, protectLevel = 0, showCheckbox = false, chec
   };
 
   const handleEdit = () => {
-    sessionStorage.setItem('booksPageState', window.location.pathname + window.location.search);
-    navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
+    navigate(`${LIBRARY_PATH}/books/edit/${book.id}`, {
+      state: { from: window.location.pathname + window.location.search },
+    });
   };
 
   const handleDelete = async () => {

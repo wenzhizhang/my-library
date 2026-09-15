@@ -107,7 +107,9 @@ const Wishlist = () => {
     <PageLayout
       title={t('nav.wishlist')}
       createButton={
-        <button className="btn-primary-blue" onClick={() => navigate(`${LIBRARY_PATH}/books/create?wishlist=true`)}>
+        <button className="btn-primary-blue" onClick={() => navigate(`${LIBRARY_PATH}/books/create?wishlist=true`, {
+          state: { from: window.location.pathname + window.location.search },
+        })}>
           {t('books.addNew')}
         </button>
       }

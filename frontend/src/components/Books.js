@@ -194,8 +194,9 @@ const Books = () => {
         title={t('books.title')}
         createButton={
           <button className="btn-pill-link" onClick={() => {
-            sessionStorage.setItem('booksPageState', window.location.pathname + window.location.search);
-            navigate(`${LIBRARY_PATH}/books/create`);
+            navigate(`${LIBRARY_PATH}/books/create`, {
+              state: { from: window.location.pathname + window.location.search },
+            });
           }} style={{ marginBottom: 20 }}>
             {t('books.addNew')}
           </button>

@@ -27,8 +27,9 @@ const BookListRow = ({
 
   const handleEdit = (e) => {
     e.stopPropagation();
-    sessionStorage.setItem('booksPageState', window.location.pathname + window.location.search);
-    navigate(`${LIBRARY_PATH}/books/edit/${book.id}`);
+    navigate(`${LIBRARY_PATH}/books/edit/${book.id}`, {
+      state: { from: window.location.pathname + window.location.search },
+    });
   };
 
   const handleDelete = async (e) => {

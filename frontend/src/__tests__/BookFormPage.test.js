@@ -6,7 +6,7 @@ import BookFormPage from '../components/BookFormPage';
 jest.mock('axios');
 jest.mock('react-router-dom');
 
-const { mockNavigate } = require('react-router-dom');
+const { mockNavigate, mockLocation } = require('react-router-dom');
 
 jest.mock('../AuthContext', () => ({
   useAuth: () => ({ isAuthenticated: false }),
@@ -64,6 +64,7 @@ function renderForm() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLocation.state = null;
   setupAxiosMocks();
 });
 
@@ -231,12 +232,12 @@ describe('submit', () => {
 
     // Component uses setTimeout(1500) before navigating
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(-1);
+      expect(mockNavigate).toHaveBeenCalledWith('/my-library/books');
     }, { timeout: 3000 });
   });
 
   test('returns to the page that launched the form (e.g. bookshelf detail)', async () => {
-    sessionStorage.setItem('booksPageState', '/my-library/bookshelves/7?page=2&limit=20');
+    mockLocation.state = { from: '/my-library/bookshelves/7?page=2&limit=20' };
     axios.post.mockResolvedValue({ data: { id: 1 } });
     renderForm();
 
@@ -251,8 +252,8 @@ describe('submit', () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/my-library/bookshelves/7?page=2&limit=20');
     }, { timeout: 3000 });
-    expect(sessionStorage.getItem('booksPageState')).toBeNull();
   });
+
   test('shows success message before navigation', async () => {
     axios.post.mockResolvedValue({ data: { id: 1 } });
     renderForm();
