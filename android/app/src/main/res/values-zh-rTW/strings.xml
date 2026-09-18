@@ -1,0 +1,239 @@
+<resources>
+    <string name="app_name">我的圖書館</string>
+
+    <!-- Common -->
+    <string name="common_back">返回</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_yes">是</string>
+
+    <!-- Auth -->
+    <string name="auth_login_tab">登入</string>
+    <string name="auth_register_tab">註冊</string>
+    <string name="auth_username">使用者名稱</string>
+    <string name="auth_password">密碼</string>
+    <string name="auth_confirm_password">確認密碼</string>
+    <string name="auth_login_action">登入</string>
+    <string name="auth_register_action">註冊並登入</string>
+    <string name="auth_expired">登入已過期，請重新登入</string>
+    <string name="auth_password_mismatch">兩次輸入的密碼不一致</string>
+    <string name="auth_show_password">顯示密碼</string>
+    <string name="auth_hide_password">隱藏密碼</string>
+
+    <!-- Errors -->
+    <string name="error_network">網路連線失敗，請檢查網路後重試</string>
+    <string name="error_unauthorized">使用者名稱或密碼錯誤</string>
+    <string name="error_not_found">找不到該內容</string>
+    <string name="error_server">伺服器發生錯誤，請稍後重試</string>
+    <string name="error_unknown">發生錯誤，請重試</string>
+    <string name="error_expired">登入已過期，請重新登入</string>
+    <string name="error_retry">重試</string>
+
+    <!-- Book list -->
+    <string name="books_scope_all">全部</string>
+    <string name="books_scope_wishlist">願望清單</string>
+    <string name="books_scope_archived">封存</string>
+    <string name="books_search_hint">搜尋書名、中文名、ISBN…</string>
+    <string name="books_sort_title">書名</string>
+    <string name="books_sort_created">入庫時間</string>
+    <string name="books_sort_series">書系</string>
+    <string name="books_filter">篩選</string>
+    <string name="books_filter_active">篩選 (%1$d)</string>
+    <string name="books_filter_sheet_title">篩選條件</string>
+    <string name="books_author">作者</string>
+    <string name="books_publisher">出版社</string>
+    <string name="books_tag">標籤</string>
+    <string name="books_price_min">最低價</string>
+    <string name="books_price_max">最高價</string>
+    <string name="books_purchase_year">購買年份</string>
+    <string name="books_purchase_month">購買月份</string>
+    <string name="books_apply">套用</string>
+    <string name="books_reset">重設</string>
+    <string name="books_view_list">清單</string>
+    <string name="books_view_grid">網格</string>
+    <string name="books_empty">找不到圖書</string>
+    <string name="books_empty_hint">換個搜尋詞，或清空篩選條件</string>
+    <string name="books_count">共 %1$d 本</string>
+
+    <!-- Book detail -->
+    <string name="book_detail_title">圖書詳情</string>
+    <string name="book_detail_archive">封存</string>
+    <string name="book_detail_delete">刪除</string>
+    <string name="book_detail_delete_confirm_title">刪除這本書？</string>
+    <string name="book_detail_delete_confirm_message">《%1$s》將被永久刪除，書單與閱讀計畫中的關聯不受影響。</string>
+    <string name="book_detail_archived_done">已封存</string>
+    <string name="book_detail_similar">相似圖書（依共同標籤）</string>
+    <string name="book_detail_shared_tags">共同標籤 %1$d 個</string>
+    <string name="book_detail_section_publishing">出版資訊</string>
+    <string name="book_detail_section_purchase">購買資訊</string>
+    <string name="book_detail_section_shelf">分類歸屬</string>
+    <string name="book_detail_section_content">內容</string>
+    <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_field_translator">譯者</string>
+    <string name="book_detail_field_publisher">出版社</string>
+    <string name="book_detail_field_publish_date">出版日期</string>
+    <string name="book_detail_field_brand">品牌</string>
+    <string name="book_detail_field_series">系列</string>
+    <string name="book_detail_field_binding">裝幀</string>
+    <string name="book_detail_field_paper">紙張</string>
+    <string name="book_detail_field_pages">頁數</string>
+    <string name="book_detail_field_language">語言</string>
+    <string name="book_detail_field_edition">版次</string>
+    <string name="book_detail_field_printing">印次</string>
+    <string name="book_detail_field_printing_count">印數</string>
+    <string name="book_detail_field_price">定價</string>
+    <string name="book_detail_field_purchase_price">購買價</string>
+    <string name="book_detail_field_purchase_date">購買日期</string>
+    <string name="book_detail_field_purchase_store">購買管道</string>
+    <string name="book_detail_field_link">連結</string>
+    <string name="book_detail_field_category">分類</string>
+    <string name="book_detail_field_bookshelf">書架</string>
+    <string name="book_detail_field_read_state">閱讀狀態</string>
+    <string name="book_detail_field_tags">標籤</string>
+    <string name="book_detail_field_wish">願望清單</string>
+    <string name="book_detail_field_archived">封存狀態</string>
+    <string name="book_detail_field_douban">豆瓣評分</string>
+    <string name="book_detail_field_summary">簡介</string>
+    <string name="book_detail_field_introduction">作者介紹</string>
+    <string name="book_detail_field_catalog">目錄</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_account">帳號</string>
+    <string name="settings_username">使用者名稱</string>
+    <string name="settings_user_uuid">使用者識別碼</string>
+    <string name="settings_server">伺服器</string>
+    <string name="settings_logout">登出</string>
+    <string name="settings_logout_confirm_title">登出？</string>
+    <string name="settings_logout_confirm_message">登出後需要重新輸入使用者名稱與密碼。</string>
+    <string name="settings_logout_confirm_ok">登出</string>
+
+    <!-- Book form / ISBN scanning -->
+    <string name="books_add_new">新增圖書</string>
+    <string name="book_detail_edit">編輯</string>
+    <string name="form_title_create">新增圖書</string>
+    <string name="form_title_edit">編輯圖書</string>
+    <string name="form_save">儲存</string>
+    <string name="form_scan">掃碼</string>
+    <string name="form_lookup">查詢</string>
+    <string name="form_lookup_filled">已依 ISBN 自動填入（來源：%1$s）</string>
+    <string name="form_lookup_filled_unknown_source">已依 ISBN 自動填入</string>
+    <string name="form_lookup_nothing">找不到該 ISBN，請手動填寫</string>
+    <string name="form_section_publishing">出版資訊</string>
+    <string name="form_section_purchase">購買資訊</string>
+    <string name="form_section_shelving">分類歸屬</string>
+    <string name="form_section_flags">標記</string>
+    <string name="form_section_content">內容</string>
+    <string name="form_expand">展開</string>
+    <string name="form_collapse">收合</string>
+    <string name="form_authors">作者</string>
+    <string name="form_title_cn">中文書名</string>
+    <string name="form_title_original">原名</string>
+    <string name="form_book_count">冊數</string>
+    <string name="form_compose">排版</string>
+    <string name="form_tags">標籤</string>
+    <string name="form_tags_hint">以逗號分隔</string>
+    <string name="form_thumb">封面位址</string>
+    <string name="form_in_wish">加入願望清單</string>
+    <string name="form_registered">已登記</string>
+    <string name="form_required_hint">需要 ISBN 與書名（中文名或原名）</string>
+    <string name="form_author_name">作者名</string>
+    <string name="form_author_name_cn">中文名</string>
+    <string name="form_publisher_name">名稱</string>
+    <string name="read_state_unread">未讀</string>
+    <string name="read_state_reading">在讀</string>
+    <string name="read_state_read">已讀</string>
+    <string name="read_state_abandoned">棄讀</string>
+    <string name="ref_pick">未選擇</string>
+    <string name="ref_search_hint">輸入關鍵字搜尋</string>
+    <string name="ref_create_new">新增「%1$s」</string>
+    <string name="ref_create_title">新增%1$s</string>
+    <string name="ref_create_confirm">建立</string>
+    <string name="ref_done">確定</string>
+    <string name="ref_clear">清空已選</string>
+    <string name="scan_title">掃碼輸入 ISBN</string>
+    <string name="scan_hint">將 ISBN 條碼放入框內</string>
+    <string name="scan_manual">手動輸入 ISBN</string>
+    <string name="scan_manual_confirm">確定</string>
+    <string name="scan_manual_invalid">ISBN 應為 10 位或 13 位數字</string>
+    <string name="scan_permission_denied">未取得相機權限，請在下方手動輸入 ISBN</string>
+
+    <!-- Catalog management -->
+    <string name="catalog_menu">目錄</string>
+    <string name="catalog_authors">作者</string>
+    <string name="catalog_publishers">出版社</string>
+    <string name="catalog_brands">品牌</string>
+    <string name="catalog_series">系列</string>
+    <string name="catalog_categories">分類</string>
+    <string name="catalog_bookshelves">書架</string>
+    <string name="catalog_add">新增</string>
+    <string name="catalog_edit">編輯</string>
+    <string name="catalog_edit_title">%1$s</string>
+    <string name="catalog_search_hint">搜尋名稱</string>
+    <string name="catalog_empty">沒有內容</string>
+    <string name="catalog_related_books">關聯圖書</string>
+    <string name="catalog_no_books">暫無關聯圖書</string>
+    <string name="catalog_delete">刪除</string>
+    <string name="catalog_delete_confirm_title">刪除「%1$s」？</string>
+    <string name="catalog_delete_confirm_message">刪除後無法復原；引用它的圖書不受影響。</string>
+    <string name="catalog_parent_hint">留空為頂層分類</string>
+    <string name="attr_name">名稱</string>
+    <string name="attr_name_cn">中文名</string>
+    <string name="attr_nation">國籍</string>
+    <string name="attr_dynasty">朝代</string>
+    <string name="attr_intro">簡介</string>
+    <string name="attr_photo">照片位址</string>
+    <string name="attr_logo">標誌位址</string>
+    <string name="attr_weight">權重</string>
+    <string name="attr_parent">上層分類</string>
+    <string name="attr_path">路徑</string>
+    <string name="attr_depth">層級</string>
+    <string name="attr_book_count">關聯圖書數</string>
+
+    <!-- Collections, plans, pickers -->
+    <string name="collections_title">書單</string>
+    <string name="collections_create">新增書單</string>
+    <string name="collections_edit">編輯書單</string>
+    <string name="collections_add_books">加入圖書</string>
+    <string name="collections_delete_confirm_message">刪除書單不會刪除其中的圖書。</string>
+    <string name="plans_title">閱讀計畫</string>
+    <string name="plans_create">新增閱讀計畫</string>
+    <string name="plans_edit">編輯閱讀計畫</string>
+    <string name="plans_start_date">開始日期</string>
+    <string name="plans_end_date">結束日期</string>
+    <string name="plans_delete_confirm_message">刪除閱讀計畫不會刪除其中的圖書。</string>
+    <string name="picker_books_title">選擇圖書</string>
+    <string name="picker_add_selected">加入（%1$d）</string>
+    <string name="picker_remove">移除</string>
+
+    <!-- Stats, export, applications, settings -->
+    <string name="books_title">圖書</string>
+    <string name="stats_title">統計</string>
+    <string name="stats_overview">總覽</string>
+    <string name="stats_total_books">藏書總數</string>
+    <string name="stats_avg_price">平均定價</string>
+    <string name="stats_avg_purchase_price">平均購買價</string>
+    <string name="stats_total_spent">總花費</string>
+    <string name="stats_by_read_state">閱讀狀態分布</string>
+    <string name="stats_by_category">分類分布</string>
+    <string name="stats_by_binding">裝幀分布</string>
+    <string name="stats_by_language">語言分布</string>
+    <string name="stats_by_score">評分分布</string>
+    <string name="stats_top_authors">作者 TOP</string>
+    <string name="stats_top_publishers">出版社 TOP</string>
+    <string name="export_title">匯出</string>
+    <string name="export_format">格式</string>
+    <string name="export_scope">範圍</string>
+    <string name="export_save_as">另存新檔…</string>
+    <string name="export_database">下載整庫（SQLite）</string>
+    <string name="export_done">已儲存：%1$s</string>
+    <string name="settings_more">更多</string>
+    <string name="settings_background">背景圖</string>
+    <string name="settings_background_hint">背景僅對目前帳號生效</string>
+
+    <!-- Stats extras -->
+    <string name="stats_by_compose">排版分布</string>
+    <string name="stats_timeline_years">入庫年份</string>
+    <string name="stats_timeline_months">入庫月份</string>
+    <string name="stats_purchase_years">購買年份統計</string>
+    <string name="stats_purchase_months">購買月份統計</string>
+</resources>
