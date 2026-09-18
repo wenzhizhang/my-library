@@ -5,7 +5,13 @@ info:
     Book library management system.
     All endpoints return JSON. Some endpoints require authentication
     (Bearer token from `/api/auth/login`).
-  version: "0.3.0"
+
+    Auth is opt-in: write endpoints answer 401 without a token, while the read
+    endpoints accept an *optional* Bearer token. A valid token also selects the
+    caller's own SQLite database; without one, reads fall back to the shared
+    `demo.db`. The only endpoints that 401 are those marked with the BearerAuth
+    security scheme (plus `GET /api/auth/me`).
+  version: "0.4.0"
   contact:
     name: My Library
 servers:
@@ -32,6 +38,7 @@ tags:
   - name: Export
   - name: Config
   - name: Backgrounds
+  - name: Media
 components:
   securitySchemes:
     BearerAuth:
@@ -46,7 +53,7 @@ components:
       required: [username, password]
       properties:
         username: { type: string }
-        password: { type: string, minLength: 4 }
+        password: { type: string }
     UserLogin:
       type: object
       required: [username, password]
@@ -55,6 +62,7 @@ components:
         password: { type: string }
     TokenResponse:
       type: object
+      required: [access_token, user_id, username, uuid]
       properties:
         access_token: { type: string }
         token_type: { type: string, default: "bearer" }
@@ -63,10 +71,12 @@ components:
         uuid: { type: string }
     UserInfo:
       type: object
+      required: [id, username, uuid]
       properties:
         id: { type: integer }
         username: { type: string }
         uuid: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
 
     # ── Backgrounds ──
     BackgroundItem:
@@ -77,6 +87,7 @@ components:
         url: { type: string }
     BackgroundListResponse:
       type: object
+      required: [default_id, backgrounds]
       properties:
         default_id: { type: string }
         backgrounds:
@@ -95,7 +106,7 @@ components:
     # ── Book ──
     BookCreation:
       type: object
-      required: [isbn, title]
+      required: [isbn, title_cn, title]
       properties:
         isbn: { type: string }
         title: { type: string }
@@ -116,7 +127,6 @@ components:
         purchase_price: { type: number, nullable: true }
         purchase_date: { type: string, nullable: true }
         thumb_image: { type: string, nullable: true }
-        link: { type: string, nullable: true }
         category_id: { type: integer, nullable: true }
         bookshelf_id: { type: integer, nullable: true }
         read_state: { type: string, nullable: true }
@@ -131,6 +141,8 @@ components:
         purchase_store: { type: string, nullable: true }
         tags: { type: array, nullable: true, items: { type: string } }
         in_wish: { type: boolean }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
     BookUpdate:
       type: object
       properties:
@@ -168,10 +180,10 @@ components:
         purchase_store: { type: string, nullable: true }
         tags: { type: array, nullable: true, items: { type: string } }
         in_wish: { type: boolean }
-        created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
     BookResponse:
       type: object
+      required: [id, isbn, title_cn, title]
       properties:
         id: { type: integer }
         isbn: { type: string }
@@ -215,6 +227,7 @@ components:
         purchase_store: { type: string, nullable: true }
         tags: { type: array, nullable: true, items: { type: string } }
         in_wish: { type: boolean, nullable: true }
+        archived: { type: boolean, nullable: true }
 
     # ── Simple ref types ──
     PublisherSimple:
@@ -234,23 +247,114 @@ components:
         name: { type: string }
     CategorySimple:
       type: object
+      required: [id, path]
       properties:
         id: { type: integer }
-        name: { type: string }
+        path: { type: string }
     BookshelfSimple:
       type: object
       properties:
         id: { type: integer }
         name: { type: string }
+    IdName:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    # ── Book list item (serializers.serialize_book) ──
+    BookCard:
+      type: object
+      description: |
+        Slim book shape returned by every paginated book-list endpoint.
+        `authors` are display strings ("[宋] 苏轼" / "[中国] 鲁迅"), not objects.
+      properties:
+        id: { type: integer }
+        isbn: { type: string, nullable: true }
+        title_cn: { type: string, nullable: true }
+        title: { type: string }
+        thumb_image: { type: string, nullable: true }
+        authors:
+          type: array
+          items: { type: string }
+        publisher: { $ref: "#/components/schemas/IdName", nullable: true }
+        category: { $ref: "#/components/schemas/IdName", nullable: true }
+
+    BookListPage:
+      type: object
+      properties:
+        books:
+          type: array
+          items: { $ref: "#/components/schemas/BookCard" }
+        total_pages: { type: integer }
+        total_books: { type: integer }
+
+    # ── Entity list items (slim shapes returned by the entity list endpoints) ──
+    AuthorSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        name_cn: { type: string, nullable: true }
+        nation: { type: string }
+        dynasty: { type: string, nullable: true }
+        intro: { type: string, nullable: true }
+        photo: { type: string, nullable: true }
+        weight: { type: integer }
+    PublisherSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        logo: { type: string, nullable: true }
+        weight: { type: integer }
+    BrandSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        weight: { type: integer }
+    SeriesSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
+        weight: { type: integer }
+    CategorySummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        parent_id: { type: integer, nullable: true }
+        intro: { type: string, nullable: true }
+        depth: { type: integer, nullable: true }
+        path: { type: string, nullable: true }
+        weight: { type: integer }
+    BookshelfSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        intro: { type: string, nullable: true }
 
     # ── Author ──
     AuthorCreation:
       type: object
-      required: [name, name_cn, nation]
+      required: [name, name_cn]
       properties:
         name: { type: string }
         name_cn: { type: string }
-        nation: { type: string }
+        nation: { type: string, default: "无", description: "Must be one of /api/authors/nations" }
         dynasty: { type: string }
         intro: { type: string }
         photo: { type: string }
@@ -265,6 +369,7 @@ components:
         photo: { type: string }
     AuthorResponse:
       type: object
+      required: [id, name]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -273,6 +378,7 @@ components:
         dynasty: { type: string, nullable: true }
         intro: { type: string, nullable: true }
         photo: { type: string, nullable: true }
+        weight: { type: integer, default: 0 }
         books:
           type: array
           nullable: true
@@ -309,11 +415,17 @@ components:
         logo: { type: string }
     PublisherResponse:
       type: object
+      required: [id, name, books]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
         logo: { type: string, nullable: true }
+        weight: { type: integer, default: 0 }
+        books:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/BookSimple" }
 
     # ── Brand ──
     BrandCreation:
@@ -329,10 +441,16 @@ components:
         intro: { type: string }
     BrandResponse:
       type: object
+      required: [id, name, books]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
+        weight: { type: integer, default: 0 }
+        books:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/BookSimple" }
 
     # ── Series ──
     BookSeriesCreation:
@@ -348,10 +466,15 @@ components:
         intro: { type: string }
     BookSeriesResponse:
       type: object
+      required: [id, name, books]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
+        weight: { type: integer, default: 0 }
+        books:
+          type: array
+          items: { $ref: "#/components/schemas/BookSimple" }
 
     # ── Category ──
     CategoryCreation:
@@ -365,17 +488,23 @@ components:
       type: object
       properties:
         name: { type: string }
-        parent_id: { type: integer, description: "Parent category ID" }
+        parent: { type: integer, nullable: true, description: "Parent category ID" }
         intro: { type: string }
     CategoryResponse:
       type: object
+      required: [id, name, books]
       properties:
         id: { type: integer }
         name: { type: string }
-        parent_id: { type: integer, nullable: true }
+        parent: { type: integer, nullable: true }
         intro: { type: string, nullable: true }
-        depth: { type: integer }
+        depth: { type: integer, nullable: true }
         path: { type: string, nullable: true }
+        weight: { type: integer, default: 0 }
+        books:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/BookSimple" }
 
     # ── Bookshelf ──
     BookshelfCreation:
@@ -391,10 +520,17 @@ components:
         intro: { type: string }
     BookshelfResponse:
       type: object
+      required: [id, name, books]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
+        total_books: { type: integer, nullable: true }
+        total_sets: { type: integer, nullable: true }
+        books:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/BookSimple" }
 
     # ── Book Collection ──
     BookCollectionCreation:
@@ -420,20 +556,24 @@ components:
         book_ids: { type: array, items: { type: integer } }
     BookCollectionSummary:
       type: object
+      required: [id, name]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
         created_at: { type: string, nullable: true }
-        total_books: { type: integer }
+        total_books: { type: integer, default: 0 }
+        weight: { type: integer, default: 0 }
     BookCollectionResponse:
       type: object
+      required: [id, name]
       properties:
         id: { type: integer }
         name: { type: string }
         intro: { type: string, nullable: true }
         created_at: { type: string, format: date-time, nullable: true }
         total_books: { type: integer, nullable: true }
+        weight: { type: integer, default: 0 }
         books:
           type: array
           nullable: true
@@ -441,6 +581,7 @@ components:
             $ref: "#/components/schemas/BookSimple"
     BookCollectionListResponse:
       type: object
+      required: [book_collections, total_pages, total_collections]
       properties:
         book_collections:
           type: array
@@ -497,6 +638,7 @@ components:
         progress: { type: number, nullable: true }
     ReadingPlanResponse:
       type: object
+      required: [id, name]
       properties:
         id: { type: integer }
         name: { type: string }
@@ -513,6 +655,7 @@ components:
             $ref: "#/components/schemas/ReadingPlanBookSimple"
     ReadingPlanListResponse:
       type: object
+      required: [reading_plans, total_pages, total_plans]
       properties:
         reading_plans:
           type: array
@@ -527,61 +670,125 @@ components:
       required: [name]
       properties:
         name: { type: string }
-        description: { type: string }
-        icon: { type: string }
-        link: { type: string }
-        sort_order: { type: integer }
+        description: { type: string, nullable: true }
+        url: { type: string, nullable: true }
+        icon_url: { type: string, nullable: true }
+        sort_order: { type: integer, nullable: true, default: 0 }
     ApplicationUpdate:
       type: object
       properties:
         name: { type: string }
-        description: { type: string }
-        icon: { type: string }
-        link: { type: string }
-        sort_order: { type: integer }
+        description: { type: string, nullable: true }
+        url: { type: string, nullable: true }
+        icon_url: { type: string, nullable: true }
+        sort_order: { type: integer, nullable: true }
     ApplicationResponse:
       type: object
+      required: [id, name]
       properties:
         id: { type: integer }
         name: { type: string }
         description: { type: string, nullable: true }
-        icon: { type: string, nullable: true }
-        link: { type: string, nullable: true }
-        sort_order: { type: integer, nullable: true }
+        url: { type: string, nullable: true }
+        icon_url: { type: string, nullable: true }
+        sort_order: { type: integer, nullable: true, default: 0 }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
 
     # ── RAG ──
     RagSearchRequest:
       type: object
       required: [query]
       properties:
+        query: { type: string, minLength: 1 }
+        top_k: { type: integer, default: 10, minimum: 1, maximum: 100 }
+        alpha: { type: number, default: 0.5, minimum: 0, maximum: 1, description: "Vector weight (0 = FTS5 only, 1 = pure vector)" }
+    RagSearchResultItem:
+      type: object
+      required: [book_id, score]
+      properties:
+        book_id: { type: integer }
+        score: { type: number }
+        title: { type: string, nullable: true }
+        title_cn: { type: string, nullable: true }
+        authors:
+          type: array
+          items: { type: string }
+    RagSearchResponse:
+      type: object
+      required: [query, total, results]
+      properties:
         query: { type: string }
-        limit: { type: integer, default: 10 }
-        min_score: { type: number, default: 0.3 }
+        total: { type: integer }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/RagSearchResultItem" }
+    RagReindexResponse:
+      type: object
+      properties:
+        status: { type: string, default: "idle", description: "idle | indexing | completed | error" }
+        message: { type: string, default: "" }
+    RagStatusResponse:
+      type: object
+      required: [indexed_count, total_books, model_loaded]
+      properties:
+        indexed_count: { type: integer }
+        total_books: { type: integer }
+        model_loaded: { type: boolean }
+        reindex_status: { type: string, default: "idle" }
+        reindex_indexed: { type: integer, default: 0 }
+        reindex_failed: { type: integer, default: 0 }
+        reindex_total: { type: integer, default: 0 }
+        reindex_detail: { type: string, default: "" }
 
     # ── ISBN Lookup ──
     IsbnLookupResponse:
       type: object
-      required: [isbn, source]
+      required: [isbn]
       properties:
         isbn: { type: string }
-        title: { type: string }
-        title_cn: { type: string }
-        publisher_name: { type: string }
-        publish_date: { type: string }
+        title: { type: string, default: "" }
+        title_cn: { type: string, default: "" }
+        publisher_name: { type: string, default: "" }
+        publisher_id: { type: integer, nullable: true }
+        publish_date: { type: string, default: "" }
         pages: { type: integer, nullable: true }
         price: { type: number, nullable: true }
-        summary: { type: string }
-        introduction: { type: string }
-        thumb_image: { type: string }
-        binding_type: { type: string }
+        summary: { type: string, default: "" }
+        introduction: { type: string, default: "" }
+        thumb_image: { type: string, default: "" }
+        binding_type: { type: string, default: "" }
         douban_score: { type: number, nullable: true }
         author_names: { type: array, items: { type: string } }
-        translator: { type: string }
-        language: { type: string }
-        source: { type: string }
-        link: { type: string }
+        author_ids: { type: array, items: { type: integer } }
+        translator: { type: string, default: "" }
+        language: { type: string, default: "" }
+        source: { type: string, default: "" }
+        link: { type: string, default: "" }
+        catalog: { type: string, default: "" }
+        tag_names: { type: array, items: { type: string } }
+        author_intro: { type: string, default: "" }
+        brand_id: { type: integer, nullable: true }
+        brand_name: { type: string, nullable: true }
+        book_id: { type: integer, nullable: true }
+        book_name: { type: string, default: "" }
+        book_series_id: { type: integer, nullable: true }
+        book_series_name: { type: string, default: "" }
+        paper_type: { type: string, default: "" }
+        book_count: { type: integer, nullable: true }
+        compose_type: { type: string, default: "" }
+        edition: { type: string, default: "" }
+        printing_info: { type: string, default: "" }
+        printed_number: { type: integer, nullable: true }
+        category_id: { type: integer, nullable: true }
+        category_path: { type: string, nullable: true }
 
     # ── Error ──
+    NameCount:
+      type: object
+      properties:
+        name: { type: string }
+        count: { type: integer }
     HTTPError:
       type: object
       properties:
@@ -680,32 +887,28 @@ paths:
     get:
       tags: [Books]
       summary: List books (paginated)
-      description: Returns books with in_wish=false only.
+      description: Returns books with in_wish=false AND archived=false only. Items are the slim card shape (not BookResponse).
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] }, description: "Any other value falls back to ordering by id" }
         - { name: isbn, in: query, schema: { type: string } }
         - { name: title, in: query, schema: { type: string } }
         - { name: author, in: query, schema: { type: string } }
         - { name: publisher, in: query, schema: { type: string } }
         - { name: tag, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string }, description: "Free text over title, title_cn and isbn" }
         - { name: min_price, in: query, schema: { type: number } }
         - { name: max_price, in: query, schema: { type: number } }
+        - { name: purchase_year, in: query, schema: { type: integer } }
+        - { name: purchase_month, in: query, schema: { type: integer } }
       responses:
         "200":
           description: Paginated book list
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  books:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/BookResponse"
-                  total_pages: { type: integer }
-                  total_books: { type: integer }
+                $ref: "#/components/schemas/BookListPage"
     post:
       tags: [Books]
       summary: Create a new book
@@ -728,16 +931,19 @@ paths:
   /api/books/search:
     get:
       tags: [Books]
-      summary: Search books with filters
-      description: Returns books with in_wish=false only.
+      summary: Search books with filters (unpaginated)
+      description: Returns every matching book (in_wish=false, archived=false) as a full BookResponse. No page/limit/sort_by — results come back in id order.
       parameters:
         - { name: isbn, in: query, schema: { type: string } }
         - { name: title, in: query, schema: { type: string } }
         - { name: author, in: query, schema: { type: string } }
         - { name: publisher, in: query, schema: { type: string } }
         - { name: tag, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string }, description: "Free text over title, title_cn and isbn" }
         - { name: min_price, in: query, schema: { type: number } }
         - { name: max_price, in: query, schema: { type: number } }
+        - { name: purchase_year, in: query, schema: { type: integer } }
+        - { name: purchase_month, in: query, schema: { type: integer } }
       responses:
         "200":
           description: Search results
@@ -752,7 +958,7 @@ paths:
     get:
       tags: [Books]
       summary: Get all book titles (lightweight, for dropdowns)
-      description: Returns {id, name} pairs for non-wishlist books.
+      description: Returns {id, name, thumb_image, book_count} rows for non-wishlist, non-archived books.
       responses:
         "200":
           description: Book title list
@@ -765,6 +971,41 @@ paths:
                   properties:
                     id: { type: integer }
                     name: { type: string }
+                    thumb_image: { type: string, nullable: true }
+                    book_count: { type: integer, nullable: true }
+
+  /api/books/wishlist:
+    get:
+      tags: [Books]
+      summary: List wishlist books (in_wish=true, paginated)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: created_at, enum: [title, created_at, book_series] } }
+      responses:
+        "200":
+          description: Paginated wishlist (total_pages is 1, not 0, when empty)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+
+  /api/books/archived:
+    get:
+      tags: [Books]
+      summary: List archived books (archived=true, paginated)
+      description: No in_wish filter — a book that is both wishlisted and archived shows up here.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+      responses:
+        "200":
+          description: Paginated archived books
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
 
   /api/books/{book_id}:
     get:
@@ -818,26 +1059,70 @@ paths:
                 properties:
                   message: { type: string }
 
-  /api/books/{book_id}/similar:
-    get:
+  /api/books/{book_id}/archive:
+    put:
       tags: [Books]
-      summary: Get similar books
+      summary: Archive a book (sets archived=true)
+      description: Returns only a message — the updated book is not returned. There is no unarchive endpoint (BookUpdate has no archived field), so the flag can only be cleared by editing the database directly.
+      security:
+        - BearerAuth: []
       parameters:
         - { name: book_id, in: path, required: true, schema: { type: integer } }
-        - { name: limit, in: query, schema: { type: integer, default: 5 } }
       responses:
         "200":
-          description: Similar books
+          description: Archived
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  message: { type: string, description: '"Book archived"' }
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
+  /api/books/{book_id}/similar:
+    get:
+      tags: [Books]
+      summary: Get similar books (shared tags)
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+        - { name: limit, in: query, schema: { type: integer, default: 5 } }
+      responses:
+        "200":
+          description: Similar books ranked by number of shared tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  book:
+                    type: object
+                    description: The reference book (id + display title)
+                    properties:
+                      id: { type: integer }
+                      title: { type: string }
                   similar_books:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BookSimple"
-                  total_similar_books: { type: integer }
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        isbn: { type: string, nullable: true }
+                        title_cn: { type: string, nullable: true }
+                        title: { type: string }
+                        thumb_image: { type: string, nullable: true }
+                        authors:
+                          type: array
+                          items: { $ref: "#/components/schemas/IdName" }
+                        tags: { type: array, items: { type: string } }
+                        shared_tags: { type: array, items: { type: string } }
+                        shared_count: { type: integer }
+        "404":
+          description: Book not found
 
   # ═══════════════════════════════════════════════
   # Authors
@@ -849,7 +1134,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, created_at] } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name or name_cn" }
       responses:
         "200":
           description: Paginated list
@@ -861,7 +1147,7 @@ paths:
                   authors:
                     type: array
                     items:
-                      $ref: "#/components/schemas/AuthorResponse"
+                      $ref: "#/components/schemas/AuthorSummary"
                   total_pages: { type: integer }
                   total_authors: { type: integer }
     post:
@@ -933,6 +1219,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/authors/{author_id}/books:
+    get:
+      tags: [Authors]
+      summary: List an author's books (paginated)
+      description: Books where this author is credited and in_wish=false. Archived books are NOT filtered out.
+      parameters:
+        - { name: author_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Author not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Publishers
   # ═══════════════════════════════════════════════
@@ -943,7 +1254,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
           description: Paginated list
@@ -955,7 +1267,7 @@ paths:
                   publishers:
                     type: array
                     items:
-                      $ref: "#/components/schemas/PublisherResponse"
+                      $ref: "#/components/schemas/PublisherSummary"
                   total_pages: { type: integer }
                   total_publishers: { type: integer }
     post:
@@ -1027,6 +1339,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/publishers/{publisher_id}/books:
+    get:
+      tags: [Publishers]
+      summary: List a publisher's books (paginated)
+      description: Books with this publisher_id and in_wish=false.
+      parameters:
+        - { name: publisher_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Publisher not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Brands
   # ═══════════════════════════════════════════════
@@ -1037,7 +1374,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
           description: Paginated list
@@ -1049,7 +1387,7 @@ paths:
                   brands:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BrandResponse"
+                      $ref: "#/components/schemas/BrandSummary"
                   total_pages: { type: integer }
                   total_brands: { type: integer }
     post:
@@ -1121,6 +1459,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/brands/{brand_id}/books:
+    get:
+      tags: [Brands]
+      summary: List a brand's books (paginated)
+      description: Books with this brand_id and in_wish=false.
+      parameters:
+        - { name: brand_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Brand not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Series
   # ═══════════════════════════════════════════════
@@ -1131,7 +1494,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
           description: Paginated list
@@ -1143,7 +1507,7 @@ paths:
                   series:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BookSeriesResponse"
+                      $ref: "#/components/schemas/SeriesSummary"
                   total_pages: { type: integer }
                   total_series: { type: integer }
     post:
@@ -1215,6 +1579,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/series/{series_id}/books:
+    get:
+      tags: [Series]
+      summary: List a series' books (paginated)
+      description: Books with this book_series_id and in_wish=false.
+      parameters:
+        - { name: series_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Series not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Categories
   # ═══════════════════════════════════════════════
@@ -1225,10 +1614,11 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
-          description: Paginated list
+          description: Paginated list (flat, not tree-ordered; items expose parent_id, not parent)
           content:
             application/json:
               schema:
@@ -1237,7 +1627,7 @@ paths:
                   categories:
                     type: array
                     items:
-                      $ref: "#/components/schemas/CategoryResponse"
+                      $ref: "#/components/schemas/CategorySummary"
                   total_pages: { type: integer }
                   total_categories: { type: integer }
     post:
@@ -1309,6 +1699,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/categories/{category_id}/books:
+    get:
+      tags: [Categories]
+      summary: List a category's books (paginated)
+      description: Books directly in this category and in_wish=false. Child categories are NOT rolled up.
+      parameters:
+        - { name: category_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Bookshelves
   # ═══════════════════════════════════════════════
@@ -1319,7 +1734,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name } }
+        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, created_at] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
           description: Paginated list
@@ -1331,7 +1747,7 @@ paths:
                   bookshelves:
                     type: array
                     items:
-                      $ref: "#/components/schemas/BookshelfResponse"
+                      $ref: "#/components/schemas/BookshelfSummary"
                   total_pages: { type: integer }
                   total_bookshelves: { type: integer }
     post:
@@ -1403,6 +1819,31 @@ paths:
                 properties:
                   message: { type: string }
 
+  /api/bookshelves/{bookshelf_id}/books:
+    get:
+      tags: [Bookshelves]
+      summary: List a bookshelf's books (paginated)
+      description: Books on this shelf with in_wish=false and archived=false.
+      parameters:
+        - { name: bookshelf_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Bookshelf not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   # ═══════════════════════════════════════════════
   # Book Collections
   # ═══════════════════════════════════════════════
@@ -1413,7 +1854,8 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 10 } }
-        - { name: sort_by, in: query, schema: { type: string, default: name, enum: [name, created_at] } }
+        - { name: sort_by, in: query, schema: { type: string, default: weight, enum: [name, created_at, weight] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches name" }
       responses:
         "200":
           description: Paginated list
@@ -1493,6 +1935,29 @@ paths:
                   message: { type: string }
 
   /api/book-collections/{collection_id}/books:
+    get:
+      tags: [Book Collections]
+      summary: List a collection's books (paginated)
+      description: Books in this collection and in_wish=false.
+      parameters:
+        - { name: collection_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Book collection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
     post:
       tags: [Book Collections]
       summary: Add a single book to collection
@@ -1661,6 +2126,29 @@ paths:
                   message: { type: string }
 
   /api/reading-plans/{plan_id}/books:
+    get:
+      tags: [Reading Plans]
+      summary: List a plan's books (paginated)
+      description: Books in this plan and in_wish=false.
+      parameters:
+        - { name: plan_id, in: path, required: true, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+        - { name: sort_by, in: query, schema: { type: string, default: title, enum: [title, created_at, book_series] } }
+        - { name: q, in: query, schema: { type: string }, description: "Matches title, title_cn or isbn" }
+      responses:
+        "200":
+          description: Paginated book list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListPage"
+        "404":
+          description: Reading plan not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
     post:
       tags: [Reading Plans]
       summary: Add a single book to plan
@@ -1746,7 +2234,7 @@ paths:
       parameters:
         - { name: page, in: query, schema: { type: integer, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, default: 20 } }
-        - { name: sort_by, in: query, schema: { type: string, default: sort_order } }
+        - { name: sort_by, in: query, schema: { type: string, default: sort_order, enum: [sort_order, name, created_at] } }
       responses:
         "200":
           description: Paginated list
@@ -1852,7 +2340,8 @@ paths:
   /api/stats/summary:
     get:
       tags: [Stats]
-      summary: Get site statistics summary
+      summary: Get total page-view count
+      description: Global stats DB — the bearer token does not change the result.
       responses:
         "200":
           description: Stats summary
@@ -1861,11 +2350,29 @@ paths:
               schema:
                 type: object
                 properties:
-                  total_books: { type: integer }
-                  total_authors: { type: integer }
-                  total_publishers: { type: integer }
-                  total_categories: { type: integer }
                   total_visits: { type: integer }
+
+  /api/stats/visits:
+    get:
+      tags: [Stats]
+      summary: List page views (newest first)
+      description: Returns a bare JSON array (no pagination envelope) from the global stats DB.
+      parameters:
+        - { name: limit, in: query, schema: { type: integer }, description: "Omit for all rows; 0 is treated as no limit" }
+        - { name: skip, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Visit list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ip: { type: string }
+                    path: { type: string, nullable: true }
+                    timestamp: { type: string, nullable: true, description: "Naive local ISO-8601, no timezone" }
 
   # ═══════════════════════════════════════════════
   # RAG
@@ -1886,18 +2393,23 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        book_id: { type: integer }
-                        title: { type: string }
-                        score: { type: number }
-                        excerpt: { type: string }
-                  total: { type: integer }
+                $ref: "#/components/schemas/RagSearchResponse"
+
+  /api/rag/reindex:
+    post:
+      tags: [RAG]
+      summary: Trigger a full background reindex
+      description: |
+        Returns immediately; poll GET /api/rag/status for progress. Always answers
+        200, even when a reindex is already running. The job reindexes
+        `demo.db` (the shared demo database), not the caller's user database.
+      responses:
+        "200":
+          description: Reindex trigger result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagReindexResponse"
 
   /api/rag/status:
     get:
@@ -1909,11 +2421,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  indexed_books: { type: integer }
-                  total_books: { type: integer }
-                  model: { type: string }
+                $ref: "#/components/schemas/RagStatusResponse"
 
   # ═══════════════════════════════════════════════
   # ISBN Lookup
@@ -1944,6 +2452,8 @@ paths:
           description: ISBN not found or no source returned data
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
 
   # ═══════════════════════════════════════════════
   # Export
@@ -2121,9 +2631,127 @@ paths:
     get:
       tags: [Stats]
       summary: Comprehensive book library statistics
+      description: Counts include wishlist and archived books. Uses the caller's database (optional bearer token).
       responses:
         "200":
           description: Statistics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overview:
+                    type: object
+                    properties:
+                      total_books: { type: integer }
+                      total_authors: { type: integer }
+                      total_publishers: { type: integer }
+                      total_categories: { type: integer }
+                      avg_price: { type: number }
+                      avg_purchase_price: { type: number }
+                      total_spent: { type: number }
+                  by_read_state:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  by_category:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  by_binding:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  by_language:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  top_authors:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  top_publishers:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  by_score:
+                    type: array
+                    description: 'Buckets: "9.0+", "8.0-8.9", "7.0-7.9", "6.0-6.9", "< 6.0"; empty buckets are omitted'
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  by_compose:
+                    type: array
+                    items: { $ref: "#/components/schemas/NameCount" }
+                  timeline_months:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        year: { type: integer }
+                        month: { type: integer }
+                        count: { type: integer }
+                  timeline_years:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        year: { type: integer }
+                        count: { type: integer }
+                  purchase_months:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        year: { type: integer }
+                        month: { type: integer }
+                        count: { type: integer }
+                        price: { type: number }
+                  purchase_years:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label: { type: string }
+                        year: { type: integer }
+                        count: { type: integer }
+                        price: { type: number }
+
+  # ═══════════════════════════════════════════════
+  # Media proxy
+  # ═══════════════════════════════════════════════
+  /api/media/{path}:
+    get:
+      tags: [Media]
+      summary: Proxy (and optionally cache) a media file from the CDN
+      description: |
+        Streams the file from `https://cdn.dingfengbo.top/media`. Local disk caching
+        is off unless `MEDIA_CACHE_ENABLED=true`. Returns the binary body, not JSON.
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+          description: Catch-all path (may contain slashes); leading slashes are stripped
+      responses:
+        "200":
+          description: The media file
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        "400":
+          description: Invalid path (contains "..")
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "404":
+          description: Image not found on CDN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+        "502":
+          description: Failed to fetch image from CDN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
 
   # ═══════════════════════════════════════════════
   # Authors — nations/dynasties
@@ -2135,6 +2763,12 @@ paths:
       responses:
         "200":
           description: Nation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nations: { type: array, items: { type: string } }
   /api/authors/dynasties:
     get:
       tags: [Authors]
@@ -2142,3 +2776,9 @@ paths:
       responses:
         "200":
           description: Dynasty list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dynasties: { type: array, items: { type: string } }
