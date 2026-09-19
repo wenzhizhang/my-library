@@ -16,13 +16,15 @@ from schemas.book_collection import (
 from database import get_db
 from serializers import serialize_book
 from services.weights import recompute_weights
+from auth import require_user_id
 
 router = APIRouter(prefix="/api/book-collections", tags=["book-collections"])
 
 
 @router.post("/", response_model=BookCollectionResponse)
 def create_book_collection(
-    collection: BookCollectionCreation, db: Session = Depends(get_db)
+    collection: BookCollectionCreation, db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     db_collection = BookCollection(**collection.model_dump())
     db.add(db_collection)
@@ -117,6 +119,7 @@ def update_book_collection(
     collection_id: int,
     collection_update: BookCollectionUpdate,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     collection = (
         db.query(BookCollection)
@@ -140,7 +143,7 @@ def update_book_collection(
 
 
 @router.delete("/{collection_id}")
-def delete_book_collection(collection_id: int, db: Session = Depends(get_db)):
+def delete_book_collection(collection_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     collection = (
         db.query(BookCollection)
         .filter(BookCollection.id == collection_id)
@@ -167,6 +170,7 @@ def batch_add_books_to_collection(
     collection_id: int,
     body: BatchAddBooks,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     collection = (
         db.query(BookCollection)
@@ -204,6 +208,7 @@ def add_book_to_collection(
     collection_id: int,
     body: AddBookToCollection,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     collection = (
         db.query(BookCollection)
@@ -239,6 +244,7 @@ def remove_book_from_collection(
     collection_id: int,
     book_id: int,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     collection = (
         db.query(BookCollection)

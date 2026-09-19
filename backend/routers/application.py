@@ -5,12 +5,13 @@ from typing import List
 from models import Application
 from schemas.application import ApplicationCreation, ApplicationUpdate, ApplicationResponse
 from database import get_applications_db
+from auth import require_user_id
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 
 @router.post("/", response_model=ApplicationResponse)
-def create_application(application: ApplicationCreation, db: Session = Depends(get_applications_db)):
+def create_application(application: ApplicationCreation, db: Session = Depends(get_applications_db), user_id: int = Depends(require_user_id)):
     """注册一个新应用"""
     db_app = Application(**application.model_dump())
     db.add(db_app)
@@ -75,6 +76,7 @@ def update_application(
     application_id: int,
     application_update: ApplicationUpdate,
     db: Session = Depends(get_applications_db),
+    user_id: int = Depends(require_user_id),
 ):
     """更新应用信息"""
     app = db.query(Application).filter(Application.id == application_id).first()
@@ -88,7 +90,7 @@ def update_application(
 
 
 @router.delete("/{application_id}")
-def delete_application(application_id: int, db: Session = Depends(get_applications_db)):
+def delete_application(application_id: int, db: Session = Depends(get_applications_db), user_id: int = Depends(require_user_id)):
     """删除应用"""
     app = db.query(Application).filter(Application.id == application_id).first()
     if app is None:

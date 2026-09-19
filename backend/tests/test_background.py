@@ -55,13 +55,13 @@ class TestBackgroundList:
 class TestBackgroundSelection:
     """GET/PUT /api/backgrounds/me"""
 
-    def test_guest_gets_null(self, client):
-        resp = client.get("/api/backgrounds/me")
+    def test_guest_gets_null(self, guest):
+        resp = guest.get("/api/backgrounds/me")
         assert resp.status_code == 200
         assert resp.json()["background_id"] is None
 
-    def test_guest_cannot_save(self, client):
-        resp = client.put("/api/backgrounds/me", json={"background_id": "bg2"})
+    def test_guest_cannot_save(self, guest):
+        resp = guest.put("/api/backgrounds/me", json={"background_id": "bg2"})
         assert resp.status_code == 401
 
     def test_user_save_then_read(self, client, db):
@@ -92,7 +92,7 @@ class TestBackgroundSelection:
         resp = client.get("/api/backgrounds/me", headers=headers)
         assert resp.json()["background_id"] == "bg3"
 
-    def test_users_are_isolated_and_guests_unaffected(self, client, db):
+    def test_users_are_isolated_and_guests_unaffected(self, client, guest, db):
         app.dependency_overrides[get_auth_db] = lambda: db
         alice = _register_user(db, username="alice", uuid="user-alice")
         bob = _register_user(db, username="bob", uuid="user-bob")
@@ -110,7 +110,7 @@ class TestBackgroundSelection:
         assert resp.json()["background_id"] == "bg6"
 
         # Guests still see the default
-        resp = client.get("/api/backgrounds/me")
+        resp = guest.get("/api/backgrounds/me")
         assert resp.status_code == 200
         assert resp.json()["background_id"] is None
 

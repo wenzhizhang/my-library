@@ -16,13 +16,15 @@ from schemas.reading_plan import (
 )
 from database import get_db
 from serializers import serialize_book
+from auth import require_user_id
 
 router = APIRouter(prefix="/api/reading-plans", tags=["reading-plans"])
 
 
 @router.post("/", response_model=ReadingPlanResponse)
 def create_reading_plan(
-    plan: ReadingPlanCreation, db: Session = Depends(get_db)
+    plan: ReadingPlanCreation, db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     db_plan = ReadingPlan(**plan.model_dump())
     db.add(db_plan)
@@ -129,6 +131,7 @@ def update_reading_plan(
     plan_id: int,
     plan_update: ReadingPlanUpdate,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     plan = (
         db.query(ReadingPlan)
@@ -151,7 +154,7 @@ def update_reading_plan(
 
 
 @router.delete("/{plan_id}")
-def delete_reading_plan(plan_id: int, db: Session = Depends(get_db)):
+def delete_reading_plan(plan_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     plan = (
         db.query(ReadingPlan)
         .filter(ReadingPlan.id == plan_id)
@@ -175,6 +178,7 @@ def batch_add_books_to_plan(
     plan_id: int,
     body: BatchAddBooks,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     plan = (
         db.query(ReadingPlan)
@@ -221,6 +225,7 @@ def add_book_to_plan(
     plan_id: int,
     body: AddBookToPlan,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     plan = (
         db.query(ReadingPlan)
@@ -262,6 +267,7 @@ def remove_book_from_plan(
     plan_id: int,
     book_id: int,
     db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
 ):
     plan = (
         db.query(ReadingPlan)
