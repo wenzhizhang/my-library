@@ -897,7 +897,7 @@ paths:
         - { name: author, in: query, schema: { type: string } }
         - { name: publisher, in: query, schema: { type: string } }
         - { name: tag, in: query, schema: { type: string } }
-        - { name: q, in: query, schema: { type: string }, description: "Free text over title, title_cn and isbn" }
+        - { name: q, in: query, schema: { type: string }, description: "Free text over the book and its references (title, title_cn, isbn, translator, author, publisher, brand, series, category, tag)" }
         - { name: min_price, in: query, schema: { type: number } }
         - { name: max_price, in: query, schema: { type: number } }
         - { name: purchase_year, in: query, schema: { type: integer } }
@@ -939,7 +939,7 @@ paths:
         - { name: author, in: query, schema: { type: string } }
         - { name: publisher, in: query, schema: { type: string } }
         - { name: tag, in: query, schema: { type: string } }
-        - { name: q, in: query, schema: { type: string }, description: "Free text over title, title_cn and isbn" }
+        - { name: q, in: query, schema: { type: string }, description: "Free text over the book and its references (title, title_cn, isbn, translator, author, publisher, brand, series, category, tag)" }
         - { name: min_price, in: query, schema: { type: number } }
         - { name: max_price, in: query, schema: { type: number } }
         - { name: purchase_year, in: query, schema: { type: integer } }

@@ -33,7 +33,7 @@
     "page": "Page",
     "of": "of",
     "total": "total",
-    "searchPlaceholder": "Search title, title_cn, ISBN…",
+    "searchPlaceholder": "Search title, author, publisher, ISBN…",
     "searchTitle": "Title",
     "searchIsbn": "ISBN",
     "searchAuthor": "Author",

@@ -71,7 +71,7 @@
     "sortTitle": "书名",
     "sortCreated": "入库时间",
     "sortSeries": "书系",
-    "searchPlaceholder": "搜索书名、中文名、ISBN…",
+    "searchPlaceholder": "搜索书名、作者、出版社、ISBN…",
     "searchTitle": "书名",
     "searchIsbn": "ISBN",
     "searchAuthor": "作者",

@@ -32,7 +32,7 @@
     <string name="books_scope_all">All</string>
     <string name="books_scope_wishlist">Wishlist</string>
     <string name="books_scope_archived">Archived</string>
-    <string name="books_search_hint">Search title, Chinese title, ISBN…</string>
+    <string name="books_search_hint">Search title, author, publisher, ISBN…</string>
     <string name="books_filter_title">Title</string>
     <string name="books_sort_title">Title</string>
     <string name="books_sort_created">Added</string>
