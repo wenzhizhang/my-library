@@ -103,38 +103,16 @@ def apply_book_sort(query, sort_by: str):
     return query.order_by(Book.id)
 
 
-def book_q_condition(q: str):
-    """The match behind the ``q`` parameter: one box, every field worth searching.
-
-    The book's own text plus the names hanging off it — author, publisher, brand, series,
-    category, tag — because a reader looking for a book they own remembers the author or the
-    imprint about as often as the title.
-
-    The references are matched with EXISTS (``any``/``has``) rather than joins so that a book
-    with two matching authors still comes back once.
-    """
-    like = f"%{q}%"
-    author_cls = Book.authors.property.mapper.class_
-    return or_(
-        Book.title.ilike(like),
-        Book.title_cn.ilike(like),
-        Book.isbn.ilike(like),
-        Book.translator.ilike(like),
-        Book.authors.any(
-            or_(author_cls.name.ilike(like), author_cls.name_cn.ilike(like))
-        ),
-        Book.publisher.has(Publisher.name.ilike(like)),
-        Book.brand.has(Brand.name.ilike(like)),
-        Book.book_series.has(BookSeries.name.ilike(like)),
-        Book.category.has(Category.name.ilike(like)),
-        _tag_match_condition(q),
-    )
-
-
 def apply_book_q(query, q: Optional[str]):
-    """Filter books by a free-text query across the book and the names it references."""
+    """Filter books by a free-text query across title, title_cn, and ISBN."""
     if q:
-        query = query.filter(book_q_condition(q))
+        query = query.filter(
+            or_(
+                Book.title.ilike(f"%{q}%"),
+                Book.title_cn.ilike(f"%{q}%"),
+                Book.isbn.ilike(f"%{q}%"),
+            )
+        )
     return query
 
 
@@ -169,7 +147,14 @@ class BookSearchStrategy:
         conditions = []
 
         if filters.get("q"):
-            conditions.append(book_q_condition(filters["q"]))
+            q = filters["q"]
+            conditions.append(
+                or_(
+                    Book.title.ilike(f"%{q}%"),
+                    Book.title_cn.ilike(f"%{q}%"),
+                    Book.isbn.ilike(f"%{q}%"),
+                )
+            )
 
         if filters.get("isbn"):
             conditions.append(Book.isbn.ilike(f"%{filters['isbn']}%"))

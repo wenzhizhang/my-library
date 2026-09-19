@@ -32,7 +32,7 @@
     <string name="books_scope_all">全部</string>
     <string name="books_scope_wishlist">願望清單</string>
     <string name="books_scope_archived">封存</string>
-    <string name="books_search_hint">搜尋書名、作者、出版社、ISBN…</string>
+    <string name="books_search_hint">搜尋書名、中文名、ISBN…</string>
     <string name="books_filter_title">書名</string>
     <string name="books_sort_title">書名</string>
     <string name="books_sort_created">入庫時間</string>
