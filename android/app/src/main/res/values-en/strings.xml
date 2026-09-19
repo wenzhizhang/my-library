@@ -94,7 +94,9 @@
     <string name="book_detail_field_archived">Archived</string>
     <string name="book_detail_field_douban">Douban score</string>
     <string name="book_detail_field_summary">Summary</string>
-    <string name="book_detail_field_introduction">About the author</string>
+    <string name="book_detail_field_introduction">Introduction</string>
+    <string name="form_summary">Summary</string>
+    <string name="form_introduction">Introduction</string>
     <string name="book_detail_field_catalog">Contents</string>
 
 

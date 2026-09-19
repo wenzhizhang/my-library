@@ -299,10 +299,10 @@ fun BookFormScreen(
                             viewModel.edit { it.copy(link = value) }
                         }
                     }
-                    MultilineRow(R.string.book_detail_field_summary, form.summary) { value ->
+                    MultilineRow(R.string.form_summary, form.summary) { value ->
                         viewModel.edit { it.copy(summary = value) }
                     }
-                    MultilineRow(R.string.book_detail_field_introduction, form.introduction) { value ->
+                    MultilineRow(R.string.form_introduction, form.introduction) { value ->
                         viewModel.edit { it.copy(introduction = value) }
                     }
                     MultilineRow(R.string.book_detail_field_catalog, form.catalog) { value ->

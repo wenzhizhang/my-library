@@ -93,8 +93,10 @@
     <string name="book_detail_field_wish">心愿单</string>
     <string name="book_detail_field_archived">归档状态</string>
     <string name="book_detail_field_douban">豆瓣评分</string>
-    <string name="book_detail_field_summary">简介</string>
-    <string name="book_detail_field_introduction">作者介绍</string>
+    <string name="book_detail_field_summary">内容概述</string>
+    <string name="book_detail_field_introduction">内容简介</string>
+    <string name="form_summary">摘要</string>
+    <string name="form_introduction">简介</string>
     <string name="book_detail_field_catalog">目录</string>
 
 

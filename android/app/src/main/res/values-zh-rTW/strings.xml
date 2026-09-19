@@ -93,8 +93,10 @@
     <string name="book_detail_field_wish">願望清單</string>
     <string name="book_detail_field_archived">封存狀態</string>
     <string name="book_detail_field_douban">豆瓣評分</string>
-    <string name="book_detail_field_summary">簡介</string>
-    <string name="book_detail_field_introduction">作者介紹</string>
+    <string name="book_detail_field_summary">內容概述</string>
+    <string name="book_detail_field_introduction">內容簡介</string>
+    <string name="form_summary">摘要</string>
+    <string name="form_introduction">簡介</string>
     <string name="book_detail_field_catalog">目錄</string>
 
     <!-- Settings -->
