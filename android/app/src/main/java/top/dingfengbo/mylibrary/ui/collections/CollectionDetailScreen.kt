@@ -176,6 +176,7 @@ fun CollectionDetailScreen(
                     .page(BookScope.All, BookQuery(text = query), page = 1)
                     .map { it.books }
             },
+            excluded = ui.collection?.books.orEmpty().mapNotNull { it.id }.toSet(),
             onConfirm = { bookIds ->
                 addingBooks = false
                 viewModel.addBooks(bookIds)

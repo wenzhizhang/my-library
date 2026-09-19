@@ -43,6 +43,11 @@ fun BookPickerDialog(
     search: suspend (String) -> Result<List<BookCard>>,
     onConfirm: (List<Int>) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Books already in the collection or plan. The web front end hides them as well: offering one
+     * again only produces an add that changes nothing.
+     */
+    excluded: Set<Int> = emptySet(),
 ) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<BookCard>>(emptyList()) }
@@ -50,11 +55,11 @@ fun BookPickerDialog(
     var error by remember { mutableStateOf<Throwable?>(null) }
     var picked by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
-    LaunchedEffect(query) {
+    LaunchedEffect(query, excluded) {
         delay(300)
         loading = true
         search(query)
-            .onSuccess { results = it; error = null }
+            .onSuccess { results = it.filterNot { book -> book.id in excluded }; error = null }
             .onFailure { error = it }
         loading = false
     }
