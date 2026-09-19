@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
+   The signed-in session (access token, username, uuid, expiry) is stored in the app's private
+   DataStore at files/datastore/session.preferences_pb, so it must never be copied to another
+   device. Device-to-device migration hands over app data even when android:allowBackup is false
+   (enforced since Android 12), which is why the data directory needs an explicit exclusion here
+   rather than relying on the manifest flag.
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="datastore" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="datastore" />
     </device-transfer>
-    -->
 </data-extraction-rules>
