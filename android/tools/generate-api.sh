@@ -6,6 +6,10 @@
 # backend/spec/openapi.yaml changes, then review the diff like any other source change.
 #
 # Never hand-edit anything under top/dingfengbo/mylibrary/api — the next run overwrites it.
+#
+# The generated surface mirrors the whole spec, so some operations have no caller in the app (the
+# RAG group, apiExportSyncToRootPost, ...). That is expected: the app deliberately uses a subset,
+# and the generated client is regenerated from the spec as a whole rather than per-endpoint.
 set -euo pipefail
 
 GENERATOR_VERSION="7.25.0"

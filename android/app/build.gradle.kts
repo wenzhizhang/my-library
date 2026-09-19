@@ -7,17 +7,43 @@ plugins {
 }
 
 // Release signing material lives outside version control: keystore/ + keystore.properties are gitignored.
+val keystoreFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
-  val file = rootProject.file("keystore.properties")
-  if (file.exists()) file.inputStream().use { load(it) }
+  if (keystoreFile.exists()) keystoreFile.inputStream().use { load(it) }
+}
+val signingKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+
+// Null when the signing material is complete, otherwise the reason it is not.
+val signingProblem: String? = when {
+  !keystoreFile.exists() -> "$keystoreFile does not exist"
+  else -> signingKeys
+    .filter { keystoreProps.getProperty(it).isNullOrBlank() }
+    .takeIf { it.isNotEmpty() }
+    ?.let { "$keystoreFile has no ${it.joinToString(", ")}" }
 }
 
-// Base URL defaults to production for both build types; override for a local backend with
+// AGP silently writes app-release-unsigned.apk when the release signing config is incomplete, so
+// gate every task that produces a release artifact. Recording and lint tasks stay usable without
+// signing material.
+val releaseArtifactTask = Regex("^(assemble|bundle|package|install).*Release")
+
+gradle.taskGraph.whenReady {
+  val releaseTask = allTasks.firstOrNull { releaseArtifactTask.containsMatchIn(it.name) }
+  if (releaseTask != null && signingProblem != null) {
+    throw GradleException(
+      "Cannot run ${releaseTask.path}: $signingProblem. " +
+        "A release APK/AAB must be signed - provide ${signingKeys.joinToString(", ")}."
+    )
+  }
+}
+
+// Base URL defaults to production; the -PbaseUrl override is debug-only so a dev host (or a stale
+// ~/.gradle/gradle.properties entry) can never reach a release build:
 //   ./gradlew assembleDebug -PbaseUrl=http://192.168.1.20/my-library
 // Point it at the nginx entry, not the raw uvicorn port: the collection endpoints answer a
 // 307 whose Location carries the /my-library prefix, which 404s when the backend is hit directly.
 val defaultBaseUrl = "https://dingfengbo.top/my-library"
-val baseUrl = (project.findProperty("baseUrl") as String?) ?: defaultBaseUrl
+val debugBaseUrl = (project.findProperty("baseUrl") as String?) ?: defaultBaseUrl
 
 android {
     namespace = "top.dingfengbo.mylibrary"
@@ -26,30 +52,28 @@ android {
         applicationId = "top.dingfengbo.mylibrary"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.1.9"
+        versionCode = 11
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         create("release") {
-            if (keystoreProps.isNotEmpty()) {
-                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
-            }
+            keystoreProps.getProperty("storeFile")?.let { storeFile = rootProject.file(it) }
+            keystoreProps.getProperty("storePassword")?.let { storePassword = it }
+            keystoreProps.getProperty("keyAlias")?.let { keyAlias = it }
+            keystoreProps.getProperty("keyPassword")?.let { keyPassword = it }
         }
     }
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
-            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+            buildConfigField("String", "BASE_URL", "\"$defaultBaseUrl\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
