@@ -179,4 +179,78 @@ class SafeRedirectInterceptorTest {
 
         assertTrue("must not spin forever, paths seen: $paths", paths.size <= 3)
     }
+
+    @Test
+    fun `follows 301 and 302 on a GET as well`() {
+        // Any hop in front of this backend may answer with a permanent or temporary redirect; only
+        // the 307/308 pair used to be followed, so those surfaced as a failed request.
+        for (code in listOf(301, 302)) {
+            paths.clear()
+            dispatcherFor("/api/books/", redirectCode = code)
+
+            get("/api/books?limit=20").use { response ->
+                assertEquals("code $code", 200, response.code)
+            }
+
+            assertEquals(
+                "code $code",
+                listOf("/api/books?limit=20", "/api/books/?limit=20"),
+                paths,
+            )
+        }
+    }
+
+    @Test
+    fun `a 303 turns a POST into a bodyless GET`() {
+        val methods = mutableListOf<String>()
+        val bodies = mutableListOf<String>()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                methods += request.method.orEmpty()
+                bodies += request.body.readUtf8()
+                return if (request.requestUrl!!.encodedPath.endsWith("/api/books/")) {
+                    MockResponse().setResponseCode(200).setBody("""{"id":1}""")
+                } else {
+                    MockResponse().setResponseCode(303).setHeader("Location", "/api/books/")
+                }
+            }
+        }
+
+        val payload = """{"isbn":"9787806631744","title":"x","title_cn":"y","author_ids":[]}"""
+        client().newCall(
+            Request.Builder()
+                .url(server.url("/api/books"))
+                .post(payload.toRequestBody("application/json".toMediaType()))
+                .build()
+        ).execute().use { response ->
+            assertEquals(200, response.code)
+        }
+
+        assertEquals(listOf("POST", "GET"), methods)
+        assertEquals(listOf(payload, ""), bodies)
+    }
+
+    @Test
+    fun `a POST is handed back when the redirect is a 302`() {
+        // A 302 promises nothing about the method, and this backend's write endpoints take their
+        // data in the body: re-issuing one as a GET would send a request the server never asked for.
+        val methods = mutableListOf<String>()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                methods += request.method.orEmpty()
+                return MockResponse().setResponseCode(302).setHeader("Location", "/api/books/")
+            }
+        }
+
+        client().newCall(
+            Request.Builder()
+                .url(server.url("/api/books"))
+                .post("""{"isbn":"x"}""".toRequestBody("application/json".toMediaType()))
+                .build()
+        ).execute().use { response ->
+            assertEquals("the 3xx must be handed back, not replayed", 302, response.code)
+        }
+
+        assertEquals(listOf("POST"), methods)
+    }
 }

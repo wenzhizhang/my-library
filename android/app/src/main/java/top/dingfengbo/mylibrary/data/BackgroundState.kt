@@ -1,6 +1,7 @@
 package top.dingfengbo.mylibrary.data
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,23 +25,47 @@ class BackgroundState(
     private val _url = MutableStateFlow<String?>(null)
     val url: StateFlow<String?> = _url.asStateFlow()
 
+    /**
+     * The newest refresh. A newer pick supersedes it, and the session collector cancels it — a
+     * refresh that outlives its session would paint the previous account's picture.
+     */
+    private var refreshJob: Job? = null
+
+    /** Written by the session collector, read by [refresh]'s coroutine when it publishes. */
+    @Volatile
+    private var signedIn = false
+
     init {
         scope.launch {
             session.collect { state ->
-                if (state is SessionState.LoggedIn) refresh() else _url.value = null
+                signedIn = state is SessionState.LoggedIn
+                if (signedIn) {
+                    refresh()
+                } else {
+                    refreshJob?.cancel()
+                    refreshJob = null
+                    _url.value = null
+                }
             }
         }
     }
 
     /** Also called right after the settings screen picks a different one. */
     fun refresh() {
-        scope.launch {
+        // Last caller wins: cancelling the previous refresh keeps it from landing after this one.
+        refreshJob?.cancel()
+        refreshJob = scope.launch {
             val selected = preferences.selectedBackgroundId().getOrNull()
             val available = preferences.backgrounds().getOrNull() ?: return@launch
             val chosen = available.items.firstOrNull { it.id == selected }
                 ?: available.items.firstOrNull { it.id == available.defaultId }
                 ?: return@launch
+            // Cancellation only reaches a coroutine that is still suspended, so a sign-out is checked
+            // again on either side of the write: seen before it, it stops the paint; seen after it,
+            // it takes the picture back down. One of the two always lands last.
+            if (!signedIn) return@launch
             _url.value = MediaUrls.image(chosen.url)
+            if (!signedIn) _url.value = null
         }
     }
 }

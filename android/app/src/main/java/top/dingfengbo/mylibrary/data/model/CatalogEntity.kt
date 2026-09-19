@@ -2,7 +2,12 @@ package top.dingfengbo.mylibrary.data.model
 
 import top.dingfengbo.mylibrary.R
 
-/** The six reference catalogs that have their own management screens. */
+/**
+ * The six reference catalogs that have their own management screens.
+ *
+ * [editable] is exactly the field set the matching `*Creation` and `*Update` schemas accept, so the
+ * same list drives both the create and the edit form.
+ */
 enum class CatalogEntity(val titleRes: Int, val editable: List<EntityAttribute>) {
     Author(
         R.string.catalog_authors,
@@ -26,11 +31,6 @@ enum class CatalogEntity(val titleRes: Int, val editable: List<EntityAttribute>)
         listOf(EntityAttribute.Name, EntityAttribute.Intro, EntityAttribute.Parent),
     ),
     Bookshelf(R.string.catalog_bookshelves, listOf(EntityAttribute.Name, EntityAttribute.Intro));
-
-    /** Authors are the only entity whose create endpoint needs two fields. */
-    val createAttributes: List<EntityAttribute>
-        get() = if (this == Author) listOf(EntityAttribute.Name, EntityAttribute.NameCn)
-        else listOf(EntityAttribute.Name)
 }
 
 /** Everything any of the six entities can show or edit. */

@@ -64,4 +64,42 @@ class RedirectAuthHeaderTest {
         assertEquals("Bearer abc.def.ghi", seen[0].second)
         assertEquals("Bearer abc.def.ghi", seen[1].second)
     }
+
+    @Test
+    fun `authorization survives the redirect through the stack the app ships`() {
+        // AppContainer wires AuthInterceptor *then* SafeRedirectInterceptor with followRedirects
+        // off, so the hop is re-issued from the header-bearing request instead of by OkHttp. The
+        // order is load bearing — an interceptor above the redirecting one does not run again — so
+        // the stack the app ships is what has to be pinned, not OkHttp's own redirect handling.
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                seen += request.path.orEmpty() to request.getHeader("Authorization")
+                return if (request.requestUrl!!.encodedPath.endsWith("/api/books/")) {
+                    MockResponse()
+                        .setResponseCode(200)
+                        .setBody("""{"books":[],"total_pages":1,"total_books":0}""")
+                } else {
+                    MockResponse().setResponseCode(307).setHeader("Location", "/my-library/api/books/")
+                }
+            }
+        }
+
+        val client = OkHttpClient.Builder()
+            .followRedirects(false)
+            .addInterceptor(AuthInterceptor { "abc.def.ghi" })
+            .addInterceptor(SafeRedirectInterceptor())
+            .build()
+
+        client.newCall(
+            Request.Builder().url(server.url("/my-library/api/books?limit=1")).build()
+        ).execute().use { response ->
+            assertEquals("the interceptor must follow the 307 itself", 200, response.code)
+        }
+
+        assertEquals("requests seen: $seen", 2, seen.size)
+        assertTrue("first hop: ${seen[0]}", seen[0].first.startsWith("/my-library/api/books?limit=1"))
+        assertEquals("second hop: ${seen[1]}", "/my-library/api/books/?limit=1", seen[1].first)
+        assertEquals("Bearer abc.def.ghi", seen[0].second)
+        assertEquals("Bearer abc.def.ghi", seen[1].second)
+    }
 }

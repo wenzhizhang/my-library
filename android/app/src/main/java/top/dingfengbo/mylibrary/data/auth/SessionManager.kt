@@ -32,7 +32,9 @@ class SessionManager(
     suspend fun restore() {
         val stored = store.current()
         _state.value = when {
-            stored == null -> SessionState.LoggedOut()
+            // Called on every ON_START: an already emptied store must not downgrade the "your session
+            // expired" explanation back into a plain logout, or a rotation would lose it.
+            stored == null -> _state.value as? SessionState.LoggedOut ?: SessionState.LoggedOut()
             stored.isExpired(now()) -> {
                 store.clear()
                 SessionState.LoggedOut(expired = true)

@@ -27,6 +27,7 @@ import top.dingfengbo.mylibrary.data.auth.SessionManager
 import top.dingfengbo.mylibrary.data.auth.TokenStore
 import top.dingfengbo.mylibrary.data.net.AuthInterceptor
 import top.dingfengbo.mylibrary.data.net.SafeRedirectInterceptor
+import top.dingfengbo.mylibrary.data.net.apiConverterFactories
 
 /**
  * Hand-wired object graph for the whole app: one OkHttp stack, one generated ApiClient,
@@ -36,9 +37,10 @@ class AppContainer(context: Context) {
     val applicationContext: Context = context.applicationContext
 
     init {
-        // The create endpoint rejects an explicit null for optional fields ("Input should be a valid
-        // string") while accepting the field being absent — and the generated serializer has
-        // encodeDefaults, so it would send every null. Dropping nulls is what this API wants.
+        // The shared Json's default body shape: drop nulls. Creation needs that — its models declare
+        // non-optional fields with defaults, so an explicit null comes back as a 422 ("Input should
+        // be a valid string") — while the update routers read `exclude_unset`, where an explicit null
+        // clears the column instead. That override is per request, in apiConverterFactories.
         // Must be set before the generated Json instance is first touched, hence the position here.
         Serializer.kotlinxSerializationJsonConfiguration = { explicitNulls = false }
     }
@@ -72,8 +74,15 @@ class AppContainer(context: Context) {
             }
             .build()
 
+    // Decimals ride on the shared Json staying lenient: BigDecimalAdapter decodes with
+    // `decodeString()`, which only accepts a bare JSON number because of that, and it writes decimals
+    // as JSON strings, which the server coerces in lax mode — neither side may be "tidied" alone.
     private val apiClient =
-        ApiClient(baseUrl = BuildConfig.BASE_URL, okHttpClientBuilder = okHttpClient.newBuilder())
+        ApiClient(
+            baseUrl = BuildConfig.BASE_URL,
+            okHttpClientBuilder = okHttpClient.newBuilder(),
+            converterFactories = apiConverterFactories,
+        )
 
     val authApi: AuthApi = apiClient.createService(AuthApi::class.java)
 

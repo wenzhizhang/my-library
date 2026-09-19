@@ -7,9 +7,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+private val header =
+    Base64.getUrlEncoder().withoutPadding().encodeToString("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
+
 private fun jwt(payload: String): String {
     val encoder = Base64.getUrlEncoder().withoutPadding()
-    val header = encoder.encodeToString("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
     val body = encoder.encodeToString(payload.toByteArray())
     return "$header.$body.c2lnbmF0dXJl"
 }
@@ -22,10 +24,13 @@ class JwtTest {
     }
 
     @Test
-    fun `reads exp from a padded payload`() {
-        // "ab" forces base64 padding characters in the encoded payload.
-        val token = jwt("""{"sub":"ab","exp":1899999999}""")
-        assertEquals(1_899_999_999L, Jwt.expiryEpochSeconds(token))
+    fun `reads exp from a payload segment that still carries base64 padding`() {
+        // 29 raw bytes encode to 39 characters plus one '='. Encoding without padding — as the other
+        // cases do — would silently re-test the un-padded path and never exercise the '=' at all.
+        val encoded = Base64.getUrlEncoder().encodeToString("""{"sub":"ab","exp":1899999999}""".toByteArray())
+        assertTrue("fixture must exercise '=' padding", encoded.endsWith("="))
+
+        assertEquals(1_899_999_999L, Jwt.expiryEpochSeconds("$header.$encoded.c2lnbmF0dXJl"))
     }
 
     @Test

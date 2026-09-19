@@ -1,5 +1,6 @@
 package top.dingfengbo.mylibrary.data
 
+import kotlinx.coroutines.CancellationException
 import top.dingfengbo.mylibrary.api.apis.AuthApi
 import top.dingfengbo.mylibrary.api.models.UserLogin
 import top.dingfengbo.mylibrary.api.models.UserRegister
@@ -27,6 +28,9 @@ class AuthRepository(
             block()
             Result.success(Unit)
         } catch (throwable: Throwable) {
+            // Cancellation is not a sign-in failure: the caller abandoned the request, so reporting
+            // it would paint an error over a screen the user has already navigated away from.
+            if (throwable is CancellationException) throw throwable
             Result.failure(ApiErrors.asSignInFailure(throwable))
         }
 
@@ -44,6 +48,7 @@ class AuthRepository(
             api.apiAuthMeGet()
             true
         } catch (throwable: Throwable) {
+            if (throwable is CancellationException) throw throwable
             when (ApiErrors.map(throwable).kind) {
                 ErrorKind.Expired, ErrorKind.NotFound -> {
                     sessionManager.onTokenRejected()

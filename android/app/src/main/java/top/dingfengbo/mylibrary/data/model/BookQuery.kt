@@ -6,10 +6,10 @@ import top.dingfengbo.mylibrary.api.models.BookCard
 enum class BookScope { All, Wishlist, Archived }
 
 /** `sort_by` only accepts these three values on every book-list endpoint. */
-enum class BookSort(val apiValue: String) {
-    Title("title"),
-    CreatedAt("created_at"),
-    Series("book_series"),
+enum class BookSort {
+    Title,
+    CreatedAt,
+    Series,
 }
 
 /**

@@ -1,5 +1,6 @@
 package top.dingfengbo.mylibrary.data
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,11 @@ import org.junit.Before
 import org.junit.Test
 import top.dingfengbo.mylibrary.api.apis.AuthApi
 import top.dingfengbo.mylibrary.api.infrastructure.ApiClient
+import top.dingfengbo.mylibrary.api.models.ApiAuthDbInfoGet200Response
+import top.dingfengbo.mylibrary.api.models.TokenResponse
+import top.dingfengbo.mylibrary.api.models.UserInfo
+import top.dingfengbo.mylibrary.api.models.UserLogin
+import top.dingfengbo.mylibrary.api.models.UserRegister
 import top.dingfengbo.mylibrary.data.auth.Session
 import top.dingfengbo.mylibrary.data.auth.SessionManager
 import top.dingfengbo.mylibrary.data.auth.SessionState
@@ -42,6 +48,20 @@ private fun jwt(exp: Long): String {
     val header = enc.encodeToString("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
     val payload = enc.encodeToString("""{"sub":"1","uuid":"u","exp":$exp}""".toByteArray())
     return "$header.$payload.sig"
+}
+
+/** Stands in for the caller going away mid-request, which is how Retrofit resumes a cancelled call. */
+private class CancellingAuthApi : AuthApi {
+    override suspend fun apiAuthLoginPost(userLogin: UserLogin): TokenResponse =
+        throw CancellationException("cancelled")
+
+    override suspend fun apiAuthRegisterPost(userRegister: UserRegister): TokenResponse =
+        throw CancellationException("cancelled")
+
+    override suspend fun apiAuthMeGet(): UserInfo = throw CancellationException("cancelled")
+
+    override suspend fun apiAuthDbInfoGet(): ApiAuthDbInfoGet200Response =
+        throw CancellationException("cancelled")
 }
 
 /**
@@ -157,6 +177,19 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun `restore keeps the expired explanation when the store is already empty`() = runTest {
+        store.save(Session("tok", "u", "u", expiresAtEpochSeconds = 1_000))
+        val manager = manager(now = 2_000)
+        manager.restore()
+
+        // AppNavigation restores on every ON_START, and the store is empty by the second pass: the
+        // bounce must still read as "expired" instead of turning into a plain logout on rotation.
+        manager.restore()
+
+        assertEquals(true, (manager.state.value as SessionState.LoggedOut).expired)
+    }
+
+    @Test
     fun `validToken refuses to hand out a token inside the expiry window`() = runTest {
         val manager = manager(now = 1_900_000_000)
         store.save(Session("tok", "u", "u", expiresAtEpochSeconds = 1_900_000_030))
@@ -167,5 +200,39 @@ class AuthRepositoryTest {
         // and a rejected token makes read endpoints answer with demo.db data instead of an error.
         assertNull(manager.validToken())
         assertTrue(store.cleared)
+    }
+
+    @Test
+    fun `a cancelled sign-in is unwound instead of reported as a failure`() = runTest {
+        val repository = AuthRepository(CancellingAuthApi(), manager())
+
+        var thrown: Throwable? = null
+        try {
+            repository.login("u", "hunter2")
+        } catch (cancellation: CancellationException) {
+            thrown = cancellation
+        }
+
+        // Mapped into Result.failure this reached the login form as an error line on a screen the
+        // caller had already abandoned.
+        assertTrue("a cancelled sign-in must unwind", thrown != null)
+    }
+
+    @Test
+    fun `a cancelled session probe is unwound instead of returning a result`() = runTest {
+        val manager = manager()
+        manager.signIn(jwt(1_900_000_000), "u", "u")
+        val repository = AuthRepository(CancellingAuthApi(), manager)
+
+        var thrown: Throwable? = null
+        try {
+            repository.verifySession()
+        } catch (cancellation: CancellationException) {
+            thrown = cancellation
+        }
+
+        assertTrue("a cancelled session probe must unwind", thrown != null)
+        // A cancellation is not a rejection: the token the user is holding must survive it.
+        assertEquals(SessionState.LoggedIn::class, manager.state.value::class)
     }
 }

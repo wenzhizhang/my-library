@@ -1,6 +1,7 @@
 package top.dingfengbo.mylibrary.data.net
 
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -48,11 +49,18 @@ object ApiErrors {
         else -> ApiException(ErrorKind.Unknown, cause = throwable)
     }
 
-    /** Runs an API call, converting anything thrown into an [ApiException]. */
+    /**
+     * Runs an API call, converting anything thrown into an [ApiException].
+     *
+     * Cancellation is not a failure and is rethrown: a superseded list load (new search, scope
+     * change, tab switch) is cancelled by the caller that replaced it, so reporting it would paint
+     * "出错了，请重试" over the screen the user just asked for.
+     */
     suspend fun <T> call(block: suspend () -> T): Result<T> =
         try {
             Result.success(block())
         } catch (throwable: Throwable) {
+            if (throwable is CancellationException) throw throwable
             Result.failure(map(throwable))
         }
 
