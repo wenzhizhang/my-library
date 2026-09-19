@@ -88,6 +88,13 @@ detect_changed_services() {
             sync_book_collections.py|sync-projects.sh|scripts/sync-projects.py|split_combined_tags.py)
                 svc_backend=1 ;;
 
+            # ---- Android client: a separate Gradle project, no container builds it ----
+            # Nothing under nginx/, frontend/ or the compose files references it, so a change
+            # here must map to NO service. Without this pattern it fell through to the
+            # conservative "unknown file" branch, which rebuilt and re-versioned every service.
+            android|android/*)
+                ;;
+
             # ---- Docs / runtime config only → no rebuild ----
             README.md|RAG_STRATEGY.md|RAG_DESIGN.md|DOCKER_DEPLOYMENT.md|DESIGN.md|GUI_PROMPT.md|.env|.env.example)
                 ;;
