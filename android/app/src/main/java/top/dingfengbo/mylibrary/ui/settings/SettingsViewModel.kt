@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.api.models.BackgroundItem
+import top.dingfengbo.mylibrary.data.BackgroundState
 import top.dingfengbo.mylibrary.data.PreferencesRepository
 
 data class SettingsUiState(
@@ -17,7 +18,10 @@ data class SettingsUiState(
     val error: Throwable? = null,
 )
 
-class SettingsViewModel(private val repository: PreferencesRepository) : ViewModel() {
+class SettingsViewModel(
+    private val repository: PreferencesRepository,
+    private val backgroundState: BackgroundState,
+) : ViewModel() {
     private val _ui = MutableStateFlow(SettingsUiState())
     val ui: StateFlow<SettingsUiState> = _ui.asStateFlow()
 
@@ -42,7 +46,11 @@ class SettingsViewModel(private val repository: PreferencesRepository) : ViewMod
     fun select(id: String) {
         viewModelScope.launch {
             repository.selectBackground(id)
-                .onSuccess { _ui.update { it.copy(selectedId = id, error = null) } }
+                .onSuccess {
+                    _ui.update { it.copy(selectedId = id, error = null) }
+                    // The pages are already on screen: repaint them with the new picture now.
+                    backgroundState.refresh()
+                }
                 .onFailure { throwable -> _ui.update { it.copy(error = throwable) } }
         }
     }

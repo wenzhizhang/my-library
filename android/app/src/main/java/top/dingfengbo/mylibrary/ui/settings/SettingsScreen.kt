@@ -55,7 +55,9 @@ fun SettingsScreen(
     onOpenStats: () -> Unit,
     onOpenExport: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = viewModel { SettingsViewModel(container.preferencesRepository) },
+    viewModel: SettingsViewModel = viewModel {
+        SettingsViewModel(container.preferencesRepository, container.backgroundState)
+    },
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     var confirmingSignOut by remember { mutableStateOf(false) }

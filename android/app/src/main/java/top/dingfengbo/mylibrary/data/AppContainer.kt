@@ -105,6 +105,9 @@ class AppContainer(context: Context) {
         configApi = apiClient.createService(ConfigApi::class.java),
     )
 
+    /** The picture behind every screen; reloaded when the session or the chosen background changes. */
+    val backgroundState = BackgroundState(preferencesRepository, applicationScope, sessionManager.state)
+
     /** Export downloads stream through this same client, so auth and 401 handling match the rest. */
     val exportRepository = ExportRepository(okHttpClient)
 }

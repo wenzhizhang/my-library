@@ -8,6 +8,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
@@ -34,6 +35,11 @@ fun MyLibraryTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   // Dynamic color is available on Android 12+
   dynamicColor: Boolean = true,
+  /**
+   * When a background picture is active the page must let it through: Scaffold paints
+   * `colorScheme.background`, and an opaque page colour would hide the picture entirely.
+   */
+  transparentBackground: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
@@ -46,5 +52,9 @@ fun MyLibraryTheme(
       else -> LightColorScheme
     }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  MaterialTheme(
+    colorScheme = if (transparentBackground) colorScheme.copy(background = Color.Transparent) else colorScheme,
+    typography = Typography,
+    content = content,
+  )
 }
