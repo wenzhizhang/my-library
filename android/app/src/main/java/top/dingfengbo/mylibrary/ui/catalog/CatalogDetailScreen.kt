@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -58,9 +60,15 @@ fun CatalogDetailScreen(
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     var confirmingDelete by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(ui.deleted) {
         if (ui.deleted) onBack()
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
+            .collect { viewModel.onBooksScrolledTo(it) }
     }
 
     Scaffold(
@@ -102,6 +110,7 @@ fun CatalogDetailScreen(
             }
 
             else -> LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -142,24 +151,50 @@ fun CatalogDetailScreen(
                         HorizontalDivider()
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = stringResource(R.string.catalog_related_books),
+                            text = if (ui.booksTotal > 0) {
+                                stringResource(R.string.catalog_related_books_count, ui.booksTotal)
+                            } else {
+                                stringResource(R.string.catalog_related_books)
+                            },
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
 
-                if (ui.books.isEmpty()) {
-                    item {
-                        Text(
+                items(ui.books, key = { it.id ?: 0 }) { book ->
+                    BookRowItem(book = book, onClick = { book.id?.let(onOpenBook) })
+                }
+
+                item {
+                    when {
+                        // A failed page is not "no books": the count above came from the entity itself.
+                        ui.booksError != null -> Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Text(
+                                text = errorMessage(ui.booksError) ?: stringResource(R.string.error_unknown),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            TextButton(onClick = viewModel::retryBooks) {
+                                Text(stringResource(R.string.error_retry))
+                            }
+                        }
+
+                        ui.booksLoading && ui.books.isEmpty() -> Row(
+                            Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) { CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
+
+                        ui.booksLoadingMore -> Row(
+                            Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) { CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
+
+                        ui.books.isEmpty() -> Text(
                             text = stringResource(R.string.catalog_no_books),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    }
-                } else {
-                    items(ui.books, key = { it.id ?: 0 }) { book ->
-                        BookRowItem(book = book, onClick = { book.id?.let(onOpenBook) })
                     }
                 }
 
@@ -192,6 +227,7 @@ fun CatalogDetailScreen(
             initial = detail.edit,
             onSave = { edit -> viewModel.save(edit) },
             onDismiss = { viewModel.onEditingChange(false) },
+            loadChoices = container.catalogRepository::attributeChoices,
         )
     }
 

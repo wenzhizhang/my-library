@@ -111,7 +111,7 @@ fun CatalogListScreen(
                             horizontalArrangement = Arrangement.Center,
                         ) { CircularProgressIndicator() }
 
-                        ui.error != null && ui.rows.isEmpty() -> Column(
+                        ui.error != null -> Column(
                             Modifier.fillMaxWidth().padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -139,8 +139,10 @@ fun CatalogListScreen(
     if (creating) {
         CatalogEditDialog(
             entity = entity,
-            attributes = entity.createAttributes,
+            // Same field set as editing: `*Creation` and `*Update` accept the same attributes.
+            attributes = entity.editable,
             initial = EntityEdit(),
+            loadChoices = container.catalogRepository::attributeChoices,
             onSave = { edit ->
                 container.catalogRepository.create(entity, edit)
                     .map { }

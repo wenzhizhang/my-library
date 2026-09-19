@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -102,7 +103,7 @@ fun BookFormScreen(
                 },
                 navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) } },
                 actions = {
-                    TextButton(onClick = viewModel::submit, enabled = ui.form.canSubmit && !ui.submitting) {
+                    TextButton(onClick = viewModel::submit, enabled = ui.canSubmit) {
                         Text(stringResource(R.string.form_save))
                     }
                 },
@@ -110,7 +111,22 @@ fun BookFormScreen(
         },
         modifier = modifier,
     ) { padding ->
-        if (ui.loading) {
+        val loadError = ui.loadError
+        if (loadError != null) {
+            // A blank form with no message above it is how a failed detail load let the user type a
+            // couple of fields and save them over the record, erasing everything the load held back.
+            Column(
+                Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(errorMessage(loadError) ?: stringResource(R.string.error_unknown))
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = viewModel::load) { Text(stringResource(R.string.error_retry)) }
+            }
+            return@Scaffold
+        }
+
+        if (ui.loading || (ui.isEdit && !ui.recordLoaded)) {
             Column(
                 Modifier.fillMaxSize().padding(padding),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -121,7 +137,9 @@ fun BookFormScreen(
 
         val form = ui.form
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            // The activity is edge-to-edge, so the window is not resized by the keyboard on API 30+:
+            // without this the lower fields (and the save button) sit under the IME.
+            modifier = Modifier.fillMaxSize().padding(padding).imePadding(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -135,8 +153,12 @@ fun BookFormScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                     )
-                    Spacer(Modifier.width(8.dp))
-                    OutlinedButton(onClick = onOpenScanner) { Text(stringResource(R.string.form_scan)) }
+                    // Scanning identifies a book, so it belongs to the create flow only: the form an
+                    // edit writes back is the record, and a scan there used to replace it.
+                    if (!ui.isEdit) {
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(onClick = onOpenScanner) { Text(stringResource(R.string.form_scan)) }
+                    }
                 }
             }
 
@@ -174,6 +196,11 @@ fun BookFormScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+            item {
+                TextFieldRow(R.string.book_detail_field_translator, form.translator) { value ->
+                    viewModel.edit { it.copy(translator = value) }
+                }
             }
             item {
                 PickerRow(
@@ -328,7 +355,7 @@ fun BookFormScreen(
                 }
                 Button(
                     onClick = viewModel::submit,
-                    enabled = form.canSubmit && !ui.submitting,
+                    enabled = ui.canSubmit,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     if (ui.submitting) {
@@ -348,12 +375,16 @@ fun BookFormScreen(
             selected = viewModel.choicesFor(picker),
             multi = picker == RefKind.Author,
             search = { query -> viewModel.search(picker, query) },
-            createFields = if (picker == RefKind.Author) {
-                listOf(R.string.form_author_name, R.string.form_author_name_cn)
-            } else {
-                listOf(R.string.form_publisher_name)
+            createFields = when (picker) {
+                RefKind.Author -> listOf(R.string.form_author_name, R.string.form_author_name_cn)
+                RefKind.PurchaseStore -> emptyList()
+                else -> listOf(R.string.form_publisher_name)
             },
-            onCreate = { values -> viewModel.create(picker, values) },
+            // Purchase stores come from server configuration and the view model refuses to create
+            // one, so offering the action would only ever end in a failure.
+            onCreate = if (picker == RefKind.PurchaseStore) null else { values ->
+                viewModel.create(picker, values)
+            },
             onConfirm = { choices -> viewModel.setChoice(picker, choices) },
             onDismiss = { viewModel.openPicker(null) },
         )

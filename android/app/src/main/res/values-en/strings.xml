@@ -53,6 +53,7 @@
     <string name="books_view_grid">Grid</string>
     <string name="books_empty">No books found</string>
     <string name="books_empty_hint">Try another search term, or clear the filters</string>
+    <string name="books_empty_hint_plain">No books in this list yet</string>
     <string name="books_count">%1$d books</string>
 
     <!-- Book detail -->
@@ -143,6 +144,7 @@
     <string name="form_author_name">Author name</string>
     <string name="form_author_name_cn">Chinese name</string>
     <string name="form_publisher_name">Name</string>
+    <string name="form_date_invalid">Enter the date as YYYY-MM-DD</string>
     <string name="read_state_unread">Unread</string>
     <string name="read_state_reading">Reading</string>
     <string name="read_state_read">Read</string>
@@ -175,11 +177,13 @@
     <string name="catalog_search_hint">Search by name</string>
     <string name="catalog_empty">Nothing here</string>
     <string name="catalog_related_books">Related books</string>
+    <string name="catalog_related_books_count">Related books (%1$d)</string>
     <string name="catalog_no_books">No related books</string>
     <string name="catalog_delete">Delete</string>
     <string name="catalog_delete_confirm_title">Delete “%1$s”?</string>
     <string name="catalog_delete_confirm_message">This cannot be undone. Books that reference it are unaffected.</string>
-    <string name="catalog_parent_hint">Leave empty for a top-level category</string>
+    <string name="catalog_parent_hint">Parent category ID; leave empty for a top-level category</string>
+    <string name="catalog_choice_empty">Not set</string>
     <string name="attr_name">Name</string>
     <string name="attr_name_cn">Chinese name</string>
     <string name="attr_nation">Nationality</string>
@@ -208,6 +212,7 @@
     <string name="picker_books_title">Pick books</string>
     <string name="picker_add_selected">Add (%1$d)</string>
     <string name="picker_remove">Remove</string>
+    <string name="picker_more_matches">Many matches — only some are shown; keep typing to narrow it down</string>
 
     <!-- Stats, export, applications, settings -->
     <string name="books_title">Books</string>
@@ -233,6 +238,7 @@
     <string name="settings_more">More</string>
     <string name="settings_background">Background</string>
     <string name="settings_background_hint">Applies to your account only</string>
+    <string name="settings_background_default">Default</string>
 
     <!-- Stats extras -->
     <string name="stats_by_compose">By typesetting</string>

@@ -6,13 +6,18 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -48,6 +53,16 @@ fun AppNavigation(container: AppContainer) {
     val sessionState by container.sessionManager.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
+    // The entries' ViewModelStores live in a ViewModel, so a configuration change keeps the screens'
+    // state. They must not outlive the session: this empties them as soon as the signed-in branch is
+    // left, which is how every ending arrives — sign-out, token expiry, a rejected token.
+    val entryStores = viewModel { NavEntryStores() }
+    val signedIn = sessionState is SessionState.LoggedIn
+    DisposableEffect(signedIn) {
+        if (!signedIn) entryStores.viewModelStore.clear()
+        onDispose { }
+    }
+
     LifecycleEventEffect(Lifecycle.Event.ON_START) {
         scope.launch {
             container.sessionManager.restore()
@@ -55,7 +70,15 @@ fun AppNavigation(container: AppContainer) {
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    // A transparent background (the active picture) matches no ColorScheme slot, so Material3 cannot
+    // pick the matching on-colour and page-level text falls back to LocalContentColor's black default
+    // — unreadable over a dark blurred photo. Name it here: Surface publishes it to everything that
+    // does not set its own colour; cards, bars and text fields already do.
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
+    ) {
         when (val state = sessionState) {
             SessionState.Unknown ->
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -63,13 +86,13 @@ fun AppNavigation(container: AppContainer) {
             is SessionState.LoggedOut ->
                 AuthScreen(repository = container.authRepository, expired = state.expired)
 
-            is SessionState.LoggedIn -> MainNavigation(container, state.session)
+            is SessionState.LoggedIn -> MainNavigation(container, state.session, entryStores)
         }
     }
 }
 
 @Composable
-private fun MainNavigation(container: AppContainer, session: Session) {
+private fun MainNavigation(container: AppContainer, session: Session, entryStores: NavEntryStores) {
     val backStack = rememberNavBackStack(BookList)
 
     NavDisplay(
@@ -81,7 +104,8 @@ private fun MainNavigation(container: AppContainer, session: Session) {
         // fields, and save would have overwritten the book that was open before).
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
-            rememberViewModelStoreNavEntryDecorator(),
+            // Fills `entryStores`, which the session's end empties — see NavEntryStores.
+            rememberViewModelStoreNavEntryDecorator(entryStores),
         ),
         entryProvider =
             entryProvider {
@@ -190,4 +214,17 @@ private fun MainNavigation(container: AppContainer, session: Session) {
                 }
             },
     )
+}
+
+/**
+ * The ViewModelStores [NavDisplay] fills — one per entry key — held where a session can end without
+ * taking the activity down with it.
+ *
+ * Being a ViewModel is what keeps the screens' state across a configuration change; emptying the store
+ * when the session ends is what keeps one account's screens out of the next one's.
+ */
+private class NavEntryStores : ViewModel(), ViewModelStoreOwner {
+    override val viewModelStore = ViewModelStore()
+
+    override fun onCleared() = viewModelStore.clear()
 }

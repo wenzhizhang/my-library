@@ -12,14 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,10 +38,12 @@ import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.model.BookQuery
 import top.dingfengbo.mylibrary.data.model.BookScope
 import top.dingfengbo.mylibrary.ui.common.BookPickerDialog
+import top.dingfengbo.mylibrary.ui.common.DeleteConfirmDialog
+import top.dingfengbo.mylibrary.ui.common.DetailActionFooter
+import top.dingfengbo.mylibrary.ui.common.DetailLoadError
 import top.dingfengbo.mylibrary.ui.common.DialogField
 import top.dingfengbo.mylibrary.ui.common.SimpleBookRow
 import top.dingfengbo.mylibrary.ui.common.TextFieldsDialog
-import top.dingfengbo.mylibrary.ui.common.errorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,14 +93,11 @@ fun PlanDetailScreen(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator() }
 
-            plan == null -> Column(
-                Modifier.fillMaxSize().padding(padding).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(errorMessage(ui.error) ?: stringResource(R.string.error_unknown))
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = viewModel::load) { Text(stringResource(R.string.error_retry)) }
-            }
+            plan == null -> DetailLoadError(
+                error = ui.error,
+                onRetry = viewModel::load,
+                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            )
 
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
@@ -178,22 +173,11 @@ fun PlanDetailScreen(
                 }
 
                 item {
-                    Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                        ui.actionError?.let {
-                            Text(
-                                text = errorMessage(it) ?: "",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Spacer(Modifier.height(8.dp))
-                        }
-                        HorizontalDivider()
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { confirmingDelete = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.catalog_delete)) }
-                    }
+                    DetailActionFooter(
+                        actionError = ui.actionError,
+                        onDelete = { confirmingDelete = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -206,8 +190,8 @@ fun PlanDetailScreen(
             fields = listOf(
                 DialogField(R.string.attr_name, plan.name),
                 DialogField(R.string.attr_intro, plan.intro.orEmpty(), multiline = true),
-                DialogField(R.string.plans_start_date, plan.startDate.orEmpty()),
-                DialogField(R.string.plans_end_date, plan.endDate.orEmpty()),
+                DialogField(R.string.plans_start_date, plan.startDate.orEmpty(), date = true),
+                DialogField(R.string.plans_end_date, plan.endDate.orEmpty(), date = true),
             ),
             onSave = { values ->
                 viewModel.save(
@@ -238,19 +222,14 @@ fun PlanDetailScreen(
     }
 
     if (confirmingDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmingDelete = false },
-            title = { Text(stringResource(R.string.catalog_delete_confirm_title, plan?.name.orEmpty())) },
-            text = { Text(stringResource(R.string.plans_delete_confirm_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmingDelete = false
-                    viewModel.delete()
-                }) { Text(stringResource(R.string.catalog_delete)) }
+        DeleteConfirmDialog(
+            name = plan?.name.orEmpty(),
+            message = stringResource(R.string.plans_delete_confirm_message),
+            onConfirm = {
+                confirmingDelete = false
+                viewModel.delete()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmingDelete = false }) { Text(stringResource(R.string.common_cancel)) }
-            },
+            onDismiss = { confirmingDelete = false },
         )
     }
 }

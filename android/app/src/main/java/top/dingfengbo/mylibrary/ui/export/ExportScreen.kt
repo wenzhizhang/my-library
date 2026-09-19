@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,25 +64,19 @@ fun ExportScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     var pending by remember { mutableStateOf<ExportRequest?>(null) }
 
-    val mimeType = when (val request = pending) {
-        is ExportRequest.Data -> when (request.format) {
-            Format.Csv -> "text/csv"
-            Format.Json -> "application/json"
-            Format.Markdown -> "text/markdown"
-            Format.Sql -> "application/sql"
-            Format.Excel -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        }
-
-        ExportRequest.Database -> "application/vnd.sqlite3"
-        null -> "application/octet-stream"
-    }
-
     val saveLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument(mimeType),
+        contract = ActivityResultContracts.CreateDocument(mimeTypeOf(pending)),
     ) { uri: Uri? ->
         val request = pending
         pending = null
         if (uri != null && request != null) viewModel.run(request, uri)
+    }
+
+    // Launched from the state change, not from the click: the MIME is part of the CreateDocument
+    // contract, and registering it is the composition that follows `pending = request`. Launching
+    // inside the click handler hands the system the MIME of the *previous* export.
+    LaunchedEffect(pending) {
+        pending?.let { saveLauncher.launch(viewModel.suggestedName(it)) }
     }
 
     Scaffold(
@@ -129,21 +124,13 @@ fun ExportScreen(
 
             Button(
                 enabled = !ui.running,
-                onClick = {
-                    val request = ExportRequest.Data(ui.format, ui.scope)
-                    pending = request
-                    saveLauncher.launch(viewModel.suggestedName(request))
-                },
+                onClick = { pending = ExportRequest.Data(ui.format, ui.scope) },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.export_save_as)) }
 
             OutlinedButton(
                 enabled = !ui.running,
-                onClick = {
-                    val request = ExportRequest.Database
-                    pending = request
-                    saveLauncher.launch(viewModel.suggestedName(request))
-                },
+                onClick = { pending = ExportRequest.Database },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.export_database)) }
 
@@ -169,6 +156,20 @@ fun ExportScreen(
             }
         }
     }
+}
+
+/** What the "save as" dialog should file the export under; a null request is the "nothing pending" state. */
+private fun mimeTypeOf(request: ExportRequest?): String = when (request) {
+    is ExportRequest.Data -> when (request.format) {
+        Format.Csv -> "text/csv"
+        Format.Json -> "application/json"
+        Format.Markdown -> "text/markdown"
+        Format.Sql -> "application/sql"
+        Format.Excel -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+
+    ExportRequest.Database -> "application/vnd.sqlite3"
+    null -> "application/octet-stream"
 }
 
 private val Scope.labelRes: Int

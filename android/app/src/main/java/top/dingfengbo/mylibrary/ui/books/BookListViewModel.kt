@@ -78,6 +78,9 @@ class BookListViewModel(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE_MS)
+            // The scope may have changed while we slept; only the term still in the box may
+            // reach the wire.
+            if (_ui.value.searchText != value) return@launch
             _ui.update { it.copy(query = it.query.copy(text = value)) }
             reload()
         }
@@ -85,7 +88,11 @@ class BookListViewModel(
 
     fun onScopeChange(scope: BookScope) {
         // Search and filters belong to the "all books" endpoint only; carrying them across would
-        // silently show unfiltered results.
+        // silently show unfiltered results. The pending debounce is cancelled too: it was armed
+        // with the old term, and firing it here would re-apply a term the (now hidden) box no
+        // longer shows.
+        searchJob?.cancel()
+        searchJob = null
         _ui.update { it.copy(scope = scope, searchText = "", query = it.query.cleared()) }
         reload()
     }
@@ -100,7 +107,11 @@ class BookListViewModel(
     fun onFilterSheetOpenChange(open: Boolean) = _ui.update { it.copy(filterSheetOpen = open) }
 
     fun onApplyFilters(query: BookQuery) {
-        _ui.update { it.copy(query = query, filterSheetOpen = false) }
+        // The search box owns `text`, so the applied query is forced to agree with it: the sheet's
+        // Reset clears every field including the term it never shows, which would otherwise leave
+        // the visible box and the request disagreeing.
+        val searchText = _ui.value.searchText
+        _ui.update { it.copy(query = query.copy(text = searchText), filterSheetOpen = false) }
         reload()
     }
 

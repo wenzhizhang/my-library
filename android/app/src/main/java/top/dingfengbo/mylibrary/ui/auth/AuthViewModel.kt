@@ -29,14 +29,19 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _ui = MutableStateFlow(AuthUiState())
     val ui: StateFlow<AuthUiState> = _ui.asStateFlow()
 
-    fun onModeChange(mode: AuthMode) = _ui.update { it.copy(mode = mode, error = null) }
+    // Every edit clears passwordMismatch: it is shown with priority over `error`, so a stale
+    // "passwords do not match" would mask whatever the next submit actually reports.
+    fun onModeChange(mode: AuthMode) =
+        _ui.update { it.copy(mode = mode, error = null, passwordMismatch = false) }
 
-    fun onUsernameChange(value: String) = _ui.update { it.copy(username = value, error = null) }
+    fun onUsernameChange(value: String) =
+        _ui.update { it.copy(username = value, error = null, passwordMismatch = false) }
 
-    fun onPasswordChange(value: String) = _ui.update { it.copy(password = value, error = null) }
+    fun onPasswordChange(value: String) =
+        _ui.update { it.copy(password = value, error = null, passwordMismatch = false) }
 
     fun onConfirmPasswordChange(value: String) =
-        _ui.update { it.copy(confirmPassword = value, error = null) }
+        _ui.update { it.copy(confirmPassword = value, error = null, passwordMismatch = false) }
 
     fun submit() {
         val state = _ui.value
@@ -51,8 +56,10 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
                 AuthMode.Login -> repository.login(state.username.trim(), state.password)
                 AuthMode.Register -> repository.register(state.username.trim(), state.password)
             }
-            // On success the app shell swaps itself out — SessionManager drives navigation.
-            result.onSuccess { _ui.update { it.copy(submitting = false) } }
+            // On success the app shell swaps itself out — SessionManager drives navigation. The
+            // credentials are spent, so they are dropped here: this ViewModel is activity-scoped and
+            // would otherwise still hold the password and prefill the login screen after sign-out.
+            result.onSuccess { _ui.value = AuthUiState() }
                 .onFailure { throwable -> _ui.update { it.copy(submitting = false, error = throwable) } }
         }
     }

@@ -2,6 +2,7 @@ package top.dingfengbo.mylibrary.ui.catalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,11 @@ data class CatalogDetailUiState(
     val entity: CatalogEntity,
     val detail: EntityDetail? = null,
     val books: List<BookCard> = emptyList(),
+    val booksTotal: Int = 0,
+    val booksLoading: Boolean = true,
+    val booksLoadingMore: Boolean = false,
+    val booksError: Throwable? = null,
+    val booksHasMore: Boolean = false,
     val loading: Boolean = true,
     val error: Throwable? = null,
     val editing: Boolean = false,
@@ -35,6 +41,9 @@ class CatalogDetailViewModel(
     private val _ui = MutableStateFlow(CatalogDetailUiState(entity = entity))
     val ui: StateFlow<CatalogDetailUiState> = _ui.asStateFlow()
 
+    private var loadedBooksPage = 0
+    private var booksJob: Job? = null
+
     init {
         load()
     }
@@ -45,9 +54,55 @@ class CatalogDetailViewModel(
             catalog.detail(entity, entityId)
                 .onSuccess { detail -> _ui.update { it.copy(detail = detail, loading = false) } }
                 .onFailure { throwable -> _ui.update { it.copy(loading = false, error = throwable) } }
+        }
+        loadBooks(reset = true)
+    }
 
-            catalog.books(entity, entityId, page = 1)
-                .onSuccess { books -> _ui.update { it.copy(books = books) } }
+    /** Retry for a failed related-books page: the entity itself loaded fine. */
+    fun retryBooks() = loadBooks(reset = true)
+
+    fun onBooksScrolledTo(lastVisibleIndex: Int) {
+        val state = _ui.value
+        if (lastVisibleIndex < 0 || state.books.isEmpty()) return
+        if (lastVisibleIndex >= state.books.size - PREFETCH_DISTANCE &&
+            state.booksHasMore && !state.booksLoading && !state.booksLoadingMore
+        ) {
+            loadBooks(reset = false)
+        }
+    }
+
+    private fun loadBooks(reset: Boolean) {
+        booksJob?.cancel()
+        booksJob = viewModelScope.launch {
+            _ui.update {
+                if (reset) it.copy(booksLoading = true, booksError = null)
+                else it.copy(booksLoadingMore = true)
+            }
+            val nextPage = if (reset) 1 else loadedBooksPage + 1
+            catalog.books(entity, entityId, nextPage)
+                .onSuccess { page ->
+                    loadedBooksPage = nextPage
+                    _ui.update {
+                        it.copy(
+                            books = if (reset) page.books else it.books + page.books,
+                            booksTotal = page.totalBooks,
+                            booksHasMore = page.hasMore,
+                            booksLoading = false,
+                            booksLoadingMore = false,
+                            booksError = null,
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    // Kept apart from the entity's own error so the screen can say which half failed.
+                    _ui.update {
+                        it.copy(
+                            booksLoading = false,
+                            booksLoadingMore = false,
+                            booksError = throwable,
+                        )
+                    }
+                }
         }
     }
 
@@ -74,5 +129,9 @@ class CatalogDetailViewModel(
                 }
                 .onFailure { throwable -> _ui.update { it.copy(saving = false, actionError = throwable) } }
         }
+    }
+
+    private companion object {
+        const val PREFETCH_DISTANCE = 4
     }
 }

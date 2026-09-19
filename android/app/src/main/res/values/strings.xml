@@ -53,6 +53,7 @@
     <string name="books_view_grid">网格</string>
     <string name="books_empty">没有找到图书</string>
     <string name="books_empty_hint">换个搜索词，或清空筛选条件</string>
+    <string name="books_empty_hint_plain">这个列表里还没有图书</string>
     <string name="books_count">共 %1$d 本</string>
 
     <!-- Book detail -->
@@ -143,6 +144,7 @@
     <string name="form_author_name">作者名</string>
     <string name="form_author_name_cn">中文名</string>
     <string name="form_publisher_name">名称</string>
+    <string name="form_date_invalid">请按 YYYY-MM-DD 填写日期</string>
     <string name="read_state_unread">未读</string>
     <string name="read_state_reading">在读</string>
     <string name="read_state_read">已读</string>
@@ -175,11 +177,13 @@
     <string name="catalog_search_hint">搜索名称</string>
     <string name="catalog_empty">没有内容</string>
     <string name="catalog_related_books">关联图书</string>
+    <string name="catalog_related_books_count">关联图书（共 %1$d 本）</string>
     <string name="catalog_no_books">暂无关联图书</string>
     <string name="catalog_delete">删除</string>
     <string name="catalog_delete_confirm_title">删除「%1$s」？</string>
     <string name="catalog_delete_confirm_message">删除后不可恢复；引用它的图书不受影响。</string>
-    <string name="catalog_parent_hint">留空为顶级分类</string>
+    <string name="catalog_parent_hint">上级分类 ID，留空为顶级分类</string>
+    <string name="catalog_choice_empty">未设置</string>
     <string name="attr_name">名称</string>
     <string name="attr_name_cn">中文名</string>
     <string name="attr_nation">国籍</string>
@@ -208,6 +212,7 @@
     <string name="picker_books_title">选择图书</string>
     <string name="picker_add_selected">添加（%1$d）</string>
     <string name="picker_remove">移除</string>
+    <string name="picker_more_matches">匹配的图书较多，仅显示了一部分，请继续输入以缩小范围</string>
 
     <!-- Stats, export, applications, settings -->
     <string name="books_title">图书</string>
@@ -233,6 +238,7 @@
     <string name="settings_more">更多</string>
     <string name="settings_background">背景图</string>
     <string name="settings_background_hint">背景仅对当前账号生效</string>
+    <string name="settings_background_default">默认</string>
 
     <!-- Stats extras -->
     <string name="stats_by_compose">排版分布</string>

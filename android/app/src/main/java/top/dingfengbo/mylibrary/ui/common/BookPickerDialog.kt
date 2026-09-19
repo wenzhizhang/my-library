@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import top.dingfengbo.mylibrary.R
 import top.dingfengbo.mylibrary.api.models.BookCard
+import top.dingfengbo.mylibrary.data.BookRepository
 import top.dingfengbo.mylibrary.ui.books.BookCover
 
 /**
@@ -55,11 +56,19 @@ fun BookPickerDialog(
     var error by remember { mutableStateOf<Throwable?>(null) }
     var picked by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
+    // The caller searches a single page, so a full page means the list on screen is only the
+    // beginning of the matches — saying "no results" there would be a lie.
+    var truncated by remember { mutableStateOf(false) }
+
     LaunchedEffect(query, excluded) {
         delay(300)
         loading = true
         search(query)
-            .onSuccess { results = it.filterNot { book -> book.id in excluded }; error = null }
+            .onSuccess { page ->
+                truncated = page.size >= BookRepository.PAGE_SIZE
+                results = page.filterNot { book -> book.id in excluded }
+                error = null
+            }
             .onFailure { error = it }
         loading = false
     }
@@ -89,7 +98,9 @@ fun BookPickerDialog(
                     )
 
                     results.isEmpty() -> Text(
-                        text = stringResource(R.string.books_empty),
+                        text = stringResource(
+                            if (truncated) R.string.picker_more_matches else R.string.books_empty
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
@@ -129,6 +140,16 @@ fun BookPickerDialog(
                                 if (isPicked) {
                                     Text("✓", color = MaterialTheme.colorScheme.primary)
                                 }
+                            }
+                        }
+                        if (truncated) {
+                            item {
+                                Text(
+                                    text = stringResource(R.string.picker_more_matches),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                )
                             }
                         }
                     }

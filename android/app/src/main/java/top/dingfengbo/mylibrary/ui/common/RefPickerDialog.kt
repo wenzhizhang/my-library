@@ -75,9 +75,15 @@ fun RefPickerDialog(
             fieldLabelRes = createFields,
             onSubmit = onCreate,
             onCreated = { ref ->
-                picked = listOf(RefChoice(ref.id, ref.label))
+                val choice = RefChoice(ref.id, ref.label)
                 creating = false
-                onConfirm(picked)
+                if (multi) {
+                    // The web front end appends a freshly created reference to the selection; the
+                    // dialog stays open, so "新建" must never drop what was already picked.
+                    if (picked.none { it.id == choice.id }) picked = picked + choice
+                } else {
+                    onConfirm(listOf(choice))
+                }
             },
             onDismiss = { creating = false },
         )
@@ -140,7 +146,11 @@ fun RefPickerDialog(
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { picked = emptyList() }
+                                        .clickable {
+                                            // Single-select has no confirm button, so clearing has to
+                                            // be applied at once — exactly like tapping a row is.
+                                            if (multi) picked = emptyList() else onConfirm(emptyList())
+                                        }
                                         .padding(vertical = 10.dp),
                                 )
                             }

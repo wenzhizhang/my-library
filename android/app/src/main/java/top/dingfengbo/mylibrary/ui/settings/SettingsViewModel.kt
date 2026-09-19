@@ -13,6 +13,8 @@ import top.dingfengbo.mylibrary.data.PreferencesRepository
 
 data class SettingsUiState(
     val backgrounds: List<BackgroundItem> = emptyList(),
+    /** The configured default, what is painted when the account has chosen nothing. */
+    val defaultId: String? = null,
     val selectedId: String? = null,
     val loading: Boolean = false,
     val error: Throwable? = null,
@@ -34,7 +36,13 @@ class SettingsViewModel(
             _ui.update { it.copy(loading = true, error = null) }
             repository.backgrounds()
                 .onSuccess { backgrounds ->
-                    _ui.update { it.copy(backgrounds = backgrounds.items, loading = false) }
+                    _ui.update {
+                        it.copy(
+                            backgrounds = backgrounds.items,
+                            defaultId = backgrounds.defaultId,
+                            loading = false,
+                        )
+                    }
                 }
                 .onFailure { throwable -> _ui.update { it.copy(loading = false, error = throwable) } }
 

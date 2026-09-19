@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.R
 
@@ -30,6 +31,8 @@ data class DialogField(
     val labelRes: Int,
     val initial: String = "",
     val multiline: Boolean = false,
+    /** An ISO `yyyy-MM-dd` date: the dialog refuses to save anything else into it. */
+    val date: Boolean = false,
 )
 
 /**
@@ -49,6 +52,11 @@ fun TextFieldsDialog(
     var working by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val scope = rememberCoroutineScope()
+    // A typo must not reach the API as a plan date: the field says so while it is wrong, and Save
+    // stays disabled until it does not.
+    val datesValid = fields.withIndex().all { (index, field) ->
+        !field.date || isDateOrBlank(values.getOrElse(index) { "" })
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -59,14 +67,22 @@ fun TextFieldsDialog(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 fields.forEachIndexed { index, field ->
+                    val value = values.getOrElse(index) { "" }
+                    val badDate = field.date && !isDateOrBlank(value)
                     OutlinedTextField(
-                        value = values.getOrElse(index) { "" },
+                        value = value,
                         onValueChange = { text ->
                             values = values.toMutableList().also { it[index] = text }
                         },
                         label = { Text(stringResource(field.labelRes)) },
                         singleLine = !field.multiline,
                         minLines = if (field.multiline) 3 else 1,
+                        isError = badDate,
+                        supportingText = if (badDate) {
+                            { Text(stringResource(R.string.form_date_invalid)) }
+                        } else {
+                            null
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -81,7 +97,7 @@ fun TextFieldsDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = values.firstOrNull()?.isNotBlank() == true && !working,
+                enabled = values.firstOrNull()?.isNotBlank() == true && !working && datesValid,
                 onClick = {
                     working = true
                     error = null
@@ -98,3 +114,7 @@ fun TextFieldsDialog(
         },
     )
 }
+
+/** Blank is allowed — a plan may have no dates; anything else must be a real `yyyy-MM-dd`. */
+private fun isDateOrBlank(value: String): Boolean =
+    value.isBlank() || runCatching { LocalDate.parse(value.trim()) }.isSuccess

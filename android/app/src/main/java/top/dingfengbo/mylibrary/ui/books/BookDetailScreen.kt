@@ -299,7 +299,10 @@ private fun BookDetailContent(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = onArchive,
-                        enabled = !working && book.archived != true,
+                        // `archived` is this screen's own flag: the loaded book only stops saying
+                        // `archived = false` after a reload, which used to leave the button armed
+                        // for a second archive call.
+                        enabled = !working && !archived && book.archived != true,
                         modifier = Modifier.weight(1f),
                     ) { Text(stringResource(R.string.book_detail_archive)) }
                     Button(

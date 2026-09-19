@@ -124,6 +124,35 @@ class BookFormStateTest {
     }
 
     @Test
+    fun `a lookup that reports ids without names leaves no unlabelled picker behind`() {
+        // The user-database branch of the lookup answers 品牌/丛书/分类 as ids with no names.
+        val filled = BookFormState().mergedWith(
+            IsbnLookupResponse(
+                isbn = "9787806631744",
+                title = "琴学门径",
+                authorIds = listOf(226),
+                authorNames = listOf(""),
+                publisherId = 5,
+                publisherName = "",
+                brandId = 31,
+                brandName = null,
+                bookSeriesId = 44,
+                bookSeriesName = "",
+                categoryId = 12,
+                categoryPath = null,
+            )
+        )
+
+        assertNull(filled.publisher)
+        assertNull(filled.brand)
+        assertNull(filled.series)
+        assertNull(filled.category)
+        assertEquals(emptyList<RefChoice>(), filled.authors)
+        // The rest of the lookup still lands: only the label-less choices are dropped.
+        assertEquals("琴学门径", filled.title)
+    }
+
+    @Test
     fun `an existing book round-trips into the form and back`() {
         val form = BookFormState.from(
             top.dingfengbo.mylibrary.api.models.BookResponse(

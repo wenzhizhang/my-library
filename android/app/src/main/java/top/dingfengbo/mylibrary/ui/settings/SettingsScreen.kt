@@ -101,8 +101,12 @@ fun SettingsScreen(
             if (ui.loading && ui.backgrounds.isEmpty()) {
                 CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)
             }
+            // What is actually painted: the account's own choice, or the configured default when it
+            // has not chosen one — the web front end's `selectedId || defaultId`.
+            val activeId = ui.selectedId ?: ui.defaultId
             ui.backgrounds.forEach { background ->
                 val id = background.id
+                val active = id != null && id == activeId
                 Row(
                     Modifier.fillMaxWidth()
                         .clickable(enabled = id != null) { id?.let(viewModel::select) }
@@ -119,11 +123,21 @@ fun SettingsScreen(
                     Text(
                         text = background.name.orEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (id != null && id == ui.selectedId) MaterialTheme.colorScheme.primary
+                        color = if (active) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    if (id != null && id == ui.selectedId) {
+                    // Marked separately from the checkmark: with a choice of your own, the default is
+                    // still worth identifying — it is what a signed-out app and other devices show.
+                    if (id != null && id == ui.defaultId) {
+                        Text(
+                            text = stringResource(R.string.settings_background_default),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    if (active) {
                         Text("✓", color = MaterialTheme.colorScheme.primary)
                     }
                 }

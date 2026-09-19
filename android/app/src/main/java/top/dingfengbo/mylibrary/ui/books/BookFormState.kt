@@ -147,6 +147,17 @@ data class BookFormState(
     private fun tagList(): List<String>? =
         tags.split(',', '，').map { it.trim() }.filter { it.isNotEmpty() }.takeIf { it.isNotEmpty() }
 
+    /**
+     * The lookup's user-database branch answers 品牌/丛书/分类 as bare ids with no name (the web
+     * client resolves those from reference lists it already holds; the app's pickers fetch theirs on
+     * demand, so there is nothing here to resolve against). A picker whose button reads nothing is
+     * worse than an empty field the user can fill in, so the id is dropped along with the name.
+     */
+    private fun refChoice(id: Int?, name: String?): RefChoice? {
+        val label = name.orEmpty().trim()
+        return if (id != null && label.isNotEmpty()) RefChoice(id, label) else null
+    }
+
     private fun String.orNull(): String? = trim().takeIf { it.isNotEmpty() }
 
     private fun String.toAmount() = trim().takeIf { it.isNotEmpty() }?.toBigDecimalOrNull()
@@ -163,12 +174,13 @@ data class BookFormState(
         titleCn = titleCn.ifBlank { hit.titleCn.orEmpty() },
         authors = authors.ifEmpty {
             hit.authorIds.orEmpty().zip(hit.authorNames.orEmpty()) { id, name -> RefChoice(id, name) }
+                .filter { it.label.isNotBlank() }
         },
         translator = translator.ifBlank { hit.translator.orEmpty() },
-        publisher = publisher ?: hit.publisherId?.let { RefChoice(it, hit.publisherName.orEmpty()) },
-        brand = brand ?: hit.brandId?.let { RefChoice(it, hit.brandName.orEmpty()) },
-        series = series ?: hit.bookSeriesId?.let { RefChoice(it, hit.bookSeriesName.orEmpty()) },
-        category = category ?: hit.categoryId?.let { RefChoice(it, hit.categoryPath.orEmpty()) },
+        publisher = publisher ?: refChoice(hit.publisherId, hit.publisherName),
+        brand = brand ?: refChoice(hit.brandId, hit.brandName),
+        series = series ?: refChoice(hit.bookSeriesId, hit.bookSeriesName),
+        category = category ?: refChoice(hit.categoryId, hit.categoryPath),
         publishDate = publishDate.ifBlank { hit.publishDate.orEmpty() },
         bindingType = bindingType.ifBlank { hit.bindingType.orEmpty() },
         paperType = paperType.ifBlank { hit.paperType.orEmpty() },

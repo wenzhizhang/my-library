@@ -264,7 +264,12 @@ private fun ListStatus(ui: BookListUiState, onRetry: () -> Unit, modifier: Modif
             Text(stringResource(R.string.books_empty), style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.books_empty_hint),
+                // Wishlist and archived show neither the search box nor the filter button, so the
+                // hint must not point at them.
+                text = stringResource(
+                    if (ui.supportsFilters) R.string.books_empty_hint
+                    else R.string.books_empty_hint_plain
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

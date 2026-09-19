@@ -38,6 +38,9 @@ fun MyLibraryTheme(
   /**
    * When a background picture is active the page must let it through: Scaffold paints
    * `colorScheme.background`, and an opaque page colour would hide the picture entirely.
+   *
+   * A transparent background also matches no ColorScheme slot, so no `on*` colour can be derived from
+   * it: containers sitting on it must name their content colour — see the Surface in `AppNavigation`.
    */
   transparentBackground: Boolean = false,
   content: @Composable () -> Unit,

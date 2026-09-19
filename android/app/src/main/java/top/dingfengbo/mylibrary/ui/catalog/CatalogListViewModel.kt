@@ -85,7 +85,18 @@ class CatalogListViewModel(
                     }
                 }
                 .onFailure { throwable ->
-                    _ui.update { it.copy(loading = false, loadingMore = false, error = throwable) }
+                    // A failed reset must not leave the previous query's rows and page behind: the
+                    // user would read them as this search's results and page deeper into the new one.
+                    if (reset) loadedPage = 0
+                    _ui.update {
+                        it.copy(
+                            rows = if (reset) emptyList() else it.rows,
+                            hasMore = if (reset) false else it.hasMore,
+                            loading = false,
+                            loadingMore = false,
+                            error = throwable,
+                        )
+                    }
                 }
         }
     }

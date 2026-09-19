@@ -4,14 +4,12 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
+import java.io.OutputStream
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.Request
 import top.dingfengbo.mylibrary.data.ExportRepository
 import top.dingfengbo.mylibrary.data.ExportRepository.Format
 import top.dingfengbo.mylibrary.data.ExportRepository.Scope
@@ -51,37 +49,24 @@ class ExportViewModel(
         ExportRequest.Database -> repository.suggestedName("database", "db")
     }
 
-    /** Streams the body straight into the file the user picked — exports can be megabytes. */
+    /** Streams straight into the file the user picked — exports can be megabytes. */
     fun run(request: ExportRequest, target: Uri) {
-        val httpRequest: Request = when (request) {
-            is ExportRequest.Data -> repository.export(request.format, request.scope)
-            ExportRequest.Database -> repository.database()
-        }
         viewModelScope.launch {
             _ui.update { it.copy(running = true, done = null, error = null) }
-            val outcome = withContext(Dispatchers.IO) {
-                runCatching {
-                    repository.client().newCall(httpRequest).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            if (response.code == 401) onSessionRejected()
-                            throw ApiException(
-                                kind = when (response.code) {
-                                    401 -> ErrorKind.Expired
-                                    404 -> ErrorKind.NotFound
-                                    in 500..599 -> ErrorKind.Server
-                                    else -> ErrorKind.Unknown
-                                },
-                                httpCode = response.code,
-                                detail = response.body?.string()?.take(300),
-                            )
-                        }
-                        val body = response.body ?: throw ApiException(ErrorKind.Unknown)
-                        val output = context.contentResolver.openOutputStream(target)
-                            ?: throw ApiException(ErrorKind.Unknown)
-                        output.use { body.byteStream().copyTo(it) }
-                    }
-                }.exceptionOrNull()
+            // Opening the target only when the request succeeded is the repository's job, so a
+            // failed export cannot leave an empty file behind.
+            val sink: () -> OutputStream = {
+                context.contentResolver.openOutputStream(target) ?: throw ApiException(ErrorKind.Unknown)
             }
+            val outcome = when (request) {
+                is ExportRequest.Data -> repository.download(request.format, request.scope, sink)
+                ExportRequest.Database -> repository.downloadDatabase(sink)
+            }.exceptionOrNull()
+
+            // Cancellation never reaches here: the repository's ApiErrors.call rethrows it so a
+            // screen the user left does not paint an error.
+            if ((outcome as? ApiException)?.kind == ErrorKind.Expired) onSessionRejected()
+
             _ui.update {
                 it.copy(
                     running = false,

@@ -15,6 +15,7 @@ data class CollectionDetailUiState(
     val collection: BookCollectionResponse? = null,
     val loading: Boolean = true,
     val error: Throwable? = null,
+    val working: Boolean = false,
     val actionError: Throwable? = null,
     val deleted: Boolean = false,
 )
@@ -47,37 +48,32 @@ class CollectionDetailViewModel(
                 load()
             }
 
-    /** Failures surface through [CollectionDetailUiState.actionError] rather than the picker. */
-    fun addBooks(bookIds: List<Int>) {
+    /**
+     * Failures surface through [CollectionDetailUiState.actionError] rather than the picker.
+     *
+     * One action at a time. Without the guard a second remove on the same row reaches the backend
+     * after the first succeeded and comes back 400 ("not in collection"), pinning that message
+     * under the list for the rest of the screen's life.
+     */
+    private fun action(onSuccess: () -> Unit = { load() }, block: suspend () -> Result<Unit>) {
+        if (_ui.value.working) return
         viewModelScope.launch {
-            repository.addBooks(collectionId, bookIds)
+            _ui.update { it.copy(working = true, actionError = null) }
+            block()
                 .onSuccess {
                     libraryEvents.bump()
-                    load()
+                    _ui.update { it.copy(working = false) }
+                    onSuccess()
                 }
-                .onFailure { throwable -> _ui.update { it.copy(actionError = throwable) } }
+                .onFailure { throwable -> _ui.update { it.copy(working = false, actionError = throwable) } }
         }
     }
 
-    fun removeBook(bookId: Int) {
-        viewModelScope.launch {
-            repository.removeBook(collectionId, bookId)
-                .onSuccess {
-                    libraryEvents.bump()
-                    load()
-                }
-                .onFailure { throwable -> _ui.update { it.copy(actionError = throwable) } }
-        }
-    }
+    fun addBooks(bookIds: List<Int>) = action { repository.addBooks(collectionId, bookIds) }
 
-    fun delete() {
-        viewModelScope.launch {
-            repository.delete(collectionId)
-                .onSuccess {
-                    libraryEvents.bump()
-                    _ui.update { it.copy(deleted = true) }
-                }
-                .onFailure { throwable -> _ui.update { it.copy(actionError = throwable) } }
-        }
+    fun removeBook(bookId: Int) = action { repository.removeBook(collectionId, bookId) }
+
+    fun delete() = action(onSuccess = { _ui.update { it.copy(deleted = true) } }) {
+        repository.delete(collectionId)
     }
 }

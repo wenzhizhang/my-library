@@ -31,13 +31,22 @@ data class BookFormUiState(
     val isEdit: Boolean = false,
     val loading: Boolean = false,
     val loadError: Throwable? = null,
+    /** True once the record under edit is in [form]; always true when creating. */
+    val recordLoaded: Boolean = true,
     val submitting: Boolean = false,
     val submitError: Throwable? = null,
     val lookup: LookupOutcome? = null,
     val purchaseStores: List<String> = emptyList(),
     val openPicker: RefKind? = null,
     val saved: Boolean = false,
-)
+) {
+    /**
+     * The update endpoint replaces every editable field, so a save of the blank form a failed detail
+     * load leaves behind would erase the book. Nothing may be written back before the record is here.
+     */
+    val canSubmit: Boolean
+        get() = form.canSubmit && !submitting && recordLoaded
+}
 
 class BookFormViewModel(
     private val books: BookRepository,
@@ -48,7 +57,9 @@ class BookFormViewModel(
     private val bookId: Int?,
 ) : ViewModel() {
 
-    private val _ui = MutableStateFlow(BookFormUiState(isEdit = bookId != null))
+    private val isEdit = bookId != null
+
+    private val _ui = MutableStateFlow(BookFormUiState(isEdit = isEdit, recordLoaded = !isEdit))
     val ui: StateFlow<BookFormUiState> = _ui.asStateFlow()
 
     /**
@@ -56,8 +67,15 @@ class BookFormViewModel(
      * discarded before looking this one up. Merging into it instead is why a second scan left the
      * form showing the first book — every field the new book does not report kept its old value, so
      * the ISBN changed while title, author and publisher stayed behind.
+     *
+     * Only while creating, though. Editing, the form *is* the record an update writes back to, and
+     * replacing it with whatever was scanned is how a scan silently re-pointed the record at another
+     * book. The screen offers no scanner there, and a code that still reaches the hand-off — left
+     * behind by an earlier create, or published while this record's detail request is in flight — is
+     * consumed and dropped rather than merged into the record.
      */
     fun startWithIsbn(isbn: String) {
+        if (isEdit) return
         _ui.update { it.copy(form = BookFormState(isbn = isbn), lookup = null) }
         lookupIsbn()
     }
@@ -82,7 +100,9 @@ class BookFormViewModel(
             _ui.update { it.copy(loading = true, loadError = null) }
             books.detail(id)
                 .onSuccess { book ->
-                    _ui.update { it.copy(form = BookFormState.from(book), loading = false) }
+                    _ui.update {
+                        it.copy(form = BookFormState.from(book), recordLoaded = true, loading = false)
+                    }
                 }
                 .onFailure { throwable -> _ui.update { it.copy(loading = false, loadError = throwable) } }
         }
@@ -188,7 +208,7 @@ class BookFormViewModel(
 
     fun submit() {
         val state = _ui.value
-        if (!state.form.canSubmit || state.submitting) return
+        if (!state.canSubmit) return
         viewModelScope.launch {
             _ui.update { it.copy(submitting = true, submitError = null) }
             val result = if (bookId == null) {

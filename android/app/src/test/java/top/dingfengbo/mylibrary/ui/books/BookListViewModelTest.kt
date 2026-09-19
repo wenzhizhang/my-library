@@ -10,6 +10,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -20,6 +21,7 @@ import top.dingfengbo.mylibrary.api.apis.ISBNApi
 import top.dingfengbo.mylibrary.api.infrastructure.ApiClient
 import top.dingfengbo.mylibrary.data.BookRepository
 import top.dingfengbo.mylibrary.data.LibraryEvents
+import top.dingfengbo.mylibrary.data.model.BookQuery
 import top.dingfengbo.mylibrary.data.model.BookScope
 import top.dingfengbo.mylibrary.data.model.BookSort
 
@@ -168,7 +170,7 @@ class BookListViewModelTest {
         viewModel.onSearchTextChange("琴")
         advanceTimeBy(400)
         awaitRequests(2)
-        viewModel.onApplyFilters(top.dingfengbo.mylibrary.data.model.BookQuery(author = "苏轼"))
+        viewModel.onApplyFilters(BookQuery(author = "苏轼"))
         awaitRequests(3)
 
         viewModel.onScopeChange(BookScope.Wishlist)
@@ -198,6 +200,56 @@ class BookListViewModelTest {
 
         assertEquals(BookSort.Series, viewModel.ui.value.query.sort)
         assertEquals("book_series", server.takeRequest().requestUrl!!.queryParameter("sort_by"))
+    }
+
+    @Test
+    fun `a reset from the filter sheet keeps the term the search box shows`() = runTest(mainDispatcherRule.dispatcher) {
+        page(books = emptyList(), totalPages = 1, totalBooks = 0) // initial
+        page(books = listOf(book(4, "苏轼集")), totalPages = 1, totalBooks = 1) // debounced search
+        page(books = listOf(book(7, "东坡志林")), totalPages = 1, totalBooks = 1) // after Reset + Apply
+
+        val viewModel = viewModel()
+        awaitRequests(1)
+        server.takeRequest()
+
+        viewModel.onSearchTextChange("苏轼")
+        advanceTimeBy(400)
+        awaitRequests(2)
+        assertEquals("苏轼", server.takeRequest().requestUrl!!.queryParameter("q"))
+
+        // What the sheet's Reset sends: every filter field blank, including the term the sheet
+        // never shows and the search box still holds.
+        viewModel.onApplyFilters(viewModel.ui.value.query.cleared())
+        awaitState(viewModel) { it.books.map { book -> book.id } == listOf(7) }
+
+        assertEquals("苏轼", viewModel.ui.value.searchText)
+        assertEquals(viewModel.ui.value.searchText, viewModel.ui.value.query.text)
+        assertEquals("苏轼", server.takeRequest().requestUrl!!.queryParameter("q"))
+    }
+
+    @Test
+    fun `a scope change inside the debounce window drops the pending search`() = runTest(mainDispatcherRule.dispatcher) {
+        page(books = emptyList(), totalPages = 1, totalBooks = 0) // initial "all" load
+        page(books = emptyList(), totalPages = 1, totalBooks = 0) // wishlist load
+
+        val viewModel = viewModel()
+        awaitRequests(1)
+        server.takeRequest()
+
+        viewModel.onSearchTextChange("琴")
+        advanceTimeBy(100) // well inside the debounce; the request has not gone out
+        viewModel.onScopeChange(BookScope.Wishlist)
+        advanceTimeBy(1_000) // the debounce deadline passes, the job is gone
+        awaitRequests(2)
+
+        assertEquals("", viewModel.ui.value.searchText)
+        assertEquals("", viewModel.ui.value.query.text)
+
+        val requests = generateSequence { server.takeRequest(100, java.util.concurrent.TimeUnit.MILLISECONDS) }
+            .toList()
+        assertEquals("only the wishlist load was sent, not the stale search", 1, requests.size)
+        assertEquals("/api/books/wishlist", requests.single().requestUrl!!.encodedPath)
+        assertNull(requests.single().requestUrl!!.queryParameter("q"))
     }
 
     @Test

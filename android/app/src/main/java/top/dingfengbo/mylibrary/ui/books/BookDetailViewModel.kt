@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.api.models.BookResponse
@@ -34,6 +35,15 @@ class BookDetailViewModel(
 
     init {
         load()
+        // The edit form is pushed on top of this entry, so this view model stays alive across a
+        // save: without watching the revision the screen would keep showing the pre-edit book.
+        // drop(1): the load above already reflects the current revision.
+        viewModelScope.launch {
+            libraryEvents.revision.drop(1).collect {
+                // A deleted book has no detail left to fetch; reloading would only 404.
+                if (!_ui.value.deleted) load()
+            }
+        }
     }
 
     fun load() {
@@ -67,8 +77,10 @@ class BookDetailViewModel(
             _ui.update { it.copy(working = true, actionError = null) }
             repository.delete(bookId)
                 .onSuccess {
-                    libraryEvents.bump()
+                    // Flag first: the revision collector reloads, and a deleted book has nothing
+                    // to fetch.
                     _ui.update { it.copy(working = false, deleted = true) }
+                    libraryEvents.bump()
                 }
                 .onFailure { throwable -> _ui.update { it.copy(working = false, actionError = throwable) } }
         }
