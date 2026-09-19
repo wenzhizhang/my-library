@@ -1,0 +1,249 @@
+<resources>
+    <string name="app_name">My Library</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_yes">Yes</string>
+
+    <!-- Auth -->
+    <string name="auth_login_tab">Sign in</string>
+    <string name="auth_register_tab">Register</string>
+    <string name="auth_username">Username</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_confirm_password">Confirm password</string>
+    <string name="auth_login_action">Sign in</string>
+    <string name="auth_register_action">Register and sign in</string>
+    <string name="auth_expired">Your session expired. Please sign in again.</string>
+    <string name="auth_password_mismatch">The two passwords do not match</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+
+    <!-- Errors -->
+    <string name="error_network">Network unavailable. Check your connection and try again.</string>
+    <string name="error_unauthorized">Wrong username or password</string>
+    <string name="error_not_found">Not found</string>
+    <string name="error_server">The server failed. Please try again later.</string>
+    <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_expired">Your session expired. Please sign in again.</string>
+    <string name="error_retry">Retry</string>
+
+    <!-- Book list -->
+    <string name="books_scope_all">All</string>
+    <string name="books_scope_wishlist">Wishlist</string>
+    <string name="books_scope_archived">Archived</string>
+    <string name="books_search_hint">Search title, Chinese title, ISBN…</string>
+    <string name="books_filter_title">Title</string>
+    <string name="books_sort_title">Title</string>
+    <string name="books_sort_created">Added</string>
+    <string name="books_sort_series">Series</string>
+    <string name="books_filter">Filter</string>
+    <string name="books_filter_active">Filter (%1$d)</string>
+    <string name="books_filter_sheet_title">Filters</string>
+    <string name="books_author">Author</string>
+    <string name="books_publisher">Publisher</string>
+    <string name="books_tag">Tag</string>
+    <string name="books_price_min">Min price</string>
+    <string name="books_price_max">Max price</string>
+    <string name="books_purchase_year">Purchase year</string>
+    <string name="books_purchase_month">Purchase month</string>
+    <string name="books_apply">Apply</string>
+    <string name="books_reset">Reset</string>
+    <string name="books_view_list">List</string>
+    <string name="books_view_grid">Grid</string>
+    <string name="books_empty">No books found</string>
+    <string name="books_empty_hint">Try another search term, or clear the filters</string>
+    <string name="books_empty_hint_plain">No books in this list yet</string>
+    <string name="books_count">%1$d books</string>
+
+    <!-- Book detail -->
+    <string name="book_detail_title">Book details</string>
+    <string name="book_detail_archive">Archive</string>
+    <string name="book_detail_delete">Delete</string>
+    <string name="book_detail_delete_confirm_title">Delete this book?</string>
+    <string name="book_detail_delete_confirm_message">“%1$s” will be deleted permanently. Its entries in book collections and reading plans are unaffected.</string>
+    <string name="book_detail_archived_done">Archived</string>
+    <string name="book_detail_similar">Similar books (shared tags)</string>
+    <string name="book_detail_shared_tags">%1$d shared tags</string>
+    <string name="book_detail_section_publishing">Publication</string>
+    <string name="book_detail_section_purchase">Purchase</string>
+    <string name="book_detail_section_shelf">Shelving</string>
+    <string name="book_detail_section_content">Content</string>
+    <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_field_translator">Translator</string>
+    <string name="book_detail_field_publisher">Publisher</string>
+    <string name="book_detail_field_publish_date">Published</string>
+    <string name="book_detail_field_brand">Brand</string>
+    <string name="book_detail_field_series">Series</string>
+    <string name="book_detail_field_binding">Binding</string>
+    <string name="book_detail_field_paper">Paper</string>
+    <string name="book_detail_field_pages">Pages</string>
+    <string name="book_detail_field_language">Language</string>
+    <string name="book_detail_field_edition">Edition</string>
+    <string name="book_detail_field_printing">Printing</string>
+    <string name="book_detail_field_printing_count">Print run</string>
+    <string name="book_detail_field_price">List price</string>
+    <string name="book_detail_field_purchase_price">Paid</string>
+    <string name="book_detail_field_purchase_date">Purchased</string>
+    <string name="book_detail_field_purchase_store">Store</string>
+    <string name="book_detail_field_link">Link</string>
+    <string name="book_detail_field_category">Category</string>
+    <string name="book_detail_field_bookshelf">Bookshelf</string>
+    <string name="book_detail_field_read_state">Reading state</string>
+    <string name="book_detail_field_tags">Tags</string>
+    <string name="book_detail_field_wish">Wishlist</string>
+    <string name="book_detail_field_archived">Archived</string>
+    <string name="book_detail_field_douban">Douban score</string>
+    <string name="book_detail_field_summary">Summary</string>
+    <string name="book_detail_field_introduction">Introduction</string>
+    <string name="form_summary">Summary</string>
+    <string name="form_introduction">Introduction</string>
+    <string name="book_detail_field_catalog">Contents</string>
+
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_username">Username</string>
+    <string name="settings_user_uuid">User id</string>
+    <string name="settings_server">Server</string>
+    <string name="settings_logout">Sign out</string>
+    <string name="settings_logout_confirm_title">Sign out?</string>
+    <string name="settings_logout_confirm_message">You will need your username and password to sign back in.</string>
+    <string name="settings_logout_confirm_ok">Sign out</string>
+
+    <!-- Book form / ISBN scanning -->
+    <string name="books_add_new">Add book</string>
+    <string name="book_detail_edit">Edit</string>
+    <string name="form_title_create">Add book</string>
+    <string name="form_title_edit">Edit book</string>
+    <string name="form_save">Save</string>
+    <string name="form_scan">Scan</string>
+    <string name="form_lookup">Look up</string>
+    <string name="form_lookup_filled">Filled from ISBN (source: %1$s)</string>
+    <string name="form_lookup_filled_unknown_source">Filled from ISBN</string>
+    <string name="form_lookup_nothing">No data for this ISBN — fill it in by hand</string>
+    <string name="form_section_publishing">Publication</string>
+    <string name="form_section_purchase">Purchase</string>
+    <string name="form_section_shelving">Shelving</string>
+    <string name="form_section_flags">Flags</string>
+    <string name="form_section_content">Content</string>
+    <string name="form_expand">Open</string>
+    <string name="form_collapse">Close</string>
+    <string name="form_authors">Authors</string>
+    <string name="form_title_cn">Chinese title</string>
+    <string name="form_title_original">Original title</string>
+    <string name="form_book_count">Copies</string>
+    <string name="form_compose">Typesetting</string>
+    <string name="form_tags">Tags</string>
+    <string name="form_tags_hint">Comma separated</string>
+    <string name="form_thumb">Cover path</string>
+    <string name="form_in_wish">Add to wishlist</string>
+    <string name="form_registered">Registered</string>
+    <string name="form_required_hint">ISBN and a title (Chinese or original) are required</string>
+    <string name="form_author_name">Author name</string>
+    <string name="form_author_name_cn">Chinese name</string>
+    <string name="form_publisher_name">Name</string>
+    <string name="form_date_invalid">Enter the date as YYYY-MM-DD</string>
+    <string name="read_state_unread">Unread</string>
+    <string name="read_state_reading">Reading</string>
+    <string name="read_state_read">Read</string>
+    <string name="read_state_abandoned">Abandoned</string>
+    <string name="ref_pick">Not selected</string>
+    <string name="ref_search_hint">Type to search</string>
+    <string name="ref_create_new">Create “%1$s”</string>
+    <string name="ref_create_title">New %1$s</string>
+    <string name="ref_create_confirm">Create</string>
+    <string name="ref_done">Done</string>
+    <string name="ref_clear">Clear selection</string>
+    <string name="scan_title">Scan ISBN</string>
+    <string name="scan_hint">Put the ISBN barcode inside the frame</string>
+    <string name="scan_manual">Enter ISBN manually</string>
+    <string name="scan_manual_confirm">OK</string>
+    <string name="scan_manual_invalid">An ISBN is 10 or 13 digits</string>
+    <string name="scan_permission_denied">Camera permission denied — type the ISBN below</string>
+
+    <!-- Catalog management -->
+    <string name="catalog_menu">Catalog</string>
+    <string name="catalog_authors">Authors</string>
+    <string name="catalog_publishers">Publishers</string>
+    <string name="catalog_brands">Brands</string>
+    <string name="catalog_series">Series</string>
+    <string name="catalog_categories">Categories</string>
+    <string name="catalog_bookshelves">Bookshelves</string>
+    <string name="catalog_add">New</string>
+    <string name="catalog_edit">Edit</string>
+    <string name="catalog_edit_title">%1$s</string>
+    <string name="catalog_search_hint">Search by name</string>
+    <string name="catalog_empty">Nothing here</string>
+    <string name="catalog_related_books">Related books</string>
+    <string name="catalog_related_books_count">Related books (%1$d)</string>
+    <string name="catalog_no_books">No related books</string>
+    <string name="catalog_delete">Delete</string>
+    <string name="catalog_delete_confirm_title">Delete “%1$s”?</string>
+    <string name="catalog_delete_confirm_message">This cannot be undone. Books that reference it are unaffected.</string>
+    <string name="catalog_parent_hint">Parent category ID; leave empty for a top-level category</string>
+    <string name="catalog_choice_empty">Not set</string>
+    <string name="attr_name">Name</string>
+    <string name="attr_name_cn">Chinese name</string>
+    <string name="attr_nation">Nationality</string>
+    <string name="attr_dynasty">Dynasty</string>
+    <string name="attr_intro">Intro</string>
+    <string name="attr_photo">Photo path</string>
+    <string name="attr_logo">Logo path</string>
+    <string name="attr_weight">Weight</string>
+    <string name="attr_parent">Parent</string>
+    <string name="attr_path">Path</string>
+    <string name="attr_depth">Depth</string>
+    <string name="attr_book_count">Related books</string>
+
+    <!-- Collections, plans, pickers -->
+    <string name="collections_title">Collections</string>
+    <string name="collections_create">New collection</string>
+    <string name="collections_edit">Edit collection</string>
+    <string name="collections_add_books">Add books</string>
+    <string name="collections_delete_confirm_message">Deleting a collection does not delete its books.</string>
+    <string name="plans_title">Reading plans</string>
+    <string name="plans_create">New reading plan</string>
+    <string name="plans_edit">Edit reading plan</string>
+    <string name="plans_start_date">Start date</string>
+    <string name="plans_end_date">End date</string>
+    <string name="plans_delete_confirm_message">Deleting a plan does not delete its books.</string>
+    <string name="picker_books_title">Pick books</string>
+    <string name="picker_add_selected">Add (%1$d)</string>
+    <string name="picker_remove">Remove</string>
+    <string name="picker_more_matches">Many matches — only some are shown; keep typing to narrow it down</string>
+
+    <!-- Stats, export, applications, settings -->
+    <string name="books_title">Books</string>
+    <string name="stats_title">Statistics</string>
+    <string name="stats_overview">Overview</string>
+    <string name="stats_total_books">Total books</string>
+    <string name="stats_avg_price">Average price</string>
+    <string name="stats_avg_purchase_price">Average paid</string>
+    <string name="stats_total_spent">Total spent</string>
+    <string name="stats_by_read_state">By reading state</string>
+    <string name="stats_by_category">By category</string>
+    <string name="stats_by_binding">By binding</string>
+    <string name="stats_by_language">By language</string>
+    <string name="stats_by_score">By score</string>
+    <string name="stats_top_authors">Top authors</string>
+    <string name="stats_top_publishers">Top publishers</string>
+    <string name="export_title">Export</string>
+    <string name="export_format">Format</string>
+    <string name="export_scope">Scope</string>
+    <string name="export_save_as">Save as…</string>
+    <string name="export_database">Download database (SQLite)</string>
+    <string name="export_done">Saved: %1$s</string>
+    <string name="settings_more">More</string>
+    <string name="settings_background">Background</string>
+    <string name="settings_background_hint">Applies to your account only</string>
+    <string name="settings_background_default">Default</string>
+
+    <!-- Stats extras -->
+    <string name="stats_by_compose">By typesetting</string>
+    <string name="stats_timeline_years">Added by year</string>
+    <string name="stats_timeline_months">Added by month</string>
+    <string name="stats_purchase_years">Purchases by year</string>
+    <string name="stats_purchase_months">Purchases by month</string>
+</resources>

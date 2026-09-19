@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Release signing material — never commit. Losing keystore/mylibrary-release.jks or this file means
+# you can no longer install an update over an existing install.
+keystore/
+keystore.properties
+
+# Kotlin/daemon scratch (error logs from the build tooling)
+.kotlin/

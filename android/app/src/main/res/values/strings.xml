@@ -1,0 +1,249 @@
+<resources>
+    <string name="app_name">我的图书馆</string>
+
+    <!-- Common -->
+    <string name="common_back">返回</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_yes">是</string>
+
+    <!-- Auth -->
+    <string name="auth_login_tab">登录</string>
+    <string name="auth_register_tab">注册</string>
+    <string name="auth_username">用户名</string>
+    <string name="auth_password">密码</string>
+    <string name="auth_confirm_password">确认密码</string>
+    <string name="auth_login_action">登录</string>
+    <string name="auth_register_action">注册并登录</string>
+    <string name="auth_expired">登录已过期，请重新登录</string>
+    <string name="auth_password_mismatch">两次输入的密码不一致</string>
+    <string name="auth_show_password">显示密码</string>
+    <string name="auth_hide_password">隐藏密码</string>
+
+    <!-- Errors -->
+    <string name="error_network">网络连接失败，请检查网络后重试</string>
+    <string name="error_unauthorized">用户名或密码错误</string>
+    <string name="error_not_found">未找到该内容</string>
+    <string name="error_server">服务器出错了，请稍后重试</string>
+    <string name="error_unknown">出错了，请重试</string>
+    <string name="error_expired">登录已过期，请重新登录</string>
+    <string name="error_retry">重试</string>
+
+    <!-- Book list -->
+    <string name="books_scope_all">全部</string>
+    <string name="books_scope_wishlist">心愿单</string>
+    <string name="books_scope_archived">归档</string>
+    <string name="books_search_hint">搜索书名、中文名、ISBN…</string>
+    <string name="books_filter_title">书名</string>
+    <string name="books_sort_title">书名</string>
+    <string name="books_sort_created">入库时间</string>
+    <string name="books_sort_series">书系</string>
+    <string name="books_filter">筛选</string>
+    <string name="books_filter_active">筛选 (%1$d)</string>
+    <string name="books_filter_sheet_title">筛选条件</string>
+    <string name="books_author">作者</string>
+    <string name="books_publisher">出版社</string>
+    <string name="books_tag">标签</string>
+    <string name="books_price_min">最低价</string>
+    <string name="books_price_max">最高价</string>
+    <string name="books_purchase_year">购买年份</string>
+    <string name="books_purchase_month">购买月份</string>
+    <string name="books_apply">应用</string>
+    <string name="books_reset">重置</string>
+    <string name="books_view_list">列表</string>
+    <string name="books_view_grid">网格</string>
+    <string name="books_empty">没有找到图书</string>
+    <string name="books_empty_hint">换个搜索词，或清空筛选条件</string>
+    <string name="books_empty_hint_plain">这个列表里还没有图书</string>
+    <string name="books_count">共 %1$d 本</string>
+
+    <!-- Book detail -->
+    <string name="book_detail_title">图书详情</string>
+    <string name="book_detail_archive">归档</string>
+    <string name="book_detail_delete">删除</string>
+    <string name="book_detail_delete_confirm_title">删除这本书？</string>
+    <string name="book_detail_delete_confirm_message">《%1$s》将被永久删除，书单与阅读计划中的关联不受影响。</string>
+    <string name="book_detail_archived_done">已归档</string>
+    <string name="book_detail_similar">相似图书（按共同标签）</string>
+    <string name="book_detail_shared_tags">共同标签 %1$d 个</string>
+    <string name="book_detail_section_publishing">出版信息</string>
+    <string name="book_detail_section_purchase">购买信息</string>
+    <string name="book_detail_section_shelf">分类归属</string>
+    <string name="book_detail_section_content">内容</string>
+    <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_field_translator">译者</string>
+    <string name="book_detail_field_publisher">出版社</string>
+    <string name="book_detail_field_publish_date">出版日期</string>
+    <string name="book_detail_field_brand">品牌</string>
+    <string name="book_detail_field_series">系列</string>
+    <string name="book_detail_field_binding">装帧</string>
+    <string name="book_detail_field_paper">纸张</string>
+    <string name="book_detail_field_pages">页数</string>
+    <string name="book_detail_field_language">语言</string>
+    <string name="book_detail_field_edition">版次</string>
+    <string name="book_detail_field_printing">印次</string>
+    <string name="book_detail_field_printing_count">印数</string>
+    <string name="book_detail_field_price">定价</string>
+    <string name="book_detail_field_purchase_price">购买价</string>
+    <string name="book_detail_field_purchase_date">购买日期</string>
+    <string name="book_detail_field_purchase_store">购买渠道</string>
+    <string name="book_detail_field_link">链接</string>
+    <string name="book_detail_field_category">分类</string>
+    <string name="book_detail_field_bookshelf">书架</string>
+    <string name="book_detail_field_read_state">阅读状态</string>
+    <string name="book_detail_field_tags">标签</string>
+    <string name="book_detail_field_wish">心愿单</string>
+    <string name="book_detail_field_archived">归档状态</string>
+    <string name="book_detail_field_douban">豆瓣评分</string>
+    <string name="book_detail_field_summary">内容概述</string>
+    <string name="book_detail_field_introduction">内容简介</string>
+    <string name="form_summary">摘要</string>
+    <string name="form_introduction">简介</string>
+    <string name="book_detail_field_catalog">目录</string>
+
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_account">账号</string>
+    <string name="settings_username">用户名</string>
+    <string name="settings_user_uuid">用户标识</string>
+    <string name="settings_server">服务器</string>
+    <string name="settings_logout">退出登录</string>
+    <string name="settings_logout_confirm_title">退出登录？</string>
+    <string name="settings_logout_confirm_message">退出后需要重新输入用户名和密码。</string>
+    <string name="settings_logout_confirm_ok">退出</string>
+
+    <!-- Book form / ISBN scanning -->
+    <string name="books_add_new">新增图书</string>
+    <string name="book_detail_edit">编辑</string>
+    <string name="form_title_create">新增图书</string>
+    <string name="form_title_edit">编辑图书</string>
+    <string name="form_save">保存</string>
+    <string name="form_scan">扫码</string>
+    <string name="form_lookup">查询</string>
+    <string name="form_lookup_filled">已按 ISBN 自动填充（来源：%1$s）</string>
+    <string name="form_lookup_filled_unknown_source">已按 ISBN 自动填充</string>
+    <string name="form_lookup_nothing">未找到该 ISBN，请手动填写</string>
+    <string name="form_section_publishing">出版信息</string>
+    <string name="form_section_purchase">购买信息</string>
+    <string name="form_section_shelving">分类归属</string>
+    <string name="form_section_flags">标记</string>
+    <string name="form_section_content">内容</string>
+    <string name="form_expand">展开</string>
+    <string name="form_collapse">收起</string>
+    <string name="form_authors">作者</string>
+    <string name="form_title_cn">中文书名</string>
+    <string name="form_title_original">原名</string>
+    <string name="form_book_count">册数</string>
+    <string name="form_compose">排版</string>
+    <string name="form_tags">标签</string>
+    <string name="form_tags_hint">用逗号分隔</string>
+    <string name="form_thumb">封面地址</string>
+    <string name="form_in_wish">加入心愿单</string>
+    <string name="form_registered">已登记</string>
+    <string name="form_required_hint">需要 ISBN 和书名（中文名或原名）</string>
+    <string name="form_author_name">作者名</string>
+    <string name="form_author_name_cn">中文名</string>
+    <string name="form_publisher_name">名称</string>
+    <string name="form_date_invalid">请按 YYYY-MM-DD 填写日期</string>
+    <string name="read_state_unread">未读</string>
+    <string name="read_state_reading">在读</string>
+    <string name="read_state_read">已读</string>
+    <string name="read_state_abandoned">弃读</string>
+    <string name="ref_pick">未选择</string>
+    <string name="ref_search_hint">输入关键字搜索</string>
+    <string name="ref_create_new">新建「%1$s」</string>
+    <string name="ref_create_title">新建%1$s</string>
+    <string name="ref_create_confirm">创建</string>
+    <string name="ref_done">确定</string>
+    <string name="ref_clear">清空已选</string>
+    <string name="scan_title">扫码录入 ISBN</string>
+    <string name="scan_hint">把 ISBN 条码放入框内</string>
+    <string name="scan_manual">手动输入 ISBN</string>
+    <string name="scan_manual_confirm">确定</string>
+    <string name="scan_manual_invalid">ISBN 应为 10 位或 13 位数字</string>
+    <string name="scan_permission_denied">未获得相机权限，请在下方手动输入 ISBN</string>
+
+    <!-- Catalog management -->
+    <string name="catalog_menu">目录</string>
+    <string name="catalog_authors">作者</string>
+    <string name="catalog_publishers">出版社</string>
+    <string name="catalog_brands">品牌</string>
+    <string name="catalog_series">系列</string>
+    <string name="catalog_categories">分类</string>
+    <string name="catalog_bookshelves">书架</string>
+    <string name="catalog_add">新增</string>
+    <string name="catalog_edit">编辑</string>
+    <string name="catalog_edit_title">%1$s</string>
+    <string name="catalog_search_hint">搜索名称</string>
+    <string name="catalog_empty">没有内容</string>
+    <string name="catalog_related_books">关联图书</string>
+    <string name="catalog_related_books_count">关联图书（共 %1$d 本）</string>
+    <string name="catalog_no_books">暂无关联图书</string>
+    <string name="catalog_delete">删除</string>
+    <string name="catalog_delete_confirm_title">删除「%1$s」？</string>
+    <string name="catalog_delete_confirm_message">删除后不可恢复；引用它的图书不受影响。</string>
+    <string name="catalog_parent_hint">上级分类 ID，留空为顶级分类</string>
+    <string name="catalog_choice_empty">未设置</string>
+    <string name="attr_name">名称</string>
+    <string name="attr_name_cn">中文名</string>
+    <string name="attr_nation">国籍</string>
+    <string name="attr_dynasty">朝代</string>
+    <string name="attr_intro">简介</string>
+    <string name="attr_photo">照片地址</string>
+    <string name="attr_logo">标志地址</string>
+    <string name="attr_weight">权重</string>
+    <string name="attr_parent">上级分类</string>
+    <string name="attr_path">路径</string>
+    <string name="attr_depth">层级</string>
+    <string name="attr_book_count">关联图书数</string>
+
+    <!-- Collections, plans, pickers -->
+    <string name="collections_title">书单</string>
+    <string name="collections_create">新建书单</string>
+    <string name="collections_edit">编辑书单</string>
+    <string name="collections_add_books">添加图书</string>
+    <string name="collections_delete_confirm_message">删除书单不会删除其中的图书。</string>
+    <string name="plans_title">阅读计划</string>
+    <string name="plans_create">新建阅读计划</string>
+    <string name="plans_edit">编辑阅读计划</string>
+    <string name="plans_start_date">开始日期</string>
+    <string name="plans_end_date">结束日期</string>
+    <string name="plans_delete_confirm_message">删除阅读计划不会删除其中的图书。</string>
+    <string name="picker_books_title">选择图书</string>
+    <string name="picker_add_selected">添加（%1$d）</string>
+    <string name="picker_remove">移除</string>
+    <string name="picker_more_matches">匹配的图书较多，仅显示了一部分，请继续输入以缩小范围</string>
+
+    <!-- Stats, export, applications, settings -->
+    <string name="books_title">图书</string>
+    <string name="stats_title">统计</string>
+    <string name="stats_overview">概览</string>
+    <string name="stats_total_books">藏书总数</string>
+    <string name="stats_avg_price">平均定价</string>
+    <string name="stats_avg_purchase_price">平均购买价</string>
+    <string name="stats_total_spent">总花费</string>
+    <string name="stats_by_read_state">阅读状态分布</string>
+    <string name="stats_by_category">分类分布</string>
+    <string name="stats_by_binding">装帧分布</string>
+    <string name="stats_by_language">语言分布</string>
+    <string name="stats_by_score">评分分布</string>
+    <string name="stats_top_authors">作者 TOP</string>
+    <string name="stats_top_publishers">出版社 TOP</string>
+    <string name="export_title">导出</string>
+    <string name="export_format">格式</string>
+    <string name="export_scope">范围</string>
+    <string name="export_save_as">另存为…</string>
+    <string name="export_database">下载整库（SQLite）</string>
+    <string name="export_done">已保存：%1$s</string>
+    <string name="settings_more">更多</string>
+    <string name="settings_background">背景图</string>
+    <string name="settings_background_hint">背景仅对当前账号生效</string>
+    <string name="settings_background_default">默认</string>
+
+    <!-- Stats extras -->
+    <string name="stats_by_compose">排版分布</string>
+    <string name="stats_timeline_years">入库年份</string>
+    <string name="stats_timeline_months">入库月份</string>
+    <string name="stats_purchase_years">购买年份统计</string>
+    <string name="stats_purchase_months">购买月份统计</string>
+</resources>

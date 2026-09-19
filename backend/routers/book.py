@@ -11,6 +11,7 @@ from serializers import serialize_book
 from services.sync_to_root import sync_book as sync_book_to_root, sync_book_author as sync_book_author_to_root
 from rag.pipeline import sync_book, remove_book
 from services.weights import recompute_weights
+from auth import require_user_id
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
@@ -31,7 +32,7 @@ def search_books(filter_params: FilterParams = Depends(), db: Session = Depends(
 
 
 @router.post("/", response_model=BookResponse)
-def create_book(book: BookCreation, db: Session = Depends(get_db)):
+def create_book(book: BookCreation, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     # Handle authors
     authors = db.query(Author).filter(Author.id.in_(book.author_ids)).all()
     
@@ -267,7 +268,7 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{book_id}/archive")
-def archive_book(book_id: int, db: Session = Depends(get_db)):
+def archive_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -277,7 +278,7 @@ def archive_book(book_id: int, db: Session = Depends(get_db)):
     return {"message": "Book archived"}
 
 @router.put("/{book_id}", response_model=BookResponse)
-def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get_db)):
+def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
@@ -338,7 +339,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
     }
 
 @router.delete("/{book_id}")
-def delete_book(book_id: int, db: Session = Depends(get_db)):
+def delete_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")

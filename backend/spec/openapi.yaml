@@ -2531,11 +2531,30 @@ paths:
                   differential: { type: boolean }
                   counts:
                     type: object
+                    description: One entry per table synced, each with its totals.
                     additionalProperties:
                       type: object
                       properties:
                         total: { type: integer }
                         synced: { type: integer }
+                        failed: { type: integer }
+                  diagnostics:
+                    type: object
+                    nullable: true
+                    description: >-
+                      What the sync observed about root.db while it ran. Unknown keys are ignored by
+                      clients, so this may grow without a breaking change.
+                    properties:
+                      root_db_tables:
+                        type: array
+                        items: { type: string }
+                      root_db_path: { type: string }
+                      root_db_error: { type: string }
+                  errors:
+                    type: array
+                    nullable: true
+                    description: Up to 20 messages for rows that failed to upsert; null when none did.
+                    items: { type: string }
         "401":
           description: Authentication required
           content:
