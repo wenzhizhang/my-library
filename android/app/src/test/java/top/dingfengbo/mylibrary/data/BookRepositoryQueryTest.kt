@@ -64,6 +64,7 @@ class BookRepositoryQueryTest {
             scope = BookScope.All,
             query = BookQuery(
                 text = " 琴 ",
+                title = "红楼",
                 author = "苏轼",
                 publisher = "中华书局",
                 tag = "古琴",
@@ -83,6 +84,7 @@ class BookRepositoryQueryTest {
         assertEquals("20", url.queryParameter("limit"))
         assertEquals("book_series", url.queryParameter("sort_by"))
         assertEquals("琴", url.queryParameter("q"))
+        assertEquals("红楼", url.queryParameter("title"))
         assertEquals("苏轼", url.queryParameter("author"))
         assertEquals("中华书局", url.queryParameter("publisher"))
         assertEquals("古琴", url.queryParameter("tag"))
@@ -99,6 +101,7 @@ class BookRepositoryQueryTest {
 
         val url = server.takeRequest().requestUrl!!
         assertNull(url.queryParameter("q"))
+        assertNull(url.queryParameter("title"))
         assertNull(url.queryParameter("author"))
         assertNull(url.queryParameter("min_price"))
         assertNull(url.queryParameter("purchase_year"))

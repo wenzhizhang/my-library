@@ -21,6 +21,7 @@ enum class BookSort(val apiValue: String) {
  */
 data class BookQuery(
     val text: String = "",
+    val title: String = "",
     val author: String = "",
     val publisher: String = "",
     val tag: String = "",
@@ -31,7 +32,7 @@ data class BookQuery(
     val sort: BookSort = BookSort.Title,
 ) {
     val filterCount: Int
-        get() = listOf(author, publisher, tag, minPrice, maxPrice, purchaseYear, purchaseMonth)
+        get() = listOf(title, author, publisher, tag, minPrice, maxPrice, purchaseYear, purchaseMonth)
             .count { it.isNotBlank() }
 
     val hasFilters: Boolean get() = filterCount > 0

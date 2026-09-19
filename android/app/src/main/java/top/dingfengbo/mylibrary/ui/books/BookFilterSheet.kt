@@ -56,6 +56,11 @@ fun BookFilterSheet(
             Text(stringResource(R.string.books_filter_sheet_title), style = MaterialTheme.typography.titleMedium)
 
             FilterField(
+                value = draft.title,
+                onChange = { draft = draft.copy(title = it) },
+                label = stringResource(R.string.books_filter_title),
+            )
+            FilterField(
                 value = draft.author,
                 onChange = { draft = draft.copy(author = it) },
                 label = stringResource(R.string.books_author),

@@ -39,7 +39,7 @@ class BookRepository(
                 limit = limit,
                 sortBy = query.sort.forAll(),
                 isbn = null,
-                title = null,
+                title = query.title.orNull(),
                 author = query.author.orNull(),
                 publisher = query.publisher.orNull(),
                 tag = query.tag.orNull(),
