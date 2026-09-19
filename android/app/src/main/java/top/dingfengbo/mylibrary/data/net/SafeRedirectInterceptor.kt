@@ -38,9 +38,12 @@ class SafeRedirectInterceptor : Interceptor {
                 break
             }
 
+            // Both parts must be set through their *encoded* setters: the plain setters treat the
+            // argument as decoded text and escape it again, which turned a query of "红楼梦" into
+            // the literal "%E7%BA%A2%E6%A5%BC%E6%A2%A6" on the wire — searchable by ASCII only.
             val followed = request.url.newBuilder()
                 .encodedPath(target.encodedPath)
-                .query(target.encodedQuery)
+                .encodedQuery(target.encodedQuery ?: request.url.encodedQuery)
                 .build()
 
             response.close()

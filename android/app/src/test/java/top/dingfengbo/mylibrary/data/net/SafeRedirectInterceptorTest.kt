@@ -39,7 +39,7 @@ class SafeRedirectInterceptorTest {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 paths += request.path.orEmpty()
-                return if (request.path.orEmpty().endsWith("/api/books/")) {
+                return if (request.requestUrl!!.encodedPath.endsWith("/api/books/")) {
                     MockResponse().setResponseCode(200).setBody("""{"books":[],"total_pages":1,"total_books":0}""")
                 } else {
                     MockResponse().setResponseCode(redirectCode).setHeader("Location", location)
@@ -65,7 +65,7 @@ class SafeRedirectInterceptorTest {
         }
 
         assertEquals(
-            listOf("/api/books?limit=20", "/api/books/"),
+            listOf("/api/books?limit=20", "/api/books/?limit=20"),
             paths,
         )
     }
@@ -80,7 +80,7 @@ class SafeRedirectInterceptorTest {
             assertEquals(200, response.code)
         }
 
-        assertEquals(listOf("/api/books?limit=20", "/api/books/"), paths)
+        assertEquals(listOf("/api/books?limit=20", "/api/books/?limit=20"), paths)
     }
 
     @Test
@@ -91,7 +91,7 @@ class SafeRedirectInterceptorTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 methods += request.method.orEmpty()
                 bodies += request.body.readUtf8()
-                return if (request.path.orEmpty().endsWith("/api/books/")) {
+                return if (request.requestUrl!!.encodedPath.endsWith("/api/books/")) {
                     MockResponse().setResponseCode(200).setBody("""{"id":1}""")
                 } else {
                     MockResponse().setResponseCode(307).setHeader("Location", "/api/books/")
@@ -111,6 +111,32 @@ class SafeRedirectInterceptorTest {
 
         assertEquals(listOf("POST", "POST"), methods)
         assertEquals(listOf(payload, payload), bodies)
+    }
+
+    @Test
+    fun `a non-ascii query stays correctly encoded across the redirect`() {
+        // The bug this guards: the followed URL was rebuilt with the plain setters, which treat the
+        // argument as decoded text and escape it again — so the server received the literal
+        // "%E7%BA%A2%E6%A5%BC%E6%A2%A6" and searching a Chinese title found nothing, while an ISBN
+        // (no escapable characters) sailed through.
+        val paths = mutableListOf<String>()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                paths += request.path.orEmpty()
+                return if (request.requestUrl!!.encodedPath.endsWith("/api/books/")) {
+                    MockResponse().setResponseCode(200).setBody("""{"books":[],"total_pages":1,"total_books":0}""")
+                } else {
+                    MockResponse().setResponseCode(307).setHeader("Location", "/api/books/")
+                }
+            }
+        }
+        val url = server.url("/api/books").newBuilder().addQueryParameter("q", "红楼梦").build()
+
+        client().newCall(Request.Builder().url(url).build()).execute().use { response ->
+            assertEquals(200, response.code)
+        }
+
+        assertEquals(listOf("/api/books?q=%E7%BA%A2%E6%A5%BC%E6%A2%A6", "/api/books/?q=%E7%BA%A2%E6%A5%BC%E6%A2%A6"), paths)
     }
 
     @Test
