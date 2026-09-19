@@ -236,4 +236,16 @@ def sync_to_root(
 
     Set differential=false for a full resync of every row."""
     counts = sync_all_to_root(db, differential=differential)
-    return {"message": "Sync complete", "differential": differential, "counts": counts}
+    # The aggregator returns {table: {total, synced, failed}} plus "_diagnostics" and, only when
+    # rows failed to upsert, "_errors". Carrying those inside the same map made the response a
+    # heterogeneous map no client can decode (a schema can say "count objects" or "anything", not
+    # both), so they travel as their own fields.
+    diagnostics = counts.pop("_diagnostics", None)
+    errors = counts.pop("_errors", None)
+    return {
+        "message": "Sync complete",
+        "differential": differential,
+        "counts": counts,
+        "diagnostics": diagnostics,
+        "errors": errors,
+    }

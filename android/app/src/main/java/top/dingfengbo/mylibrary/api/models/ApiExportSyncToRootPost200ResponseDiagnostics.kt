@@ -29,24 +29,24 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * 
+ * What the sync observed about root.db while it ran. Unknown keys are ignored by clients, so this may grow without a breaking change.
  *
- * @param total 
- * @param synced 
- * @param failed 
+ * @param rootDbTables 
+ * @param rootDbPath 
+ * @param rootDbError 
  */
 @Serializable
 
-data class ApiExportSyncToRootPost200ResponseCountsValue (
+data class ApiExportSyncToRootPost200ResponseDiagnostics (
 
-    @SerialName(value = "total")
-    val total: kotlin.Int? = null,
+    @SerialName(value = "root_db_tables")
+    val rootDbTables: kotlin.collections.List<kotlin.String>? = null,
 
-    @SerialName(value = "synced")
-    val synced: kotlin.Int? = null,
+    @SerialName(value = "root_db_path")
+    val rootDbPath: kotlin.String? = null,
 
-    @SerialName(value = "failed")
-    val failed: kotlin.Int? = null
+    @SerialName(value = "root_db_error")
+    val rootDbError: kotlin.String? = null
 
 ) {
 

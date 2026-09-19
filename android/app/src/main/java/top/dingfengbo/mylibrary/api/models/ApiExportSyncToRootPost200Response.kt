@@ -24,6 +24,7 @@
 package top.dingfengbo.mylibrary.api.models
 
 import top.dingfengbo.mylibrary.api.models.ApiExportSyncToRootPost200ResponseCountsValue
+import top.dingfengbo.mylibrary.api.models.ApiExportSyncToRootPost200ResponseDiagnostics
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,7 +35,9 @@ import kotlinx.serialization.Contextual
  *
  * @param message 
  * @param differential 
- * @param counts 
+ * @param counts One entry per table synced, each with its totals.
+ * @param diagnostics 
+ * @param errors Up to 20 messages for rows that failed to upsert; null when none did.
  */
 @Serializable
 
@@ -46,8 +49,16 @@ data class ApiExportSyncToRootPost200Response (
     @SerialName(value = "differential")
     val differential: kotlin.Boolean? = null,
 
+    /* One entry per table synced, each with its totals. */
     @Contextual @SerialName(value = "counts")
-    val counts: kotlin.collections.Map<kotlin.String, ApiExportSyncToRootPost200ResponseCountsValue>? = null
+    val counts: kotlin.collections.Map<kotlin.String, ApiExportSyncToRootPost200ResponseCountsValue>? = null,
+
+    @SerialName(value = "diagnostics")
+    val diagnostics: ApiExportSyncToRootPost200ResponseDiagnostics? = null,
+
+    /* Up to 20 messages for rows that failed to upsert; null when none did. */
+    @SerialName(value = "errors")
+    val errors: kotlin.collections.List<kotlin.String>? = null
 
 ) {
 
