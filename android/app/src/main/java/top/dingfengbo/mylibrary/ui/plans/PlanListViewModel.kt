@@ -19,6 +19,7 @@ data class PlanListUiState(
     val query: String = "",
     val loading: Boolean = true,
     val loadingMore: Boolean = false,
+    val refreshing: Boolean = false,
     val error: Throwable? = null,
     val hasMore: Boolean = false,
 ) {
@@ -52,6 +53,15 @@ class PlanListViewModel(
 
     fun reload() = load(reset = true)
 
+    /**
+     * Pull-to-refresh. The indicator belongs to the gesture, not to every reset load: a debounced
+     * search also reloads, and a refresh spinner there would say the reader had pulled the list.
+     */
+    fun refresh() {
+        _ui.update { it.copy(refreshing = true) }
+        load(reset = true)
+    }
+
     fun onScrolledTo(lastVisibleIndex: Int) {
         val state = _ui.value
         if (lastVisibleIndex < 0 || state.items.isEmpty()) return
@@ -76,12 +86,20 @@ class PlanListViewModel(
                             hasMore = page.hasMore,
                             loading = false,
                             loadingMore = false,
+                            refreshing = false,
                             error = null,
                         )
                     }
                 }
                 .onFailure { throwable ->
-                    _ui.update { it.copy(loading = false, loadingMore = false, error = throwable) }
+                    _ui.update {
+                        it.copy(
+                            loading = false,
+                            loadingMore = false,
+                            refreshing = false,
+                            error = throwable,
+                        )
+                    }
                 }
         }
     }

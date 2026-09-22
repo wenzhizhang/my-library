@@ -10,16 +10,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -29,7 +40,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +51,7 @@ import top.dingfengbo.mylibrary.R
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.ExportRepository.Format
 import top.dingfengbo.mylibrary.data.ExportRepository.Scope
+import top.dingfengbo.mylibrary.theme.Spacing
 import top.dingfengbo.mylibrary.ui.common.errorMessage
 
 /**
@@ -83,79 +97,175 @@ fun ExportScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.export_title)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
+                    }
+                },
             )
         },
         modifier = modifier,
     ) { padding ->
+        // Both buttons are dead while a picker is open or an export is running: a second export into
+        // the same file is not something the reader can want.
+        val busy = ui.running != null || pending != null
+
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.lg, vertical = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xxl),
         ) {
-            Text(stringResource(R.string.export_format), style = MaterialTheme.typography.labelMedium)
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Format.entries.forEach { format ->
-                    FilterChip(
-                        selected = ui.format == format,
-                        onClick = { viewModel.onFormatChange(format) },
-                        label = { Text(format.value.uppercase()) },
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                SectionLabel(R.string.export_format)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    Format.entries.forEachIndexed { index, format ->
+                        SegmentedButton(
+                            selected = ui.format == format,
+                            enabled = !busy,
+                            onClick = { viewModel.onFormatChange(format) },
+                            shape =
+                                SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = Format.entries.size,
+                                ),
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) {
+                            // The file extension rather than a format name: the question the reader is
+                            // answering is which file they end up with, and ".md" needs no translation.
+                            Text(".${format.extension}")
+                        }
+                    }
+                }
+                Help(stringResource(formatHelp(ui.format)))
+            }
+
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                SectionLabel(R.string.export_scope)
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Scope.entries.forEach { scope ->
+                        FilterChip(
+                            selected = ui.scope == scope,
+                            enabled = !busy,
+                            onClick = { viewModel.onScopeChange(scope) },
+                            label = { Text(stringResource(scope.labelRes)) },
+                        )
+                    }
+                }
+                Help(stringResource(R.string.export_scope_help, stringResource(ui.scope.labelRes)))
+            }
+
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Button(
+                    enabled = !busy,
+                    onClick = { pending = ExportRequest.Data(ui.format, ui.scope) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ButtonContent(
+                        running = ui.running is ExportRequest.Data,
+                        labelRes = R.string.export_save_as,
+                        progressColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+
+                OutlinedButton(
+                    enabled = !busy,
+                    onClick = { pending = ExportRequest.Database },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    ButtonContent(
+                        running = ui.running is ExportRequest.Database,
+                        labelRes = R.string.export_database,
+                        progressColor = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Help(stringResource(R.string.export_database_help))
+            }
+
+            ui.done?.let { fileName ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.export_done, fileName),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
 
-            Text(stringResource(R.string.export_scope), style = MaterialTheme.typography.labelMedium)
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Scope.entries.forEach { scope ->
-                    FilterChip(
-                        selected = ui.scope == scope,
-                        onClick = { viewModel.onScopeChange(scope) },
-                        label = { Text(stringResource(scope.labelRes)) },
+            ui.error?.let { throwable ->
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        text = errorMessage(throwable) ?: stringResource(R.string.error_unknown),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                     )
+                    // Retrying has to reopen the picker: the failed attempt left no file to write to.
+                    ui.lastRequest?.let { failed ->
+                        TextButton(onClick = { pending = failed }) {
+                            Text(stringResource(R.string.error_retry))
+                        }
+                    }
                 }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            Button(
-                enabled = !ui.running,
-                onClick = { pending = ExportRequest.Data(ui.format, ui.scope) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.export_save_as)) }
-
-            OutlinedButton(
-                enabled = !ui.running,
-                onClick = { pending = ExportRequest.Database },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.export_database)) }
-
-            if (ui.running) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    CircularProgressIndicator(Modifier.height(22.dp), strokeWidth = 2.dp)
-                }
-            }
-
-            ui.done?.let {
-                Text(
-                    text = stringResource(R.string.export_done, it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            ui.error?.let {
-                Text(
-                    text = errorMessage(it) ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
             }
         }
     }
+}
+
+@Composable
+private fun SectionLabel(titleRes: Int) {
+    Text(
+        text = stringResource(titleRes),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+/** What the currently chosen option actually produces. */
+@Composable
+private fun Help(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** A button's own progress: the export runs for seconds on a large library, so it says so in place. */
+@Composable
+private fun ButtonContent(running: Boolean, labelRes: Int, progressColor: Color) {
+    if (running) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp,
+            color = progressColor,
+        )
+        Spacer(Modifier.width(Spacing.sm))
+        Text(stringResource(R.string.export_saving))
+    } else {
+        Text(stringResource(labelRes))
+    }
+}
+
+private fun formatHelp(format: Format): Int = when (format) {
+    Format.Sql -> R.string.export_format_sql_help
+    Format.Csv -> R.string.export_format_csv_help
+    Format.Excel -> R.string.export_format_excel_help
+    Format.Markdown -> R.string.export_format_markdown_help
+    Format.Json -> R.string.export_format_json_help
 }
 
 /** What the "save as" dialog should file the export under; a null request is the "nothing pending" state. */

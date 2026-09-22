@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Declared so the app can be given its own language in system settings, independently of the
+     device: this app ships Simplified Chinese, English and Traditional Chinese, and a reader who
+     keeps the phone in English may still want the library itself in Chinese. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="zh-Hans" />
+    <locale android:name="en" />
+    <locale android:name="zh-Hant" />
+</locale-config>

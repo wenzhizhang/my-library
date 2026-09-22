@@ -5,6 +5,7 @@
     <string name="common_back">返回</string>
     <string name="common_cancel">取消</string>
     <string name="common_yes">是</string>
+    <string name="common_clear">清除</string>
 
     <!-- Auth -->
     <string name="auth_login_tab">登入</string>
@@ -49,12 +50,18 @@
     <string name="books_purchase_month">購買月份</string>
     <string name="books_apply">套用</string>
     <string name="books_reset">重設</string>
+    <string name="books_filter_group_identity">書名與作者</string>
+    <string name="books_filter_group_classification">出版社與標籤</string>
+    <string name="books_filter_group_price">價格</string>
+    <string name="books_filter_group_acquisition">購買時間</string>
     <string name="books_view_list">清單</string>
     <string name="books_view_grid">網格</string>
     <string name="books_empty">找不到圖書</string>
     <string name="books_empty_hint">換個搜尋詞，或清空篩選條件</string>
     <string name="books_empty_hint_plain">這個列表裡還沒有圖書</string>
-    <string name="books_count">共 %1$d 本</string>
+    <plurals name="books_count">
+        <item quantity="other">共 %1$d 本</item>
+    </plurals>
 
     <!-- Book detail -->
     <string name="book_detail_title">圖書詳情</string>
@@ -70,6 +77,7 @@
     <string name="book_detail_section_shelf">分類歸屬</string>
     <string name="book_detail_section_content">內容</string>
     <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_isbn_copied">已複製 ISBN</string>
     <string name="book_detail_field_translator">譯者</string>
     <string name="book_detail_field_publisher">出版社</string>
     <string name="book_detail_field_publish_date">出版日期</string>
@@ -122,6 +130,8 @@
     <string name="form_lookup_filled">已依 ISBN 自動填入（來源：%1$s）</string>
     <string name="form_lookup_filled_unknown_source">已依 ISBN 自動填入</string>
     <string name="form_lookup_nothing">找不到該 ISBN，請手動填寫</string>
+    <string name="form_lookup_running">查詢中…</string>
+    <string name="form_section_identity">基本資訊</string>
     <string name="form_section_publishing">出版資訊</string>
     <string name="form_section_purchase">購買資訊</string>
     <string name="form_section_shelving">分類歸屬</string>
@@ -144,6 +154,7 @@
     <string name="form_author_name_cn">中文名</string>
     <string name="form_publisher_name">名稱</string>
     <string name="form_date_invalid">請按 YYYY-MM-DD 填寫日期</string>
+    <string name="form_date_hint">格式 YYYY-MM-DD</string>
     <string name="read_state_unread">未讀</string>
     <string name="read_state_reading">在讀</string>
     <string name="read_state_read">已讀</string>
@@ -161,6 +172,8 @@
     <string name="scan_manual_confirm">確定</string>
     <string name="scan_manual_invalid">ISBN 應為 10 位或 13 位數字</string>
     <string name="scan_permission_denied">未取得相機權限，請在下方手動輸入 ISBN</string>
+    <string name="scan_permission_title">無法使用相機</string>
+    <string name="scan_permission_settings">開啟設定</string>
 
     <!-- Catalog management -->
     <string name="catalog_menu">目錄</string>
@@ -201,17 +214,20 @@
     <string name="collections_create">新增書單</string>
     <string name="collections_edit">編輯書單</string>
     <string name="collections_add_books">加入圖書</string>
-    <string name="collections_delete_confirm_message">刪除書單不會刪除其中的圖書。</string>
+    <string name="collections_empty_hint">還沒有書單，新增一個來整理圖書</string>
+    <string name="collections_delete_confirm_message">刪除「%1$s」不會刪除其中的圖書。</string>
     <string name="plans_title">閱讀計畫</string>
     <string name="plans_create">新增閱讀計畫</string>
     <string name="plans_edit">編輯閱讀計畫</string>
     <string name="plans_start_date">開始日期</string>
     <string name="plans_end_date">結束日期</string>
-    <string name="plans_delete_confirm_message">刪除閱讀計畫不會刪除其中的圖書。</string>
+    <string name="plans_empty_hint">還沒有閱讀計畫，新增一個來安排閱讀進度</string>
+    <string name="plans_delete_confirm_message">刪除閱讀計畫「%1$s」不會刪除其中的圖書。</string>
     <string name="picker_books_title">選擇圖書</string>
     <string name="picker_add_selected">加入（%1$d）</string>
     <string name="picker_remove">移除</string>
     <string name="picker_more_matches">符合的圖書較多，僅顯示一部分，請繼續輸入以縮小範圍</string>
+    <string name="ref_pick_title">選擇%1$s</string>
 
     <!-- Stats, export, applications, settings -->
     <string name="books_title">圖書</string>
@@ -245,4 +261,34 @@
     <string name="stats_timeline_months">入庫月份</string>
     <string name="stats_purchase_years">購買年份統計</string>
     <string name="stats_purchase_months">購買月份統計</string>
+    <!-- Appearance / Material You -->
+    <string name="settings_appearance">外觀</string>
+    <string name="settings_dynamic_color">使用系統配色</string>
+    <string name="settings_dynamic_color_hint">用桌布的色彩為應用程式重新配色</string>
+
+    <!-- Auth intro -->
+    <string name="auth_tagline">整理你的藏書：掃碼輸入 ISBN，依分類、書單與閱讀計畫管理</string>
+
+    <!-- Stats: empty library, chart units and captions -->
+    <string name="stats_empty_title">還沒有可統計的圖書</string>
+    <string name="stats_empty_hint">先加入一本書，這裡會依閱讀狀態、分類與年份展開</string>
+    <string name="stats_unit">單位：%1$s</string>
+    <string name="stats_unit_books">本</string>
+    <string name="stats_chart_caption">條形長度表示每組的冊數</string>
+    <string name="stats_chart_caption_amount">條形為冊數，右側金額為當期購買總價</string>
+
+    <!-- Export: what each choice gives the reader -->
+    <string name="export_format_sql_help">SQL INSERT 語句，可直接匯入資料庫</string>
+    <string name="export_format_csv_help">每本書一列，可用試算表軟體開啟</string>
+    <string name="export_format_excel_help">帶表頭的 .xlsx 活頁簿，可用 Excel 開啟</string>
+    <string name="export_format_markdown_help">Markdown 純文字清單，便於閱讀</string>
+    <string name="export_format_json_help">欄位完整的 JSON 資料，便於指令碼處理</string>
+    <string name="export_scope_help">只包含%1$s的資料</string>
+    <string name="export_database_help">包含全部資料表的 SQLite 檔案，可整體備份</string>
+    <string name="export_saving">正在儲存…</string>
+    <string name="catalog_no_match">沒有符合的名稱</string>
+    <string name="catalog_name_required">名稱不能為空</string>
+    <string name="catalog_form_section_basic">基本資訊</string>
+    <string name="catalog_form_section_classification">歸屬</string>
+    <string name="catalog_form_section_details">詳細資料</string>
 </resources>

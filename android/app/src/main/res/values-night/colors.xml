@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches DarkColors.background. A night-qualified resource means the pre-draw window follows
+         the system without needing a second platform theme. -->
+    <color name="window_background">#0F1512</color>
+</resources>

@@ -18,6 +18,8 @@ data class PlanDetailUiState(
     val working: Boolean = false,
     val actionError: Throwable? = null,
     val deleted: Boolean = false,
+    /** The row whose remove is in flight, so it can show that instead of looking inert. */
+    val removingBookId: Int? = null,
 )
 
 class PlanDetailViewModel(
@@ -55,23 +57,35 @@ class PlanDetailViewModel(
      * after the first succeeded and comes back 400 ("not in plan"), pinning that message under the
      * list for the rest of the screen's life.
      */
-    private fun action(onSuccess: () -> Unit = { load() }, block: suspend () -> Result<Unit>) {
+    private fun action(
+        removingBookId: Int? = null,
+        onSuccess: () -> Unit = { load() },
+        block: suspend () -> Result<Unit>,
+    ) {
         if (_ui.value.working) return
         viewModelScope.launch {
-            _ui.update { it.copy(working = true, actionError = null) }
+            _ui.update {
+                it.copy(working = true, removingBookId = removingBookId, actionError = null)
+            }
             block()
                 .onSuccess {
                     libraryEvents.bump()
-                    _ui.update { it.copy(working = false) }
+                    _ui.update { it.copy(working = false, removingBookId = null) }
                     onSuccess()
                 }
-                .onFailure { throwable -> _ui.update { it.copy(working = false, actionError = throwable) } }
+                .onFailure { throwable ->
+                    _ui.update {
+                        it.copy(working = false, removingBookId = null, actionError = throwable)
+                    }
+                }
         }
     }
 
     fun addBooks(bookIds: List<Int>) = action { repository.addBooks(planId, bookIds) }
 
-    fun removeBook(bookId: Int) = action { repository.removeBook(planId, bookId) }
+    fun removeBook(bookId: Int) = action(removingBookId = bookId) {
+        repository.removeBook(planId, bookId)
+    }
 
     fun delete() = action(onSuccess = { _ui.update { it.copy(deleted = true) } }) {
         repository.delete(planId)
