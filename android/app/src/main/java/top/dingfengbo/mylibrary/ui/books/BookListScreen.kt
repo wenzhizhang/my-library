@@ -428,30 +428,28 @@ internal fun BookCard.displayTitle(): String =
     titleCn?.takeIf { it.isNotBlank() } ?: title.orEmpty()
 
 /**
- * A cover, whole.
+ * A cover, whole and on its own.
  *
- * These files are square and already contain the cover at its own framing, so the container is
- * square too and the image is fitted inside it: cropping a square into a portrait box is exactly
- * how the top and bottom of a cover disappear. Fitting also means a file that is not square shows
- * complete, with the container's own fill around it rather than a slice of it.
- *
- * [modifier] sizes the container; callers pass a square.
+ * These files are square canvases holding a cut-out cover: measured across the shared library, a
+ * quarter to a half of every canvas is fully transparent. So the container is square, the image is
+ * fitted inside it at its own proportions, and nothing is painted behind it - any fill here shows
+ * up as a panel around every cut-out, and clipping to a corner shaves artwork that runs to the
+ * canvas edge. [modifier] sizes the container; callers pass a square.
  */
 @Composable
 internal fun BookCover(path: String?, modifier: Modifier = Modifier) {
     val url = MediaUrls.image(path)
-    // The same corner and fill as the skeleton block that stands in for it, so the swap is
-    // invisible and a letterboxed cover sits on the same surface the placeholder uses.
-    val shape = MaterialTheme.shapes.extraSmall
-    Box(modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant)) {
-        if (url != null) {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.matchParentSize(),
-            )
-        }
+    if (url == null) {
+        // A book with no cover still needs its column on screen, and unlike a cut-out this one is a
+        // shape the app draws, so it gets the surface fill and the corner.
+        Box(modifier.clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceVariant))
+    } else {
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = modifier,
+        )
     }
 }
 
