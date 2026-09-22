@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -199,7 +200,7 @@ private fun BookDetailContent(
     ) {
         item {
             Row(Modifier.fillMaxWidth()) {
-                BookCover(book.thumbImage, Modifier.width(96.dp).height(128.dp))
+                BookCover(book.thumbImage, Modifier.size(120.dp))
                 Spacer(Modifier.width(Spacing.lg))
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -301,7 +302,7 @@ private fun BookDetailContent(
                                 hit.id?.let(onOpenBook)
                             }
                         ) {
-                            BookCover(hit.thumbImage, Modifier.fillMaxWidth().height(112.dp))
+                            BookCover(hit.thumbImage, Modifier.fillMaxWidth().aspectRatio(1f))
                             Spacer(Modifier.height(Spacing.xs))
                             Text(
                                 text = hit.titleCn?.takeIf { it.isNotBlank() } ?: hit.title.orEmpty(),

@@ -79,7 +79,7 @@ fun BookListSkeleton(modifier: Modifier = Modifier, rows: Int = 6) {
   Column(modifier.fillMaxWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
     repeat(rows) {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        SkeletonBlock(Modifier.size(width = 42.dp, height = 60.dp), corner = 6)
+        SkeletonBlock(Modifier.size(56.dp), corner = 6)
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
           SkeletonBlock(Modifier.fillMaxWidth(0.72f).height(16.dp))

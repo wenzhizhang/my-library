@@ -372,7 +372,7 @@ internal fun BookRowItem(book: BookCard, onClick: () -> Unit, modifier: Modifier
             .padding(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BookCover(book.thumbImage, Modifier.width(44.dp).height(58.dp))
+        BookCover(book.thumbImage, Modifier.size(56.dp))
         Spacer(Modifier.width(Spacing.md))
         Column(Modifier.weight(1f)) {
             BookTitles(book)
@@ -383,7 +383,7 @@ internal fun BookRowItem(book: BookCard, onClick: () -> Unit, modifier: Modifier
 @Composable
 internal fun BookGridItem(book: BookCard, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.clickable(onClick = onClick).padding(Spacing.xs)) {
-        BookCover(book.thumbImage, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+        BookCover(book.thumbImage, Modifier.fillMaxWidth().aspectRatio(1f))
         Spacer(Modifier.height(Spacing.sm))
         BookTitles(book, compact = true)
     }
@@ -427,20 +427,31 @@ private fun BookTitles(book: BookCard, compact: Boolean = false) {
 internal fun BookCard.displayTitle(): String =
     titleCn?.takeIf { it.isNotBlank() } ?: title.orEmpty()
 
+/**
+ * A cover, whole.
+ *
+ * These files are square and already contain the cover at its own framing, so the container is
+ * square too and the image is fitted inside it: cropping a square into a portrait box is exactly
+ * how the top and bottom of a cover disappear. Fitting also means a file that is not square shows
+ * complete, with the container's own fill around it rather than a slice of it.
+ *
+ * [modifier] sizes the container; callers pass a square.
+ */
 @Composable
 internal fun BookCover(path: String?, modifier: Modifier = Modifier) {
     val url = MediaUrls.image(path)
-    // The same corner as the skeleton block that stands in for it, so the swap is invisible.
+    // The same corner and fill as the skeleton block that stands in for it, so the swap is
+    // invisible and a letterboxed cover sits on the same surface the placeholder uses.
     val shape = MaterialTheme.shapes.extraSmall
-    if (url == null) {
-        Box(modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant))
-    } else {
-        AsyncImage(
-            model = url,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = modifier.clip(shape),
-        )
+    Box(modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+        if (url != null) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
     }
 }
 
