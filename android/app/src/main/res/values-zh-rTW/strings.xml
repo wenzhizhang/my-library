@@ -291,4 +291,7 @@
     <string name="catalog_form_section_basic">基本資訊</string>
     <string name="catalog_form_section_classification">歸屬</string>
     <string name="catalog_form_section_details">詳細資料</string>
+    <!-- 底部一个动作入口：面板里是扫码录入、搜索与新增图书。 -->
+    <string name="books_quick_action">掃碼</string>
+    <string name="common_search">搜尋</string>
 </resources>

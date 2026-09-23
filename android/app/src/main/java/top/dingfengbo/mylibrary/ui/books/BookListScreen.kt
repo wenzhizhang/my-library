@@ -1,5 +1,6 @@
 package top.dingfengbo.mylibrary.ui.books
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
@@ -31,11 +33,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -49,13 +51,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.SearchField
 import top.dingfengbo.mylibrary.api.models.BookCard
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.MediaUrls
@@ -85,6 +92,7 @@ fun BookListScreen(
     onOpenCatalog: (CatalogEntity) -> Unit,
     onOpenCollections: () -> Unit,
     onOpenPlans: () -> Unit,
+    onOpenScanner: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookListViewModel = viewModel {
         BookListViewModel(container.bookRepository, container.libraryEvents)
@@ -93,6 +101,17 @@ fun BookListScreen(
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val gridState = rememberLazyGridState()
     var catalogMenu by remember { mutableStateOf(false) }
+    // Search is a mode the button below opens, not a fixture at the top of the list.
+    var searchActive by rememberSaveable { mutableStateOf(false) }
+    var quickActions by rememberSaveable { mutableStateOf(false) }
+    val searchFocus = remember { FocusRequester() }
+    val leaveSearch = {
+        searchActive = false
+        viewModel.onSearchTextChange("")
+    }
+
+    // The back gesture leaves search before it leaves the screen, which is where a reader expects it.
+    BackHandler(enabled = searchActive) { leaveSearch() }
 
     // Prefetch the next page a screenful before the end. The view model decides whether more exist,
     // so this closure never needs to read a stale list size.
@@ -105,6 +124,16 @@ fun BookListScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(ui.scope.titleRes)) },
+                navigationIcon = {
+                    if (searchActive) {
+                        IconButton(onClick = leaveSearch) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.common_back),
+                            )
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = { catalogMenu = true }) {
                         Icon(
@@ -115,28 +144,31 @@ fun BookListScreen(
                 },
             )
         },
+        // One action for the three things this screen is opened to do: put a book in, by scanner or
+        // by form, and find one. It replaces the search box that used to sit above the list and the
+        // add button that floated over it - two permanent controls competing for the same space.
         floatingActionButton = {
-            // Hidden while the empty state is on screen: that state carries the same "add a book"
-            // action, and on a short screen the two of them stack over the hint text.
-            if (!ui.showEmpty) {
-                ExtendedFloatingActionButton(
-                    onClick = onCreateBook,
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.books_add_new)) },
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = { quickActions = true },
+                icon = { Icon(painterResource(R.drawable.ic_scan), contentDescription = null) },
+                text = { Text(stringResource(R.string.books_quick_action)) },
+            )
         },
+        floatingActionButtonPosition = FabPosition.Center,
         modifier = modifier,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (ui.supportsFilters) {
-                OutlinedTextField(
-                    value = ui.searchText,
-                    onValueChange = viewModel::onSearchTextChange,
-                    placeholder = { Text(stringResource(R.string.books_search_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+            if (searchActive && ui.supportsFilters) {
+                SearchField(
+                    query = ui.searchText,
+                    onQueryChange = viewModel::onSearchTextChange,
+                    hintRes = R.string.books_search_hint,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.lg)
+                        .focusRequester(searchFocus),
                 )
+                LaunchedEffect(searchActive) { searchFocus.requestFocus() }
             }
 
             Spacer(Modifier.height(Spacing.sm))
@@ -286,6 +318,30 @@ fun BookListScreen(
         )
     }
 
+    if (quickActions) {
+        ModalBottomSheet(onDismissRequest = { quickActions = false }) {
+            Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
+                // Scan first: it is what the button is named after, and how most books arrive.
+                QuickActionRow(
+                    icon = { Icon(painterResource(R.drawable.ic_scan), contentDescription = null) },
+                    label = stringResource(R.string.scan_title),
+                ) { quickActions = false; onOpenScanner() }
+                // Only the All scope takes a query - the wishlist and archived endpoints take none,
+                // so offering search there would offer a control that cannot do anything.
+                if (ui.supportsFilters) {
+                    QuickActionRow(
+                        icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        label = stringResource(R.string.common_search),
+                    ) { quickActions = false; searchActive = true }
+                }
+                QuickActionRow(
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    label = stringResource(R.string.books_add_new),
+                ) { quickActions = false; onCreateBook() }
+            }
+        }
+    }
+
     if (catalogMenu) {
         ModalBottomSheet(onDismissRequest = { catalogMenu = false }) {
             Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
@@ -357,6 +413,22 @@ private fun ListStatus(
                 modifier = modifier,
             )
         }
+    }
+}
+
+/** One row of the quick-action sheet: an icon, a name, and the whole row as the target. */
+@Composable
+private fun QuickActionRow(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon()
+        Spacer(Modifier.width(Spacing.md))
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

@@ -293,4 +293,7 @@
     <string name="catalog_form_section_basic">Basic</string>
     <string name="catalog_form_section_classification">Classification</string>
     <string name="catalog_form_section_details">Details</string>
+    <!-- 底部一个动作入口：面板里是扫码录入、搜索与新增图书。 -->
+    <string name="books_quick_action">Scan</string>
+    <string name="common_search">Search</string>
 </resources>

@@ -168,6 +168,7 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                             onOpenCatalog = { entity -> backStack.add(CatalogList(entity)) },
                             onOpenCollections = { backStack.add(CollectionList) },
                             onOpenPlans = { backStack.add(PlanList) },
+                            onOpenScanner = { backStack.add(IsbnScan) },
                         )
                     }
                     entry<BookDetail> { key ->
