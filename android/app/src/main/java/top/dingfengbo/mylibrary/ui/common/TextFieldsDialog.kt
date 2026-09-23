@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.theme.Spacing
 
 /** One field of [TextFieldsDialog]. */
 data class DialogField(
@@ -64,7 +66,7 @@ fun TextFieldsDialog(
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 fields.forEachIndexed { index, field ->
                     val value = values.getOrElse(index) { "" }
@@ -78,20 +80,30 @@ fun TextFieldsDialog(
                         singleLine = !field.multiline,
                         minLines = if (field.multiline) 3 else 1,
                         isError = badDate,
-                        supportingText = if (badDate) {
-                            { Text(stringResource(R.string.form_date_invalid)) }
+                        // The expected shape is shown before the typo, not only after it: a reader
+                        // who has to fail first to learn the format has been failed by the form.
+                        // Wrong input replaces that same line under the field with the error.
+                        supportingText = if (field.date) {
+                            {
+                                Text(
+                                    stringResource(
+                                        if (badDate) R.string.form_date_invalid else R.string.form_date_hint
+                                    )
+                                )
+                            }
                         } else {
                             null
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (working) {
-                    Spacer(Modifier.height(4.dp))
-                    CircularProgressIndicator(Modifier.height(18.dp), strokeWidth = 2.dp)
-                }
                 error?.let {
-                    Text(text = errorMessage(it) ?: "", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(
+                        text = errorMessage(it) ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
             }
         },
@@ -107,7 +119,14 @@ fun TextFieldsDialog(
                             .onFailure { error = it; working = false }
                     }
                 },
-            ) { Text(stringResource(R.string.form_save)) }
+            ) {
+                // In-flight lives in the button that started it, so the dialog keeps its height.
+                if (working) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.form_save))
+                }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

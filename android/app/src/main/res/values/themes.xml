@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MyLibrary" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- The platform theme only has to hold the window until Compose draws: the app's own palette
+         lives in the Compose theme (theme/Theme.kt). -->
+    <style name="Theme.MyLibrary" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

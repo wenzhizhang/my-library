@@ -1,7 +1,13 @@
 package top.dingfengbo.mylibrary.ui.common
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,11 +15,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -34,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.R
 import top.dingfengbo.mylibrary.data.model.NamedRef
+import top.dingfengbo.mylibrary.theme.Spacing
 import top.dingfengbo.mylibrary.ui.books.RefChoice
 
 /**
@@ -60,7 +73,10 @@ fun RefPickerDialog(
     var picked by remember { mutableStateOf(selected) }
     var creating by remember { mutableStateOf(false) }
 
-    LaunchedEffect(query) {
+    // Bumping this re-runs the search without touching the query: that is what the retry needs.
+    var attempt by remember { mutableStateOf(0) }
+
+    LaunchedEffect(query, attempt) {
         delay(250)
         loading = true
         search(query)
@@ -90,20 +106,31 @@ fun RefPickerDialog(
         return
     }
 
+    // A non-blank query with nothing created yet is itself an answer ("nothing matched, make it"),
+    // so the empty notice would only talk over it.
+    val offerCreate = onCreate != null && createFields.isNotEmpty() && query.isNotBlank()
+
+    // One region at a time, and each one appears where the last was, so the dialog does not jump.
+    val enter = fadeIn() + expandVertically()
+    val exit = fadeOut() + shrinkVertically()
+    val showLoading = loading && error == null && results.isEmpty()
+    val showError = !loading && error != null
+    val showEmpty = !loading && error == null && results.isEmpty() && !offerCreate
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(titleRes)) },
+        // The kind goes in the title: "作者" alone does not say what the dialog wants from the
+        // reader, and the same dialog serves seven different lists.
+        title = { Text(stringResource(R.string.ref_pick_title, stringResource(titleRes))) },
         text = {
             Column(Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.ref_search_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                SearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    hintRes = R.string.ref_search_hint,
                 )
                 if (picked.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Spacing.sm))
                     Text(
                         text = picked.joinToString("、") { it.label },
                         style = MaterialTheme.typography.labelMedium,
@@ -112,80 +139,107 @@ fun RefPickerDialog(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-                when {
-                    loading -> Row(
-                        Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                    ) { CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
-
-                    error != null -> Text(
-                        text = errorMessage(error) ?: "",
-                        color = MaterialTheme.colorScheme.error,
+                Spacer(Modifier.height(Spacing.sm))
+                AnimatedVisibility(showLoading, enter = enter, exit = exit) {
+                    Box(
+                        Modifier.fillMaxWidth().padding(Spacing.lg),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) }
+                }
+                AnimatedVisibility(showError, enter = enter, exit = exit) {
+                    ErrorState(
+                        message = errorMessage(error) ?: stringResource(R.string.error_unknown),
+                        onRetry = { attempt++ },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-
-                    else -> LazyColumn(Modifier.fillMaxWidth().heightIn(max = 280.dp)) {
-                        if (onCreate != null && createFields.isNotEmpty() && query.isNotBlank()) {
-                            item {
+                }
+                AnimatedVisibility(showEmpty, enter = enter, exit = exit) {
+                    Text(
+                        text = stringResource(R.string.catalog_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+                    )
+                }
+                LazyColumn(Modifier.fillMaxWidth().heightIn(max = 280.dp)) {
+                    if (offerCreate) {
+                        item {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .clickable { creating = true }
+                                    .padding(vertical = Spacing.md),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AddCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                                Spacer(Modifier.width(Spacing.sm))
                                 Text(
                                     text = stringResource(R.string.ref_create_new, query),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { creating = true }
-                                        .padding(vertical = 10.dp),
                                 )
-                                HorizontalDivider()
                             }
+                            HorizontalDivider()
                         }
-                        if (picked.isNotEmpty()) {
-                            item {
+                    }
+                    if (picked.isNotEmpty()) {
+                        item {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .clickable {
+                                        // Single-select has no confirm button, so clearing has to
+                                        // be applied at once — exactly like tapping a row is.
+                                        if (multi) picked = emptyList() else onConfirm(emptyList())
+                                    }
+                                    .padding(vertical = Spacing.md),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                                Spacer(Modifier.width(Spacing.sm))
                                 Text(
                                     text = stringResource(R.string.ref_clear),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            // Single-select has no confirm button, so clearing has to
-                                            // be applied at once — exactly like tapping a row is.
-                                            if (multi) picked = emptyList() else onConfirm(emptyList())
-                                        }
-                                        .padding(vertical = 10.dp),
                                 )
                             }
                         }
-                        items(results, key = { it.id }) { ref ->
-                            val isPicked = picked.any { it.id == ref.id }
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (multi) {
-                                            picked = if (isPicked) {
-                                                picked.filterNot { it.id == ref.id }
-                                            } else {
-                                                picked + RefChoice(ref.id, ref.label)
-                                            }
+                    }
+                    items(results, key = { it.id }) { ref ->
+                        val isPicked = picked.any { it.id == ref.id }
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clickable {
+                                    if (multi) {
+                                        picked = if (isPicked) {
+                                            picked.filterNot { it.id == ref.id }
                                         } else {
-                                            onConfirm(listOf(RefChoice(ref.id, ref.label)))
+                                            picked + RefChoice(ref.id, ref.label)
                                         }
+                                    } else {
+                                        onConfirm(listOf(RefChoice(ref.id, ref.label)))
                                     }
-                                    .padding(vertical = 10.dp),
-                            ) {
-                                Text(
-                                    text = ref.label,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = if (isPicked) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface,
-                                )
-                                ref.detail?.let { detail ->
-                                    Text(
-                                        text = detail,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                 }
+                                .padding(vertical = Spacing.md),
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = ref.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isPicked) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                            )
+                            ref.detail?.let { detail ->
+                                Text(
+                                    text = detail,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -220,7 +274,11 @@ private fun NewEntityDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ref_create_title, stringResource(titleRes))) },
         text = {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 fieldLabelRes.forEachIndexed { index, labelRes ->
                     OutlinedTextField(
                         value = values[index],
@@ -229,16 +287,15 @@ private fun NewEntityDialog(
                         },
                         label = { Text(stringResource(labelRes)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (working) {
-                    Spacer(Modifier.height(8.dp))
-                    CircularProgressIndicator(Modifier.height(18.dp), strokeWidth = 2.dp)
-                }
                 error?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = errorMessage(it) ?: "", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = errorMessage(it) ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
             }
         },
@@ -254,7 +311,14 @@ private fun NewEntityDialog(
                             .onFailure { error = it; working = false }
                     }
                 },
-            ) { Text(stringResource(R.string.ref_create_confirm)) }
+            ) {
+                // In-flight lives in the button that started it, so the dialog keeps its height.
+                if (working) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.ref_create_confirm))
+                }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

@@ -10,12 +10,18 @@ import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.api.models.BackgroundItem
 import top.dingfengbo.mylibrary.data.BackgroundState
 import top.dingfengbo.mylibrary.data.PreferencesRepository
+import top.dingfengbo.mylibrary.data.UiPreferences
 
 data class SettingsUiState(
     val backgrounds: List<BackgroundItem> = emptyList(),
     /** The configured default, what is painted when the account has chosen nothing. */
     val defaultId: String? = null,
     val selectedId: String? = null,
+    /**
+     * Material You, device-local rather than account-wide. Mirrors [UiPreferences.dynamicColor]
+     * instead of being written on tap, so the switch can never disagree with what is stored.
+     */
+    val dynamicColor: Boolean = false,
     val loading: Boolean = false,
     val error: Throwable? = null,
 )
@@ -23,12 +29,21 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val repository: PreferencesRepository,
     private val backgroundState: BackgroundState,
+    private val uiPreferences: UiPreferences,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(SettingsUiState())
     val ui: StateFlow<SettingsUiState> = _ui.asStateFlow()
 
     init {
         load()
+        viewModelScope.launch {
+            uiPreferences.dynamicColor.collect { enabled -> _ui.update { it.copy(dynamicColor = enabled) } }
+        }
+    }
+
+    /** Write only: the switch reads the collector above, so it always shows the stored value. */
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { uiPreferences.setDynamicColor(enabled) }
     }
 
     fun load() {

@@ -5,6 +5,7 @@
     <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_yes">Yes</string>
+    <string name="common_clear">Clear</string>
 
     <!-- Auth -->
     <string name="auth_login_tab">Sign in</string>
@@ -49,12 +50,19 @@
     <string name="books_purchase_month">Purchase month</string>
     <string name="books_apply">Apply</string>
     <string name="books_reset">Reset</string>
+    <string name="books_filter_group_identity">Title and author</string>
+    <string name="books_filter_group_classification">Publisher and tag</string>
+    <string name="books_filter_group_price">Price</string>
+    <string name="books_filter_group_acquisition">Purchase date</string>
     <string name="books_view_list">List</string>
     <string name="books_view_grid">Grid</string>
     <string name="books_empty">No books found</string>
     <string name="books_empty_hint">Try another search term, or clear the filters</string>
     <string name="books_empty_hint_plain">No books in this list yet</string>
-    <string name="books_count">%1$d books</string>
+    <plurals name="books_count">
+        <item quantity="one">%1$d book</item>
+        <item quantity="other">%1$d books</item>
+    </plurals>
 
     <!-- Book detail -->
     <string name="book_detail_title">Book details</string>
@@ -70,6 +78,7 @@
     <string name="book_detail_section_shelf">Shelving</string>
     <string name="book_detail_section_content">Content</string>
     <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_isbn_copied">ISBN copied</string>
     <string name="book_detail_field_translator">Translator</string>
     <string name="book_detail_field_publisher">Publisher</string>
     <string name="book_detail_field_publish_date">Published</string>
@@ -122,7 +131,9 @@
     <string name="form_lookup">Look up</string>
     <string name="form_lookup_filled">Filled from ISBN (source: %1$s)</string>
     <string name="form_lookup_filled_unknown_source">Filled from ISBN</string>
-    <string name="form_lookup_nothing">No data for this ISBN — fill it in by hand</string>
+    <string name="form_lookup_nothing">No data for this ISBN. Fill it in by hand.</string>
+    <string name="form_lookup_running">Looking up…</string>
+    <string name="form_section_identity">Identity</string>
     <string name="form_section_publishing">Publication</string>
     <string name="form_section_purchase">Purchase</string>
     <string name="form_section_shelving">Shelving</string>
@@ -145,6 +156,7 @@
     <string name="form_author_name_cn">Chinese name</string>
     <string name="form_publisher_name">Name</string>
     <string name="form_date_invalid">Enter the date as YYYY-MM-DD</string>
+    <string name="form_date_hint">Format: YYYY-MM-DD</string>
     <string name="read_state_unread">Unread</string>
     <string name="read_state_reading">Reading</string>
     <string name="read_state_read">Read</string>
@@ -161,7 +173,9 @@
     <string name="scan_manual">Enter ISBN manually</string>
     <string name="scan_manual_confirm">OK</string>
     <string name="scan_manual_invalid">An ISBN is 10 or 13 digits</string>
-    <string name="scan_permission_denied">Camera permission denied — type the ISBN below</string>
+    <string name="scan_permission_denied">Camera permission denied. Type the ISBN below.</string>
+    <string name="scan_permission_title">Camera not available</string>
+    <string name="scan_permission_settings">Open settings</string>
 
     <!-- Catalog management -->
     <string name="catalog_menu">Catalog</string>
@@ -202,17 +216,20 @@
     <string name="collections_create">New collection</string>
     <string name="collections_edit">Edit collection</string>
     <string name="collections_add_books">Add books</string>
-    <string name="collections_delete_confirm_message">Deleting a collection does not delete its books.</string>
+    <string name="collections_empty_hint">No collections yet. Create one to group books.</string>
+    <string name="collections_delete_confirm_message">Deleting “%1$s” does not delete its books.</string>
     <string name="plans_title">Reading plans</string>
     <string name="plans_create">New reading plan</string>
     <string name="plans_edit">Edit reading plan</string>
     <string name="plans_start_date">Start date</string>
     <string name="plans_end_date">End date</string>
-    <string name="plans_delete_confirm_message">Deleting a plan does not delete its books.</string>
+    <string name="plans_empty_hint">No reading plans yet. Create one to schedule your reading.</string>
+    <string name="plans_delete_confirm_message">Deleting the reading plan “%1$s” does not delete its books.</string>
     <string name="picker_books_title">Pick books</string>
     <string name="picker_add_selected">Add (%1$d)</string>
     <string name="picker_remove">Remove</string>
-    <string name="picker_more_matches">Many matches — only some are shown; keep typing to narrow it down</string>
+    <string name="picker_more_matches">Many matches. Only some are shown; keep typing to narrow it down.</string>
+    <string name="ref_pick_title">Choose %1$s</string>
 
     <!-- Stats, export, applications, settings -->
     <string name="books_title">Books</string>
@@ -246,4 +263,39 @@
     <string name="stats_timeline_months">Added by month</string>
     <string name="stats_purchase_years">Purchases by year</string>
     <string name="stats_purchase_months">Purchases by month</string>
+    <!-- Appearance / Material You -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dynamic_color">Use device colours</string>
+    <string name="settings_dynamic_color_hint">Repaints the app in the colours of your wallpaper</string>
+
+    <!-- Auth intro -->
+    <string name="auth_tagline">Catalogue your books: scan an ISBN, then organise them by shelf, collection and reading plan</string>
+
+    <!-- Stats: empty library, chart units and captions -->
+    <string name="stats_empty_title">No books to chart yet</string>
+    <string name="stats_empty_hint">Add a book first, then this page breaks the library down by reading state, category and year</string>
+    <string name="stats_unit">Unit: %1$s</string>
+    <string name="stats_unit_books">books</string>
+    <string name="stats_chart_caption">Bar length is the number of books in each group</string>
+    <string name="stats_chart_caption_amount">Bars are book counts; the amount on the right is what was paid in that period</string>
+
+    <!-- Export: what each choice gives the reader -->
+    <string name="export_format_sql_help">SQL INSERT statements you can load into a database</string>
+    <string name="export_format_csv_help">One row per book, opens in any spreadsheet</string>
+    <string name="export_format_excel_help">An .xlsx workbook with a header row, opens in Excel</string>
+    <string name="export_format_markdown_help">A Markdown list that reads well as plain text</string>
+    <string name="export_format_json_help">JSON records with every field, for scripts</string>
+    <string name="export_scope_help">%1$s only</string>
+    <string name="export_database_help">A SQLite file with every table, for a full backup</string>
+    <string name="export_saving">Saving…</string>
+    <string name="catalog_no_match">No matching names</string>
+    <string name="catalog_name_required">Name is required</string>
+    <string name="catalog_form_section_basic">Basic</string>
+    <string name="catalog_form_section_classification">Classification</string>
+    <string name="catalog_form_section_details">Details</string>
+    <string name="common_search">Search</string>
+    <!-- 底部第三栏：账户、统计、设置与退出都收在这里。 -->
+    <string name="mine_title">Mine</string>
+    <!-- 骨架屏对屏幕阅读器说的话。 -->
+    <string name="common_loading">Loading…</string>
 </resources>

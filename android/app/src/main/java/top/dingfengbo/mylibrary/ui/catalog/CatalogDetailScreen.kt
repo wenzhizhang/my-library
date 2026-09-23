@@ -10,21 +10,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,14 +41,25 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.model.CatalogEntity
+import top.dingfengbo.mylibrary.data.model.EntityAttribute
+import top.dingfengbo.mylibrary.theme.IdentifierTextStyle
+import top.dingfengbo.mylibrary.theme.NumericTextStyle
+import top.dingfengbo.mylibrary.theme.Spacing
+import top.dingfengbo.mylibrary.ui.books.BookCover
 import top.dingfengbo.mylibrary.ui.books.BookRowItem
+import top.dingfengbo.mylibrary.ui.common.BookListSkeleton
+import top.dingfengbo.mylibrary.ui.common.DetailSkeleton
+import top.dingfengbo.mylibrary.ui.common.EmptyState
+import top.dingfengbo.mylibrary.ui.common.ErrorState
 import top.dingfengbo.mylibrary.ui.common.errorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,7 +90,7 @@ fun CatalogDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = {
                     Text(
                         text = ui.detail?.title ?: stringResource(entity.titleRes),
@@ -81,11 +98,21 @@ fun CatalogDetailScreen(
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
+                    }
+                },
                 actions = {
                     if (ui.detail != null) {
-                        TextButton(onClick = { viewModel.onEditingChange(true) }) {
-                            Text(stringResource(R.string.catalog_edit))
+                        IconButton(onClick = { viewModel.onEditingChange(true) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = stringResource(R.string.catalog_edit),
+                            )
                         }
                     }
                 },
@@ -95,43 +122,53 @@ fun CatalogDetailScreen(
     ) { padding ->
         val detail = ui.detail
         when {
-            ui.loading && detail == null -> Box(
+            ui.loading && detail == null ->
+                DetailSkeleton(Modifier.fillMaxSize().padding(padding))
+
+            detail == null -> Box(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
-
-            detail == null -> Column(
-                Modifier.fillMaxSize().padding(padding).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(errorMessage(ui.error) ?: stringResource(R.string.error_unknown))
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = viewModel::load) { Text(stringResource(R.string.error_retry)) }
+                ErrorState(
+                    message = errorMessage(ui.error) ?: stringResource(R.string.error_unknown),
+                    onRetry = viewModel::load,
+                )
             }
 
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 item {
                     Row(Modifier.fillMaxWidth()) {
-                        top.dingfengbo.mylibrary.ui.books.BookCover(
+                        BookCover(
                             path = detail.photo,
                             modifier = Modifier.width(96.dp).height(96.dp),
                         )
-                        Spacer(Modifier.width(16.dp))
-                        Text(
-                            text = detail.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.weight(1f),
-                        )
+                        Spacer(Modifier.width(Spacing.lg))
+                        Column(Modifier.weight(1f)) {
+                            // The kind above the name: the six screens share one layout, and the
+                            // fields alone do not say which catalog this record belongs to.
+                            Text(
+                                text = stringResource(entity.titleRes),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.height(Spacing.xs))
+                            Text(
+                                text = detail.title,
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
 
                 items(attributeOrder.filter { detail.attributes[it] != null }) { attribute ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
                         Text(
                             text = stringResource(attribute.labelRes()),
                             style = MaterialTheme.typography.labelMedium,
@@ -140,16 +177,16 @@ fun CatalogDetailScreen(
                         )
                         Text(
                             text = detail.attributes[attribute].orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = attributeValueStyle(attribute),
                             modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
                 item {
-                    Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(top = Spacing.lg)) {
                         HorizontalDivider()
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.md))
                         Text(
                             text = if (ui.booksTotal > 0) {
                                 stringResource(R.string.catalog_related_books_count, ui.booksTotal)
@@ -162,6 +199,7 @@ fun CatalogDetailScreen(
                     }
                 }
 
+                // The book list's own row, so a book looks the same wherever it is listed.
                 items(ui.books, key = { it.id ?: 0 }) { book ->
                     BookRowItem(book = book, onClick = { book.id?.let(onOpenBook) })
                 }
@@ -169,50 +207,46 @@ fun CatalogDetailScreen(
                 item {
                     when {
                         // A failed page is not "no books": the count above came from the entity itself.
-                        ui.booksError != null -> Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Text(
-                                text = errorMessage(ui.booksError) ?: stringResource(R.string.error_unknown),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            TextButton(onClick = viewModel::retryBooks) {
-                                Text(stringResource(R.string.error_retry))
-                            }
-                        }
+                        ui.booksError != null -> ErrorState(
+                            message = errorMessage(ui.booksError) ?: stringResource(R.string.error_unknown),
+                            onRetry = viewModel::retryBooks,
+                        )
 
-                        ui.booksLoading && ui.books.isEmpty() -> Row(
-                            Modifier.fillMaxWidth().padding(8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                        ) { CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
+                        ui.booksLoading && ui.books.isEmpty() -> BookListSkeleton(rows = 3)
+
+                        ui.books.isEmpty() -> EmptyState(
+                            icon = Icons.Default.Menu,
+                            title = stringResource(R.string.catalog_no_books),
+                        )
 
                         ui.booksLoadingMore -> Row(
-                            Modifier.fillMaxWidth().padding(8.dp),
+                            Modifier.fillMaxWidth().padding(Spacing.sm),
                             horizontalArrangement = Arrangement.Center,
-                        ) { CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
-
-                        ui.books.isEmpty() -> Text(
-                            text = stringResource(R.string.catalog_no_books),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        ) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        }
                     }
                 }
 
                 item {
-                    Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(top = Spacing.lg)) {
                         if (ui.actionError != null) {
-                            Text(
-                                text = errorMessage(ui.actionError) ?: "",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
+                            ErrorState(
+                                message = errorMessage(ui.actionError) ?: stringResource(R.string.error_unknown),
                             )
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(Spacing.sm))
                         }
+                        HorizontalDivider()
+                        Spacer(Modifier.height(Spacing.sm))
                         OutlinedButton(
                             onClick = { confirmingDelete = true },
                             enabled = !ui.saving,
                             modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.catalog_delete)) }
+                        ) {
+                            Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(stringResource(R.string.catalog_delete))
+                        }
                     }
                 }
             }
@@ -247,4 +281,15 @@ fun CatalogDetailScreen(
             },
         )
     }
+}
+
+/**
+ * Attribute values that are data rather than prose get the matching face: tabular figures for ids
+ * and counts, monospace for stored paths. Prose stays in the body face.
+ */
+@Composable
+private fun attributeValueStyle(attribute: EntityAttribute): TextStyle = when {
+    attribute.numericValue -> MaterialTheme.typography.bodyMedium.merge(NumericTextStyle)
+    attribute.identifierValue -> MaterialTheme.typography.bodySmall.merge(IdentifierTextStyle)
+    else -> MaterialTheme.typography.bodyMedium
 }

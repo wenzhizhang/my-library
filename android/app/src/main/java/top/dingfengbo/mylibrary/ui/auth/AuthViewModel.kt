@@ -29,8 +29,9 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _ui = MutableStateFlow(AuthUiState())
     val ui: StateFlow<AuthUiState> = _ui.asStateFlow()
 
-    // Every edit clears passwordMismatch: it is shown with priority over `error`, so a stale
-    // "passwords do not match" would mask whatever the next submit actually reports.
+    // Every edit clears passwordMismatch along with the mapped error. The mismatch is drawn under
+    // the field it belongs to and the error above the button, so a stale one of either would sit
+    // there contradicting whatever the next submit actually reports.
     fun onModeChange(mode: AuthMode) =
         _ui.update { it.copy(mode = mode, error = null, passwordMismatch = false) }
 

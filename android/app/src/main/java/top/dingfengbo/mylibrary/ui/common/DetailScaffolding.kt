@@ -5,30 +5,35 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.theme.Spacing
 
 /**
  * Failed detail load: there is no entity to draw, so offer the message and a retry.
+ *
+ * The same composed error the lists use — a detail screen failing should not look like a different
+ * app from a list failing.
  */
 @Composable
 fun DetailLoadError(error: Throwable?, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(errorMessage(error) ?: stringResource(R.string.error_unknown))
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = onRetry) { Text(stringResource(R.string.error_retry)) }
-    }
+    ErrorState(
+        message = errorMessage(error) ?: stringResource(R.string.error_unknown),
+        onRetry = onRetry,
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 /**
@@ -38,37 +43,39 @@ fun DetailLoadError(error: Throwable?, onRetry: () -> Unit, modifier: Modifier =
  */
 @Composable
 fun DetailActionFooter(actionError: Throwable?, onDelete: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.padding(top = 16.dp)) {
+    Column(modifier.padding(top = Spacing.lg)) {
         if (actionError != null) {
             Text(
                 text = errorMessage(actionError) ?: "",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(Spacing.sm))
         }
         HorizontalDivider()
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(Spacing.sm))
         OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Delete, contentDescription = null)
+            Spacer(Modifier.width(Spacing.sm))
             Text(stringResource(R.string.catalog_delete))
         }
     }
 }
 
 /**
- * Delete confirmation. Collections and plans differ in wording and in what they quote as the
- * title, so both come from the caller.
+ * Delete confirmation. The object's name belongs in the body, next to the consequence — a title
+ * alone is read past. [message] is built by the caller because the wording (and the placeholder
+ * that carries the name) is per kind.
  */
 @Composable
 fun DeleteConfirmDialog(
-    name: String,
     message: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.catalog_delete_confirm_title, name)) },
+        title = { Text(stringResource(R.string.catalog_delete)) },
         text = { Text(message) },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text(stringResource(R.string.catalog_delete)) }

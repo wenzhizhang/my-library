@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches LightColors.background, so the window the system paints before Compose draws is the
+         app's own colour instead of the platform's white flash. -->
+    <color name="window_background">#F5FBF7</color>
+</resources>

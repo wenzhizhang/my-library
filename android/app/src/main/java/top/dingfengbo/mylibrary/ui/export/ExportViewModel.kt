@@ -25,7 +25,10 @@ sealed interface ExportRequest {
 data class ExportUiState(
     val format: Format = Format.Csv,
     val scope: Scope = Scope.Books,
-    val running: Boolean = false,
+    /** The request in flight, so the button that started it can show its own progress. */
+    val running: ExportRequest? = null,
+    /** The request the last outcome belongs to: a failed export can be retried exactly as it was. */
+    val lastRequest: ExportRequest? = null,
     val done: String? = null,
     val error: Throwable? = null,
 )
@@ -52,7 +55,7 @@ class ExportViewModel(
     /** Streams straight into the file the user picked — exports can be megabytes. */
     fun run(request: ExportRequest, target: Uri) {
         viewModelScope.launch {
-            _ui.update { it.copy(running = true, done = null, error = null) }
+            _ui.update { it.copy(running = request, lastRequest = request, done = null, error = null) }
             // Opening the target only when the request succeeded is the repository's job, so a
             // failed export cannot leave an empty file behind.
             val sink: () -> OutputStream = {
@@ -69,7 +72,7 @@ class ExportViewModel(
 
             _ui.update {
                 it.copy(
-                    running = false,
+                    running = null,
                     done = if (outcome == null) suggestedName(request) else null,
                     error = outcome,
                 )

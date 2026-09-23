@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -27,9 +28,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val background by container.backgroundState.url.collectAsState()
+            val dynamicColor by container.uiPreferences.dynamicColor.collectAsState(initial = false)
             // The picture sits behind every screen, so the pages have to let it through: see the
             // theme's transparentBackground.
-            MyLibraryTheme(transparentBackground = background != null) {
+            MyLibraryTheme(dynamicColor = dynamicColor, transparentBackground = background != null) {
                 Box(Modifier.fillMaxSize()) {
                     AppBackground(background)
                     AppNavigation(container)
@@ -41,7 +43,13 @@ class MainActivity : ComponentActivity() {
 
 /**
  * The full-screen background, matching the web front end: the image is blurred and scaled to cover,
- * with a light wash on top so text over it keeps its contrast.
+ * with the same 12% white wash the web puts over it (frontend/src/MyLibrary.css, .MyLibrary::after).
+ *
+ * The wash follows the theme because the web has no dark mode to match here: light text over a
+ * photograph washed white is the one combination that does not work, so the dark theme washes
+ * darker. It stays light in both directions for the same reason the web keeps it light - the app,
+ * like the web, keeps text readable over a picture by giving the content its own surface (see
+ * EmptyState and ErrorState) rather than by dimming the picture the reader chose.
  *
  * Blur is a no-op below API 31; the image and the wash still apply there.
  */
@@ -55,6 +63,10 @@ private fun AppBackground(url: String?) {
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().blur(10.dp),
         )
-        Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.12f)))
+        // 12% in light: the value the web uses. 45% in dark: nothing to match there, and light
+        // text over a picture washed white is the one combination that does not work.
+        val darkWash = isSystemInDarkTheme()
+        val wash = if (darkWash) Color.Black.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.12f)
+        Box(Modifier.fillMaxSize().background(wash))
     }
 }

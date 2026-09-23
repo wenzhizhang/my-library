@@ -114,6 +114,9 @@ class AppContainer(context: Context) {
         configApi = apiClient.createService(ConfigApi::class.java),
     )
 
+    /** Device-local look-and-feel choices (Material You). */
+    val uiPreferences = UiPreferences(applicationContext)
+
     /** The picture behind every screen; reloaded when the session or the chosen background changes. */
     val backgroundState = BackgroundState(preferencesRepository, applicationScope, sessionManager.state)
 

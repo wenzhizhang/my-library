@@ -5,6 +5,7 @@
     <string name="common_back">返回</string>
     <string name="common_cancel">取消</string>
     <string name="common_yes">是</string>
+    <string name="common_clear">清除</string>
 
     <!-- Auth -->
     <string name="auth_login_tab">登录</string>
@@ -49,12 +50,19 @@
     <string name="books_purchase_month">购买月份</string>
     <string name="books_apply">应用</string>
     <string name="books_reset">重置</string>
+    <string name="books_filter_group_identity">书名与作者</string>
+    <string name="books_filter_group_classification">出版社与标签</string>
+    <string name="books_filter_group_price">价格</string>
+    <string name="books_filter_group_acquisition">购买时间</string>
     <string name="books_view_list">列表</string>
     <string name="books_view_grid">网格</string>
     <string name="books_empty">没有找到图书</string>
     <string name="books_empty_hint">换个搜索词，或清空筛选条件</string>
     <string name="books_empty_hint_plain">这个列表里还没有图书</string>
-    <string name="books_count">共 %1$d 本</string>
+    <!-- 中文无复数变化，只给 other；英文见 values-en（one/other）。 -->
+    <plurals name="books_count">
+        <item quantity="other">共 %1$d 本</item>
+    </plurals>
 
     <!-- Book detail -->
     <string name="book_detail_title">图书详情</string>
@@ -70,6 +78,7 @@
     <string name="book_detail_section_shelf">分类归属</string>
     <string name="book_detail_section_content">内容</string>
     <string name="book_detail_field_isbn">ISBN</string>
+    <string name="book_detail_isbn_copied">已复制 ISBN</string>
     <string name="book_detail_field_translator">译者</string>
     <string name="book_detail_field_publisher">出版社</string>
     <string name="book_detail_field_publish_date">出版日期</string>
@@ -123,6 +132,8 @@
     <string name="form_lookup_filled">已按 ISBN 自动填充（来源：%1$s）</string>
     <string name="form_lookup_filled_unknown_source">已按 ISBN 自动填充</string>
     <string name="form_lookup_nothing">未找到该 ISBN，请手动填写</string>
+    <string name="form_lookup_running">查询中…</string>
+    <string name="form_section_identity">基本信息</string>
     <string name="form_section_publishing">出版信息</string>
     <string name="form_section_purchase">购买信息</string>
     <string name="form_section_shelving">分类归属</string>
@@ -145,6 +156,7 @@
     <string name="form_author_name_cn">中文名</string>
     <string name="form_publisher_name">名称</string>
     <string name="form_date_invalid">请按 YYYY-MM-DD 填写日期</string>
+    <string name="form_date_hint">格式 YYYY-MM-DD</string>
     <string name="read_state_unread">未读</string>
     <string name="read_state_reading">在读</string>
     <string name="read_state_read">已读</string>
@@ -162,6 +174,8 @@
     <string name="scan_manual_confirm">确定</string>
     <string name="scan_manual_invalid">ISBN 应为 10 位或 13 位数字</string>
     <string name="scan_permission_denied">未获得相机权限，请在下方手动输入 ISBN</string>
+    <string name="scan_permission_title">无法使用相机</string>
+    <string name="scan_permission_settings">打开设置</string>
 
     <!-- Catalog management -->
     <string name="catalog_menu">目录</string>
@@ -202,17 +216,20 @@
     <string name="collections_create">新建书单</string>
     <string name="collections_edit">编辑书单</string>
     <string name="collections_add_books">添加图书</string>
-    <string name="collections_delete_confirm_message">删除书单不会删除其中的图书。</string>
+    <string name="collections_empty_hint">还没有书单，新建一个来整理图书</string>
+    <string name="collections_delete_confirm_message">删除「%1$s」不会删除其中的图书。</string>
     <string name="plans_title">阅读计划</string>
     <string name="plans_create">新建阅读计划</string>
     <string name="plans_edit">编辑阅读计划</string>
     <string name="plans_start_date">开始日期</string>
     <string name="plans_end_date">结束日期</string>
-    <string name="plans_delete_confirm_message">删除阅读计划不会删除其中的图书。</string>
+    <string name="plans_empty_hint">还没有阅读计划，新建一个来安排阅读进度</string>
+    <string name="plans_delete_confirm_message">删除阅读计划「%1$s」不会删除其中的图书。</string>
     <string name="picker_books_title">选择图书</string>
     <string name="picker_add_selected">添加（%1$d）</string>
     <string name="picker_remove">移除</string>
     <string name="picker_more_matches">匹配的图书较多，仅显示了一部分，请继续输入以缩小范围</string>
+    <string name="ref_pick_title">选择%1$s</string>
 
     <!-- Stats, export, applications, settings -->
     <string name="books_title">图书</string>
@@ -246,4 +263,39 @@
     <string name="stats_timeline_months">入库月份</string>
     <string name="stats_purchase_years">购买年份统计</string>
     <string name="stats_purchase_months">购买月份统计</string>
+    <!-- Appearance / Material You -->
+    <string name="settings_appearance">外观</string>
+    <string name="settings_dynamic_color">使用系统配色</string>
+    <string name="settings_dynamic_color_hint">用壁纸的颜色为应用重新配色</string>
+
+    <!-- Auth intro -->
+    <string name="auth_tagline">整理你的藏书：扫码录入 ISBN，按分类、书单和阅读计划管理</string>
+
+    <!-- Stats: empty library, chart units and captions -->
+    <string name="stats_empty_title">还没有可统计的图书</string>
+    <string name="stats_empty_hint">先添加一本书，这里会按阅读状态、分类和年份展开</string>
+    <string name="stats_unit">单位：%1$s</string>
+    <string name="stats_unit_books">本</string>
+    <string name="stats_chart_caption">条形长度表示每组的册数</string>
+    <string name="stats_chart_caption_amount">条形为册数，右侧金额为当期购买总价</string>
+
+    <!-- Export: what each choice gives the reader -->
+    <string name="export_format_sql_help">SQL INSERT 语句，可直接导入数据库</string>
+    <string name="export_format_csv_help">每本书一行，可用表格软件打开</string>
+    <string name="export_format_excel_help">带表头的 .xlsx 工作簿，可用 Excel 打开</string>
+    <string name="export_format_markdown_help">Markdown 纯文本清单，便于阅读</string>
+    <string name="export_format_json_help">字段完整的 JSON 数据，便于脚本处理</string>
+    <string name="export_scope_help">只包含%1$s的数据</string>
+    <string name="export_database_help">包含全部数据表的 SQLite 文件，可整体备份</string>
+    <string name="export_saving">正在保存…</string>
+    <string name="catalog_no_match">没有匹配的名称</string>
+    <string name="catalog_name_required">名称不能为空</string>
+    <string name="catalog_form_section_basic">基本信息</string>
+    <string name="catalog_form_section_classification">归属</string>
+    <string name="catalog_form_section_details">详细资料</string>
+    <string name="common_search">搜索</string>
+    <!-- 底部第三栏：账户、统计、设置与退出都收在这里。 -->
+    <string name="mine_title">我的</string>
+    <!-- 骨架屏对屏幕阅读器说的话。 -->
+    <string name="common_loading">正在载入…</string>
 </resources>

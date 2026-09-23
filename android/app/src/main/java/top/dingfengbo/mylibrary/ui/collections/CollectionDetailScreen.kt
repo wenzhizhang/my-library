@@ -9,15 +9,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,19 +31,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.model.BookQuery
 import top.dingfengbo.mylibrary.data.model.BookScope
+import top.dingfengbo.mylibrary.theme.NumericTextStyle
+import top.dingfengbo.mylibrary.theme.Spacing
 import top.dingfengbo.mylibrary.ui.common.BookPickerDialog
 import top.dingfengbo.mylibrary.ui.common.DeleteConfirmDialog
 import top.dingfengbo.mylibrary.ui.common.DetailActionFooter
 import top.dingfengbo.mylibrary.ui.common.DetailLoadError
+import top.dingfengbo.mylibrary.ui.common.DetailSkeleton
 import top.dingfengbo.mylibrary.ui.common.DialogField
 import top.dingfengbo.mylibrary.ui.common.SimpleBookRow
 import top.dingfengbo.mylibrary.ui.common.TextFieldsDialog
@@ -66,7 +76,7 @@ fun CollectionDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = {
                     Text(
                         text = ui.collection?.name ?: stringResource(R.string.collections_title),
@@ -74,7 +84,14 @@ fun CollectionDetailScreen(
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
+                    }
+                },
                 actions = {
                     if (ui.collection != null) {
                         TextButton(onClick = { editing = true }) { Text(stringResource(R.string.catalog_edit)) }
@@ -86,26 +103,24 @@ fun CollectionDetailScreen(
     ) { padding ->
         val collection = ui.collection
         when {
-            ui.loading && collection == null -> Box(
+            // The skeleton copies the shape of the header and rows, so nothing moves when the
+            // record lands.
+            ui.loading && collection == null -> DetailSkeleton(Modifier.fillMaxSize().padding(padding))
+
+            collection == null -> Box(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
-
-            collection == null -> DetailLoadError(
-                error = ui.error,
-                onRetry = viewModel::load,
-                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
-            )
+            ) { DetailLoadError(error = ui.error, onRetry = viewModel::load) }
 
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                contentPadding = PaddingValues(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 collection.intro?.takeIf { it.isNotBlank() }?.let { intro ->
                     item {
                         Text(intro, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.sm))
                     }
                 }
 
@@ -125,6 +140,9 @@ fun CollectionDetailScreen(
                         authors = book.authors,
                         onClick = { book.id?.let(onOpenBook) },
                         onRemove = { book.id?.let(viewModel::removeBook) },
+                        // Only the row that started the remove says so; the others are untouched.
+                        removing = book.id != null && ui.removingBookId == book.id,
+                        modifier = Modifier.animateItem(),
                     )
                 }
 
@@ -170,8 +188,10 @@ fun CollectionDetailScreen(
 
     if (confirmingDelete) {
         DeleteConfirmDialog(
-            name = collection?.name.orEmpty(),
-            message = stringResource(R.string.collections_delete_confirm_message),
+            message = stringResource(
+                R.string.collections_delete_confirm_message,
+                collection?.name.orEmpty(),
+            ),
             onConfirm = {
                 confirmingDelete = false
                 viewModel.delete()
@@ -184,15 +204,19 @@ fun CollectionDetailScreen(
 @Composable
 private fun CollectionHeader(onCreate: () -> Unit, count: Int) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.books_count, count),
-            style = MaterialTheme.typography.labelSmall,
+            text = pluralStringResource(R.plurals.books_count, count, count),
+            style = MaterialTheme.typography.labelSmall.merge(NumericTextStyle),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        TextButton(onClick = onCreate) { Text(stringResource(R.string.collections_add_books)) }
+        TextButton(onClick = onCreate) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(Spacing.xs))
+            Text(stringResource(R.string.collections_add_books))
+        }
     }
 }
