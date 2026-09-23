@@ -2,6 +2,7 @@ package top.dingfengbo.mylibrary
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -10,16 +11,25 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -28,10 +38,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.Lifecycle
@@ -40,6 +54,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import top.dingfengbo.mylibrary.theme.Spacing
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -120,6 +135,7 @@ fun AppNavigation(container: AppContainer) {
 private fun MainNavigation(container: AppContainer, session: Session, entryStores: NavEntryStores) {
     val backStack = rememberNavBackStack(BookList)
     val current = backStack.lastOrNull()
+    var quickActions by remember { mutableStateOf(false) }
 
     Scaffold(
         // The bar is for the three places you can live in. Everything else is a task pushed on top
@@ -136,6 +152,7 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                             if (key != BookList) backStack.add(key)
                         }
                     },
+                    onScan = { quickActions = true },
                 )
             }
         },
@@ -168,7 +185,6 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                             onOpenCatalog = { entity -> backStack.add(CatalogList(entity)) },
                             onOpenCollections = { backStack.add(CollectionList) },
                             onOpenPlans = { backStack.add(PlanList) },
-                            onOpenScanner = { backStack.add(IsbnScan) },
                         )
                     }
                     entry<BookDetail> { key ->
@@ -265,6 +281,73 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                     }
                 },
         )
+
+        // The bar's middle button opens this. It is a task, not a destination, so it lives beside the
+        // bar rather than in the navigation graph.
+        if (quickActions) {
+            QuickActionsSheet(
+                onDismiss = { quickActions = false },
+                onScan = { quickActions = false; backStack.add(IsbnScan) },
+                onSearch = {
+                    quickActions = false
+                    // Search lives in the book list, which is not even composed while the reader is on
+                    // another tab: go there first, then ask it to open the field.
+                    while (backStack.size > 1) backStack.removeLastOrNull()
+                    container.libraryEvents.requestSearch()
+                },
+                onAddBook = { quickActions = false; backStack.add(BookForm()) },
+            )
+        }
+    }
+}
+
+/**
+ * What the bar's middle button opens: the three things the library is opened to do. It lives here
+ * because the bar does, and because two of the three are pushes this file already owns.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QuickActionsSheet(
+    onDismiss: () -> Unit,
+    onScan: () -> Unit,
+    onSearch: () -> Unit,
+    onAddBook: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
+            // Scan first: it is what the button is named after, and how most books arrive.
+            QuickActionRow(
+                icon = { Icon(painterResource(R.drawable.ic_qr_scan), contentDescription = null) },
+                label = stringResource(R.string.scan_title),
+                onClick = onScan,
+            )
+            QuickActionRow(
+                icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                label = stringResource(R.string.common_search),
+                onClick = onSearch,
+            )
+            QuickActionRow(
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                label = stringResource(R.string.books_add_new),
+                onClick = onAddBook,
+            )
+        }
+    }
+}
+
+/** One row of that sheet: an icon, a name, and the whole row as the target. */
+@Composable
+private fun QuickActionRow(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon()
+        Spacer(Modifier.width(Spacing.md))
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -274,37 +357,55 @@ private data class BottomDestination(val key: NavKey, val icon: ImageVector, val
 private val BottomDestinations =
     listOf(
         BottomDestination(BookList, Icons.AutoMirrored.Filled.List, R.string.books_title),
-        // The curated icon set has no chart glyph, and the extended set is a 10 MB dependency for
-        // one icon; Info is the nearest honest choice for a statistics screen.
-        BottomDestination(Stats, Icons.Default.Info, R.string.stats_title),
-        BottomDestination(Settings, Icons.Default.Settings, R.string.settings_title),
+        // Settings holds the account, statistics, export and sign-out, so the bar calls it Mine.
+        BottomDestination(Settings, Icons.Default.Person, R.string.mine_title),
     )
 
 @Composable
-private fun LibraryBottomBar(current: NavKey?, onSelect: (NavKey) -> Unit) {
+private fun LibraryBottomBar(current: NavKey?, onSelect: (NavKey) -> Unit, onScan: () -> Unit) {
+    val (books, mine) = BottomDestinations
     NavigationBar {
-        BottomDestinations.forEach { destination ->
-            NavigationBarItem(
-                selected = current == destination.key,
-                onClick = { onSelect(destination.key) },
-                // The label is the item's accessible name, so the icon must not repeat it.
-                icon = { Icon(destination.icon, contentDescription = null) },
-                label = { Text(stringResource(destination.labelRes)) },
-            )
-        }
+        // Books, then the action, then Mine: the middle of the bar is what the reader came to do, and
+        // it is never highlighted because it is a task rather than a place to live.
+        // The label is each item's accessible name, so the icons must not repeat it.
+        NavigationBarItem(
+            selected = current == books.key,
+            onClick = { onSelect(books.key) },
+            icon = { Icon(books.icon, contentDescription = null) },
+            label = { Text(stringResource(books.labelRes)) },
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = onScan,
+            icon = { Icon(painterResource(R.drawable.ic_qr_scan), contentDescription = null) },
+            label = { Text(stringResource(R.string.books_quick_action)) },
+        )
+        NavigationBarItem(
+            selected = current == mine.key,
+            onClick = { onSelect(mine.key) },
+            icon = { Icon(mine.icon, contentDescription = null) },
+            label = { Text(stringResource(mine.labelRes)) },
+        )
     }
 }
 
-// 220ms of tween, no spring: the motion has to explain the direction of travel, not perform.
-private const val ScreenMotionMillis = 220
+// 380ms of decelerating travel: the new screen crosses the whole width so the reader can see where
+// it came from, and the old one steps aside by a quarter instead of being yanked off the edge. The
+// fade is shorter than the slide on purpose - a fade as slow as the travel leaves both screens
+// ghosting over each other, which is the opposite of smooth.
+private const val ScreenMotionMillis = 380
+private const val FadeMotionMillis = 220
 
-private val screenSlide = tween<IntOffset>(ScreenMotionMillis)
+private val screenSlide = tween<IntOffset>(ScreenMotionMillis, easing = FastOutSlowInEasing)
 
-private val screenFade = tween<Float>(ScreenMotionMillis)
+private val screenStepAside = tween<IntOffset>(ScreenMotionMillis, easing = FastOutSlowInEasing)
+
+private val screenFade = tween<Float>(FadeMotionMillis)
 
 /**
- * Forward motion: the new screen drifts in from the right, the old one steps aside by the same
- * fraction of the width, so it reads as a nudge rather than a full push.
+ * Forward motion: the new screen slides in from the right edge across the whole width, and the old
+ * one steps a quarter of the way left behind it. That quarter is what makes the pair read as one
+ * gesture with a direction rather than as two screens swapping.
  */
 private fun <T : Any> AnimatedContentTransitionScope<Scene<T>>.forwardMotion(): ContentTransform =
     if (targetState.key is IsbnScan) {
@@ -312,8 +413,8 @@ private fun <T : Any> AnimatedContentTransitionScope<Scene<T>>.forwardMotion(): 
         // instead of pushing the form sideways.
         (slideInVertically(screenSlide) { it } + fadeIn(screenFade)) togetherWith fadeOut(screenFade)
     } else {
-        (slideInHorizontally(screenSlide) { it / 10 } + fadeIn(screenFade)) togetherWith
-            (slideOutHorizontally(screenSlide) { -it / 10 } + fadeOut(screenFade))
+        (slideInHorizontally(screenSlide) { it } + fadeIn(screenFade)) togetherWith
+            (slideOutHorizontally(screenStepAside) { -it / 4 } + fadeOut(screenFade))
     }
 
 /** Back: the same motion mirrored, so going back undoes what going forward did. */
@@ -322,8 +423,8 @@ private fun <T : Any> AnimatedContentTransitionScope<Scene<T>>.backMotion(): Con
         fadeIn(screenFade) togetherWith
             (slideOutVertically(screenSlide) { it } + fadeOut(screenFade))
     } else {
-        (slideInHorizontally(screenSlide) { -it / 10 } + fadeIn(screenFade)) togetherWith
-            (slideOutHorizontally(screenSlide) { it / 10 } + fadeOut(screenFade))
+        (slideInHorizontally(screenStepAside) { -it / 4 } + fadeIn(screenFade)) togetherWith
+            (slideOutHorizontally(screenSlide) { it } + fadeOut(screenFade))
     }
 
 /**

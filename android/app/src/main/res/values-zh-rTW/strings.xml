@@ -294,4 +294,6 @@
     <!-- 底部一个动作入口：面板里是扫码录入、搜索与新增图书。 -->
     <string name="books_quick_action">掃碼</string>
     <string name="common_search">搜尋</string>
+    <!-- 底部第三栏：账户、统计、设置与退出都收在这里。 -->
+    <string name="mine_title">我的</string>
 </resources>

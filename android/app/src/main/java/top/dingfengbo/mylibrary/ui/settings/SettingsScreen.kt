@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Share
@@ -89,7 +90,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = { Text(stringResource(R.string.mine_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -151,7 +152,8 @@ fun SettingsScreen(
             }
 
             Section(R.string.settings_more) {
-                NavigationRow(Icons.Default.Star, R.string.stats_title, onOpenStats)
+                // The same glyph the bar used for statistics before it moved in here.
+                NavigationRow(Icons.Default.Info, R.string.stats_title, onOpenStats)
                 NavigationRow(Icons.Default.Share, R.string.export_title, onOpenExport)
             }
 

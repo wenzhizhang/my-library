@@ -16,4 +16,19 @@ class LibraryEvents {
     val revision: StateFlow<Int> = _revision.asStateFlow()
 
     fun bump() = _revision.update { it + 1 }
+
+    private val _searchRequested = MutableStateFlow(false)
+
+    /**
+     * A request to open the book list's search, raised from the bar's quick actions.
+     *
+     * The bar can see the button but not the list's own mode, and the list is not even composed while
+     * the reader is on another tab, so the ask travels as a request that stays until it is taken.
+     */
+    val searchRequested: StateFlow<Boolean> = _searchRequested.asStateFlow()
+
+    fun requestSearch() = _searchRequested.update { true }
+
+    /** The list has taken it; clearing keeps the next visit out of search mode. */
+    fun consumeSearchRequest() = _searchRequested.update { false }
 }

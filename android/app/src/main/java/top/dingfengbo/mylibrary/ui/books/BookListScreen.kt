@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +60,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -92,7 +90,6 @@ fun BookListScreen(
     onOpenCatalog: (CatalogEntity) -> Unit,
     onOpenCollections: () -> Unit,
     onOpenPlans: () -> Unit,
-    onOpenScanner: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookListViewModel = viewModel {
         BookListViewModel(container.bookRepository, container.libraryEvents)
@@ -103,7 +100,6 @@ fun BookListScreen(
     var catalogMenu by remember { mutableStateOf(false) }
     // Search is a mode the button below opens, not a fixture at the top of the list.
     var searchActive by rememberSaveable { mutableStateOf(false) }
-    var quickActions by rememberSaveable { mutableStateOf(false) }
     val searchFocus = remember { FocusRequester() }
     val leaveSearch = {
         searchActive = false
@@ -112,6 +108,19 @@ fun BookListScreen(
 
     // The back gesture leaves search before it leaves the screen, which is where a reader expects it.
     BackHandler(enabled = searchActive) { leaveSearch() }
+
+    // The bar's quick actions can ask for search from anywhere, so the ask arrives as a request: the
+    // list is not composed at all while the reader is on another tab.
+    LaunchedEffect(Unit) {
+        container.libraryEvents.searchRequested.collect { requested ->
+            if (requested) {
+                // Search means the whole library: only the All scope's endpoint takes a query.
+                if (ui.scope != BookScope.All) viewModel.onScopeChange(BookScope.All)
+                searchActive = true
+                container.libraryEvents.consumeSearchRequest()
+            }
+        }
+    }
 
     // Prefetch the next page a screenful before the end. The view model decides whether more exist,
     // so this closure never needs to read a stale list size.
@@ -144,17 +153,6 @@ fun BookListScreen(
                 },
             )
         },
-        // One action for the three things this screen is opened to do: put a book in, by scanner or
-        // by form, and find one. It replaces the search box that used to sit above the list and the
-        // add button that floated over it - two permanent controls competing for the same space.
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { quickActions = true },
-                icon = { Icon(painterResource(R.drawable.ic_scan), contentDescription = null) },
-                text = { Text(stringResource(R.string.books_quick_action)) },
-            )
-        },
-        floatingActionButtonPosition = FabPosition.Center,
         modifier = modifier,
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -318,30 +316,6 @@ fun BookListScreen(
         )
     }
 
-    if (quickActions) {
-        ModalBottomSheet(onDismissRequest = { quickActions = false }) {
-            Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
-                // Scan first: it is what the button is named after, and how most books arrive.
-                QuickActionRow(
-                    icon = { Icon(painterResource(R.drawable.ic_scan), contentDescription = null) },
-                    label = stringResource(R.string.scan_title),
-                ) { quickActions = false; onOpenScanner() }
-                // Only the All scope takes a query - the wishlist and archived endpoints take none,
-                // so offering search there would offer a control that cannot do anything.
-                if (ui.supportsFilters) {
-                    QuickActionRow(
-                        icon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        label = stringResource(R.string.common_search),
-                    ) { quickActions = false; searchActive = true }
-                }
-                QuickActionRow(
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    label = stringResource(R.string.books_add_new),
-                ) { quickActions = false; onCreateBook() }
-            }
-        }
-    }
-
     if (catalogMenu) {
         ModalBottomSheet(onDismissRequest = { catalogMenu = false }) {
             Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
@@ -413,22 +387,6 @@ private fun ListStatus(
                 modifier = modifier,
             )
         }
-    }
-}
-
-/** One row of the quick-action sheet: an icon, a name, and the whole row as the target. */
-@Composable
-private fun QuickActionRow(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        icon()
-        Spacer(Modifier.width(Spacing.md))
-        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
