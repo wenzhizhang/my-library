@@ -29,7 +29,8 @@ data class BookListUiState(
     val error: Throwable? = null,
     val totalBooks: Int = 0,
     val hasMore: Boolean = false,
-    val grid: Boolean = false,
+    // Grid by default: a cover is what a reader recognises a book by, and the list is a tap away.
+    val grid: Boolean = true,
     val filterSheetOpen: Boolean = false,
 ) {
     /** Wishlist and archived listings take no filters — the UI must not offer dead controls. */

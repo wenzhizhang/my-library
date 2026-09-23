@@ -63,7 +63,7 @@ fun AppTopBar(
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .height(AppBarHeight)
-                .padding(horizontal = 4.dp),
+                .padding(end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             navigationIcon?.invoke()
@@ -71,7 +71,9 @@ fun AppTopBar(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = if (navigationIcon == null) 12.dp else 0.dp),
+                        // 16dp from the screen edge, the inset Material itself uses for a title. With a
+                        // navigation icon in front, the icon's own 48dp touch target provides it.
+                        .padding(start = if (navigationIcon == null) 16.dp else 0.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     title()

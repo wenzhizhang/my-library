@@ -55,6 +55,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.dingfengbo.mylibrary.theme.Spacing
+import top.dingfengbo.mylibrary.data.LibraryEvents.ListRequest
 import top.dingfengbo.mylibrary.ui.common.appBarFill
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -282,6 +283,11 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                             onBack = { backStack.removeLastOrNull() },
                             onSignOut = { container.sessionManager.signOut() },
                             onOpenStats = { backStack.add(Stats) },
+                            onShowScope = { scope ->
+                                // A listing is the book list showing one shelf, so go there and ask it.
+                                while (backStack.size > 1) backStack.removeLastOrNull()
+                                container.libraryEvents.requestList(ListRequest.ShowScope(scope))
+                            },
                             onOpenExport = { backStack.add(Export) },
                         )
                     }
@@ -298,7 +304,7 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                     // Search lives in the book list, which is not even composed while the reader is on
                     // another tab: go there first, then ask it to open the field.
                     while (backStack.size > 1) backStack.removeLastOrNull()
-                    container.libraryEvents.requestSearch()
+                    container.libraryEvents.requestList(ListRequest.Search)
                 },
                 onAddBook = { quickActions = false; backStack.add(BookForm()) },
             )

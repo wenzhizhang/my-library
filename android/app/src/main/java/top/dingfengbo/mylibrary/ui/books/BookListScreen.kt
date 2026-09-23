@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.data.LibraryEvents.ListRequest
 import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.ui.common.SearchField
 import top.dingfengbo.mylibrary.api.models.BookCard
@@ -110,13 +111,22 @@ fun BookListScreen(
     // The bar's quick actions can ask for search from anywhere, so the ask arrives as a request: the
     // list is not composed at all while the reader is on another tab.
     LaunchedEffect(Unit) {
-        container.libraryEvents.searchRequested.collect { requested ->
-            if (requested) {
-                // Search means the whole library: only the All scope's endpoint takes a query.
-                if (ui.scope != BookScope.All) viewModel.onScopeChange(BookScope.All)
-                searchActive = true
-                container.libraryEvents.consumeSearchRequest()
+        container.libraryEvents.listRequest.collect { request ->
+            when (request) {
+                // Search means the whole library: only the All listing takes a query.
+                ListRequest.Search -> {
+                    if (ui.scope != BookScope.All) viewModel.onScopeChange(BookScope.All)
+                    searchActive = true
+                }
+
+                is ListRequest.ShowScope -> {
+                    searchActive = false
+                    viewModel.onScopeChange(request.scope)
+                }
+
+                null -> return@collect
             }
+            container.libraryEvents.consumeListRequest()
         }
     }
 
@@ -132,11 +142,23 @@ fun BookListScreen(
             AppTopBar(
                 title = { Text(stringResource(ui.scope.titleRes)) },
                 navigationIcon = {
-                    if (searchActive) {
-                        IconButton(onClick = leaveSearch) {
+                    // Two ways back out of this bar: out of search, or out of one of the listings.
+                    // The listings are switched from Mine now, so a listing the reader is standing in
+                    // needs a way back to the whole library that is not the system back gesture.
+                    when {
+                        searchActive -> IconButton(onClick = leaveSearch) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.common_back),
+                            )
+                        }
+
+                        ui.scope != BookScope.All -> IconButton(
+                            onClick = { viewModel.onScopeChange(BookScope.All) },
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.books_scope_all),
                             )
                         }
                     }
@@ -165,21 +187,6 @@ fun BookListScreen(
                         .focusRequester(searchFocus),
                 )
                 LaunchedEffect(searchActive) { searchFocus.requestFocus() }
-            }
-
-            Spacer(Modifier.height(Spacing.sm))
-
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg)) {
-                val scopes = BookScope.entries
-                scopes.forEachIndexed { index, scope ->
-                    SegmentedButton(
-                        selected = ui.scope == scope,
-                        onClick = { viewModel.onScopeChange(scope) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = scopes.size),
-                    ) {
-                        Text(stringResource(scope.titleRes))
-                    }
-                }
             }
 
             Spacer(Modifier.height(Spacing.sm))

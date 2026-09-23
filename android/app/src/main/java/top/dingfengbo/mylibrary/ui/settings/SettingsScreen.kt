@@ -22,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
@@ -57,6 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.data.model.BookScope
 import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.MediaUrls
@@ -76,6 +79,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSignOut: suspend () -> Unit,
     onOpenStats: () -> Unit,
+    onShowScope: (BookScope) -> Unit,
     onOpenExport: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel {
@@ -148,6 +152,18 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
+            }
+
+            // The listings live here rather than as a row of tabs over the library: they are places
+            // you go on purpose, not a switch you flip while browsing.
+            Section(R.string.books_title) {
+                NavigationRow(Icons.Default.Favorite, R.string.books_scope_wishlist) {
+                    onShowScope(BookScope.Wishlist)
+                }
+                // The curated icon set has no archive glyph; a tick is the nearest honest one.
+                NavigationRow(Icons.Default.Done, R.string.books_scope_archived) {
+                    onShowScope(BookScope.Archived)
+                }
             }
 
             Section(R.string.settings_more) {
