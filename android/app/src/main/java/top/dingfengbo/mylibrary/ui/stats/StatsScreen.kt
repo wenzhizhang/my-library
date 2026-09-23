@@ -24,7 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.api.models.ApiStatsBooksGet200Response
 import top.dingfengbo.mylibrary.api.models.NameCount
 import top.dingfengbo.mylibrary.data.AppContainer
@@ -66,7 +66,7 @@ fun StatsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(R.string.stats_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

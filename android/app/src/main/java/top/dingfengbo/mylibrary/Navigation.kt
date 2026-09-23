@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +54,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.dingfengbo.mylibrary.theme.Spacing
+import top.dingfengbo.mylibrary.ui.common.appBarFill
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -287,7 +287,6 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
         if (quickActions) {
             QuickActionsSheet(
                 onDismiss = { quickActions = false },
-                onScan = { quickActions = false; backStack.add(IsbnScan) },
                 onSearch = {
                     quickActions = false
                     // Search lives in the book list, which is not even composed while the reader is on
@@ -309,27 +308,22 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
 @Composable
 private fun QuickActionsSheet(
     onDismiss: () -> Unit,
-    onScan: () -> Unit,
     onSearch: () -> Unit,
     onAddBook: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(bottom = Spacing.xxl)) {
-            // Scan first: it is what the button is named after, and how most books arrive.
+            // One way in, two ways to fill it: the form's ISBN row carries the scanner, so scanning is
+            // a step inside adding a book rather than a second entry beside it.
             QuickActionRow(
                 icon = { Icon(painterResource(R.drawable.ic_qr_scan), contentDescription = null) },
-                label = stringResource(R.string.scan_title),
-                onClick = onScan,
+                label = stringResource(R.string.books_add_new),
+                onClick = onAddBook,
             )
             QuickActionRow(
                 icon = { Icon(Icons.Default.Search, contentDescription = null) },
                 label = stringResource(R.string.common_search),
                 onClick = onSearch,
-            )
-            QuickActionRow(
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                label = stringResource(R.string.books_add_new),
-                onClick = onAddBook,
             )
         }
     }
@@ -364,7 +358,7 @@ private val BottomDestinations =
 @Composable
 private fun LibraryBottomBar(current: NavKey?, onSelect: (NavKey) -> Unit, onScan: () -> Unit) {
     val (books, mine) = BottomDestinations
-    NavigationBar {
+    NavigationBar(containerColor = appBarFill()) {
         // Books, then the action, then Mine: the middle of the bar is what the reader came to do, and
         // it is never highlighted because it is a task rather than a place to live.
         // The label is each item's accessible name, so the icons must not repeat it.

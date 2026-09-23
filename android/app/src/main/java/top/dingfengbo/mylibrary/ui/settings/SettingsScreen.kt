@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,7 +37,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.MediaUrls
 import top.dingfengbo.mylibrary.data.auth.Session
@@ -89,7 +88,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(R.string.mine_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.data.model.BookQuery
 import top.dingfengbo.mylibrary.data.model.BookScope
@@ -76,7 +76,7 @@ fun CollectionDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = {
                     Text(
                         text = ui.collection?.name ?: stringResource(R.string.collections_title),

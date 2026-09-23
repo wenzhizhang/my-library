@@ -42,7 +42,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +69,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import top.dingfengbo.mylibrary.R
+import top.dingfengbo.mylibrary.ui.common.AppTopBar
 import top.dingfengbo.mylibrary.theme.IdentifierTextStyle
 import top.dingfengbo.mylibrary.theme.Spacing
 import top.dingfengbo.mylibrary.ui.common.EmptyState
@@ -138,7 +138,7 @@ fun IsbnScanScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            AppTopBar(
                 title = { Text(stringResource(R.string.scan_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
