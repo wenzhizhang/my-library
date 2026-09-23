@@ -14,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -138,6 +139,11 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
     var quickActions by remember { mutableStateOf(false) }
 
     Scaffold(
+        // The bars below handle the system insets themselves: AppTopBar pads for the status bar so its
+        // fill runs under it, and NavigationBar does the same for the gesture bar. Leaving this
+        // scaffold's default insets on would apply the status bar a second time and push every top
+        // bar's content a status bar below its own centre.
+        contentWindowInsets = WindowInsets(0),
         // The bar is for the three places you can live in. Everything else is a task pushed on top
         // of one of them, and those keep their own Back instead of offering a lateral escape.
         bottomBar = {
