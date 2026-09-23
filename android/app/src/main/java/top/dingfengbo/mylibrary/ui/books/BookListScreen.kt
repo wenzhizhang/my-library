@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -138,6 +139,9 @@ fun BookListScreen(
     }
 
     Scaffold(
+        // The bar's own NavigationBar owns the bottom inset and this screen is one of its roots, so
+        // taking the system insets here as well would pad the list a second time.
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             AppTopBar(
                 title = { Text(stringResource(ui.scope.titleRes)) },
@@ -270,14 +274,7 @@ fun BookListScreen(
                     LazyVerticalGrid(
                         columns = if (ui.grid) GridCells.Adaptive(minSize = 108.dp) else GridCells.Fixed(1),
                         state = gridState,
-                        // Bottom padding clears the floating add action, so the last row is not
-                        // half-covered by it once the list is long enough to scroll.
-                        contentPadding = PaddingValues(
-                            start = Spacing.md,
-                            end = Spacing.md,
-                            top = Spacing.md,
-                            bottom = 88.dp,
-                        ),
+                        contentPadding = PaddingValues(Spacing.md),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxSize(),

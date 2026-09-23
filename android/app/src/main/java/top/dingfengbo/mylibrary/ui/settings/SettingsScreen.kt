@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -76,7 +79,6 @@ fun SettingsScreen(
     container: AppContainer,
     session: Session,
     serverUrl: String,
-    onBack: () -> Unit,
     onSignOut: suspend () -> Unit,
     onOpenStats: () -> Unit,
     onShowScope: (BookScope) -> Unit,
@@ -91,17 +93,11 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
+        // Mine is one of the bar's roots: the bar owns the bottom inset for it.
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             AppTopBar(
                 title = { Text(stringResource(R.string.mine_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                    }
-                },
             )
         },
         modifier = modifier,
@@ -259,6 +255,8 @@ private fun RowShell(
     onClick: (() -> Unit)? = null,
     onSelect: (() -> Unit)? = null,
     selected: Boolean = false,
+    checked: Boolean = false,
+    onToggle: ((Boolean) -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
 ) {
@@ -269,11 +267,18 @@ private fun RowShell(
             .heightIn(min = 48.dp)
             .then(
                 when {
+                    // A switch row is one control: the whole row toggles and carries the label, so the
+                    // Switch itself is given no handler and cannot become a nameless second target.
+                    onToggle != null ->
+                        Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onToggle)
+
                     onSelect != null ->
                         Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
 
+                    // A row that navigates is a button, not an option: selectable would publish a
+                    // Selected state that never changes and read as "not selected" to a screen reader.
                     onClick != null ->
-                        Modifier.selectable(selected = false, role = Role.Button, onClick = onClick)
+                        Modifier.clickable(role = Role.Button, onClick = onClick)
 
                     else -> Modifier
                 }
@@ -346,10 +351,13 @@ private fun ToggleRow(
         icon = icon,
         title = title,
         support = subtitle,
+        checked = checked,
+        onToggle = onCheckedChange,
         trailing = {
+            // No handler: the row owns the toggle, and the label is part of that one target.
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange,
+                onCheckedChange = null,
                 modifier = Modifier.padding(start = Spacing.md),
             )
         },

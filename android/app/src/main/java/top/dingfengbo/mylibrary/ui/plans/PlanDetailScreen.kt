@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +47,7 @@ import top.dingfengbo.mylibrary.data.model.BookQuery
 import top.dingfengbo.mylibrary.data.model.BookScope
 import top.dingfengbo.mylibrary.theme.NumericTextStyle
 import top.dingfengbo.mylibrary.theme.Spacing
-import top.dingfengbo.mylibrary.theme.StatusColors
+import top.dingfengbo.mylibrary.theme.statusColors
 import top.dingfengbo.mylibrary.ui.common.BookPickerDialog
 import top.dingfengbo.mylibrary.ui.common.DeleteConfirmDialog
 import top.dingfengbo.mylibrary.ui.common.DetailActionFooter
@@ -91,7 +91,7 @@ fun PlanDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.common_back),
                         )
                     }
@@ -258,7 +258,7 @@ private fun PlanProgressLine(progress: BigDecimal) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         LinearProgressIndicator(
             progress = { fraction },
-            color = StatusColors.read,
+            color = statusColors().read,
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(Spacing.sm))

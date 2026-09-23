@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import top.dingfengbo.mylibrary.R
 import top.dingfengbo.mylibrary.theme.Spacing
-import top.dingfengbo.mylibrary.theme.StatusColors
+import top.dingfengbo.mylibrary.theme.statusColors
 import top.dingfengbo.mylibrary.ui.books.BookCover
 import top.dingfengbo.mylibrary.ui.books.ReadState
 
@@ -112,10 +112,11 @@ private fun readStateLabel(state: String): String =
     ReadState.entries.firstOrNull { it.value == state }?.let { stringResource(it.labelRes) } ?: state
 
 /** The reading-state tints from the palette; an unknown state reads as "no state yet". */
+@Composable
 private fun readStateTint(state: String): Color = when (state) {
-    ReadState.Read.value -> StatusColors.read
-    ReadState.Reading.value -> StatusColors.reading
-    ReadState.Unread.value -> StatusColors.unread
-    ReadState.Abandoned.value -> StatusColors.archived
-    else -> StatusColors.unread
+    ReadState.Read.value -> statusColors().read
+    ReadState.Reading.value -> statusColors().reading
+    ReadState.Unread.value -> statusColors().unread
+    ReadState.Abandoned.value -> statusColors().archived
+    else -> statusColors().unread
 }

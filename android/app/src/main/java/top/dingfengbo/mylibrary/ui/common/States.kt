@@ -32,6 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,6 +51,19 @@ import top.dingfengbo.mylibrary.theme.Spacing
  * screen that feels loaded and one that feels broken. Same for the empty and error cases, which
  * were one line of text with nowhere to go.
  */
+
+/**
+ * Tells a screen reader that content is on its way. The blocks say nothing by themselves, so without
+ * this a first load is a silent pause followed by content appearing from nowhere.
+ */
+@Composable
+private fun Modifier.skeletonSemantics(): Modifier {
+  val label = stringResource(R.string.common_loading)
+  return semantics(mergeDescendants = true) {
+    contentDescription = label
+    liveRegion = LiveRegionMode.Polite
+  }
+}
 
 /** A single shimmering placeholder block. */
 @Composable
@@ -76,7 +93,10 @@ fun SkeletonBlock(
  */
 @Composable
 fun BookListSkeleton(modifier: Modifier = Modifier, rows: Int = 6) {
-  Column(modifier.fillMaxWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+  Column(
+    modifier.fillMaxWidth().skeletonSemantics().padding(horizontal = Spacing.lg),
+    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+  ) {
     repeat(rows) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         SkeletonBlock(Modifier.size(56.dp), corner = 6)
@@ -93,7 +113,10 @@ fun BookListSkeleton(modifier: Modifier = Modifier, rows: Int = 6) {
 /** A detail or form screen's shape while the record loads: a header block plus a few field rows. */
 @Composable
 fun DetailSkeleton(modifier: Modifier = Modifier, rows: Int = 5) {
-  Column(modifier.fillMaxWidth().padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+  Column(
+    modifier.fillMaxWidth().skeletonSemantics().padding(Spacing.lg),
+    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+  ) {
     SkeletonBlock(Modifier.fillMaxWidth(0.6f).height(24.dp))
     Spacer(Modifier.height(Spacing.sm))
     repeat(rows) {

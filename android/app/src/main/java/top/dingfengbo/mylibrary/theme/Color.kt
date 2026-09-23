@@ -1,7 +1,9 @@
 package top.dingfengbo.mylibrary.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -89,11 +91,42 @@ internal val DarkColors =
     scrim = Color(0xFF000000),
   )
 
-/** Status tints the app shows outside Material's own roles (reading progress, wishlist, archived). */
-internal object StatusColors {
-  val read = Color(0xFF2E6A54)
-  val reading = Color(0xFF8A6A1F)
-  val unread = Color(0xFF5A6560)
-  val wishlist = Color(0xFF8A4A6A)
-  val archived = Color(0xFF5C6470)
-}
+/**
+ * Status tints the app shows outside Material's own roles (reading progress, wishlist, archived).
+ *
+ * One set per theme, because these are read as text and as thin indicators rather than as fills. The
+ * light steps measure 4.6-6.3:1 against a light surface but only 2.6-2.9:1 against this app's dark
+ * one, which leaves a dark-theme reader unable to tell which shelf or state a book is in. The dark
+ * steps are the same hues at tonal 80, matching the steps DarkColors itself is built from.
+ */
+internal data class StatusPalette(
+  val read: Color,
+  val reading: Color,
+  val unread: Color,
+  val wishlist: Color,
+  val archived: Color,
+)
+
+private val LightStatus =
+  StatusPalette(
+    read = Color(0xFF2E6A54),
+    // 5.03:1 as an 11sp chip label over its own 16% fill. The tonal-40 gold it replaces measured
+    // 3.93:1 there, which is below AA for text that small.
+    reading = Color(0xFF755812),
+    unread = Color(0xFF5A6560),
+    wishlist = Color(0xFF8A4A6A),
+    archived = Color(0xFF5C6470),
+  )
+
+private val DarkStatus =
+  StatusPalette(
+    read = Color(0xFF92D5BA),
+    reading = Color(0xFFE8C36A),
+    unread = Color(0xFFBEC9C4),
+    wishlist = Color(0xFFF4B0CE),
+    archived = Color(0xFFC2CBD6),
+  )
+
+/** The tints for the theme in use, so one call site reads correctly in light and in dark. */
+@Composable
+internal fun statusColors(): StatusPalette = if (isSystemInDarkTheme()) DarkStatus else LightStatus

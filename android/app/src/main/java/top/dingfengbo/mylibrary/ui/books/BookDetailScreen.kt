@@ -60,7 +60,7 @@ import top.dingfengbo.mylibrary.api.models.BookResponse
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.theme.IdentifierTextStyle
 import top.dingfengbo.mylibrary.theme.Spacing
-import top.dingfengbo.mylibrary.theme.StatusColors
+import top.dingfengbo.mylibrary.theme.statusColors
 import top.dingfengbo.mylibrary.ui.common.DetailLoadError
 import top.dingfengbo.mylibrary.ui.common.DetailSkeleton
 import top.dingfengbo.mylibrary.ui.common.errorMessage
@@ -383,10 +383,10 @@ private fun StatusChips(book: BookResponse, archived: Boolean) {
             )
         }
         if (book.inWish == true) {
-            StatusChip(stringResource(R.string.book_detail_field_wish), StatusColors.wishlist)
+            StatusChip(stringResource(R.string.book_detail_field_wish), statusColors().wishlist)
         }
         if (isArchived) {
-            StatusChip(stringResource(R.string.book_detail_field_archived), StatusColors.archived)
+            StatusChip(stringResource(R.string.book_detail_field_archived), statusColors().archived)
         }
     }
 }
@@ -407,13 +407,14 @@ private fun StatusChip(label: String, tint: Color) {
 }
 
 /** The reading-state tints from the palette; anything the backend adds reads as "no state yet". */
+@Composable
 private fun readStateTint(state: String): Color =
     when (state) {
-        ReadState.Read.value -> StatusColors.read
-        ReadState.Reading.value -> StatusColors.reading
-        ReadState.Unread.value -> StatusColors.unread
-        ReadState.Abandoned.value -> StatusColors.archived
-        else -> StatusColors.unread
+        ReadState.Read.value -> statusColors().read
+        ReadState.Reading.value -> statusColors().reading
+        ReadState.Unread.value -> statusColors().unread
+        ReadState.Abandoned.value -> statusColors().archived
+        else -> statusColors().unread
     }
 
 /** A section title with its divider, for sections whose body is not a list of detail rows. */

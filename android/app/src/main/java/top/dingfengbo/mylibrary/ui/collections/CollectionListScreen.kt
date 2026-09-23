@@ -15,9 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -83,7 +83,7 @@ fun CollectionListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.common_back),
                         )
                     }
@@ -136,7 +136,7 @@ fun CollectionListScreen(
                             ui.loading && ui.items.isEmpty() -> BookListSkeleton()
 
                             ui.showEmpty -> EmptyState(
-                                icon = Icons.Default.List,
+                                icon = Icons.AutoMirrored.Filled.List,
                                 title = stringResource(R.string.catalog_empty),
                                 hint = stringResource(R.string.collections_empty_hint),
                                 actionLabel = stringResource(R.string.collections_create),
@@ -188,7 +188,7 @@ private fun CollectionRow(
     ) {
         // Collections and plans are one tap apart, so a row says which kind it is before the name.
         Icon(
-            imageVector = Icons.Default.List,
+            imageVector = Icons.AutoMirrored.Filled.List,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp),

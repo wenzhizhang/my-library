@@ -280,7 +280,6 @@ private fun MainNavigation(container: AppContainer, session: Session, entryStore
                             container = container,
                             session = session,
                             serverUrl = BuildConfig.BASE_URL,
-                            onBack = { backStack.removeLastOrNull() },
                             onSignOut = { container.sessionManager.signOut() },
                             onOpenStats = { backStack.add(Stats) },
                             onShowScope = { scope ->
@@ -384,7 +383,7 @@ private fun LibraryBottomBar(current: NavKey?, onSelect: (NavKey) -> Unit, onSca
             selected = false,
             onClick = onScan,
             icon = { Icon(painterResource(R.drawable.ic_qr_scan), contentDescription = null) },
-            label = { Text(stringResource(R.string.books_quick_action)) },
+            label = { Text(stringResource(R.string.books_add_new)) },
         )
         NavigationBarItem(
             selected = current == mine.key,

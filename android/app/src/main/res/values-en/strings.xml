@@ -293,9 +293,9 @@
     <string name="catalog_form_section_basic">Basic</string>
     <string name="catalog_form_section_classification">Classification</string>
     <string name="catalog_form_section_details">Details</string>
-    <!-- 底部一个动作入口：面板里是扫码录入、搜索与新增图书。 -->
-    <string name="books_quick_action">Scan</string>
     <string name="common_search">Search</string>
     <!-- 底部第三栏：账户、统计、设置与退出都收在这里。 -->
     <string name="mine_title">Mine</string>
+    <!-- 骨架屏对屏幕阅读器说的话。 -->
+    <string name="common_loading">Loading…</string>
 </resources>

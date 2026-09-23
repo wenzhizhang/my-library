@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -135,15 +138,23 @@ fun BookPickerDialog(
                             Row(
                                 Modifier.fillMaxWidth()
                                     .heightIn(min = 48.dp)
-                                    .clickable(enabled = id != null) {
+                                    // A checkbox role, not a click: the tick carries no text of its
+                                    // own, so without this a screen reader hears the book's title and
+                                    // nothing about whether it is picked.
+                                    .toggleable(
+                                        value = isPicked,
+                                        enabled = id != null,
+                                        role = Role.Checkbox,
+                                    ) { wanted ->
                                         if (id != null) {
-                                            picked = if (isPicked) picked - id else picked + id
+                                            picked = if (wanted) picked + id else picked - id
                                         }
                                     }
                                     .padding(vertical = Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                BookCover(book.thumbImage, Modifier.width(36.dp).height(48.dp))
+                                // Square, like every other caller: the covers are square files.
+                                BookCover(book.thumbImage, Modifier.size(48.dp))
                                 Spacer(Modifier.width(Spacing.md))
                                 Column(Modifier.weight(1f)) {
                                     Text(

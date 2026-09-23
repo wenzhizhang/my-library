@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -237,14 +238,16 @@ private fun ChartSection(titleRes: Int, rows: List<ChartRow>, amount: Boolean = 
                     )
                 }
                 Spacer(Modifier.width(Spacing.md))
-                // Fixed width and end-aligned: a column of figures that grows a digit must not shove
-                // the bars sideways.
+                // A minimum, not a fixed width: a column of figures that grows a digit must not shove
+                // the bars sideways, but the count-and-amount pair can outgrow 88dp, and clipping it
+                // silently loses the last digits with nothing else on screen showing that figure.
                 Text(
                     text = listOfNotNull(count.toString(), row.extra).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium.merge(NumericTextStyle),
                     textAlign = TextAlign.End,
                     maxLines = 1,
-                    modifier = Modifier.width(88.dp),
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(min = 88.dp),
                 )
             }
         }

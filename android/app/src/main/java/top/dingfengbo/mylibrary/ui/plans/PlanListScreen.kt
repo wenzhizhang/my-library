@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +50,7 @@ import top.dingfengbo.mylibrary.api.models.ReadingPlanSummary
 import top.dingfengbo.mylibrary.data.AppContainer
 import top.dingfengbo.mylibrary.theme.NumericTextStyle
 import top.dingfengbo.mylibrary.theme.Spacing
-import top.dingfengbo.mylibrary.theme.StatusColors
+import top.dingfengbo.mylibrary.theme.statusColors
 import top.dingfengbo.mylibrary.ui.common.BookListSkeleton
 import top.dingfengbo.mylibrary.ui.common.DialogField
 import top.dingfengbo.mylibrary.ui.common.EmptyState
@@ -86,7 +86,7 @@ fun PlanListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.common_back),
                         )
                     }
@@ -218,7 +218,7 @@ private fun PlanRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LinearProgressIndicator(
                         progress = { fraction },
-                        color = StatusColors.read,
+                        color = statusColors().read,
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(Spacing.sm))
