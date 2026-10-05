@@ -111,7 +111,7 @@ const Bookshelves = () => {
     setEditingItem(bookshelf);
     setFormData({
       name: bookshelf.name || '',
-      intro: bookshelf.description || '',
+      intro: bookshelf.intro || '',
     });
     setModalOpen(true);
   };
@@ -183,7 +183,7 @@ const Bookshelves = () => {
         <tr key={item.id} onClick={() => navigate(`${item.id}`)}>
           <td className="list-cell-primary">{item.name}</td>
           <td className="list-cell-secondary">
-            {item.description ? (item.description.length > 80 ? item.description.substring(0, 80) + '...' : item.description) : ''}
+            {item.intro ? (item.intro.length > 80 ? item.intro.substring(0, 80) + '...' : item.intro) : ''}
           </td>
           {isAuthenticated && (
             <td style={{ width: 80, textAlign: 'right' }}>
@@ -203,7 +203,7 @@ const Bookshelves = () => {
     return (
       <div key={item.id} className="card">
         <h3 className="card-title">{item.name}</h3>
-        {item.description && <p className="caption">{item.description.length > 100 ? item.description.substring(0, 100) + '...' : item.description}</p>}
+        {item.intro && <p className="caption">{item.intro.length > 100 ? item.intro.substring(0, 100) + '...' : item.intro}</p>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <button className="btn-pill-link" onClick={() => navigate(`${item.id}`)}>
             {t('common.view')}

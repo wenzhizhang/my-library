@@ -122,9 +122,9 @@ const BookshelfDetails = () => {
           <p>
             <strong>{t('common.name')}:</strong> {bookshelf.name}
           </p>
-          {bookshelf.description && (
+          {bookshelf.intro && (
             <p>
-              <strong>{t('common.introduction')}:</strong> {bookshelf.description}
+              <strong>{t('common.introduction')}:</strong> {bookshelf.intro}
             </p>
           )}
         </div>
