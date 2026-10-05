@@ -123,7 +123,8 @@ DOMAIN=
 CERTBOT_EMAIL=
 
 # =============================================================================
-# 镜像标签 (默认 latest, 也可通过 --tag 参数覆盖)
+# 镜像标签：三个服务各自独立升版，版本号（如 v0.3.42）只对刚变更的服务存在，
+# 写成版本号会让其余服务拉不到镜像。保持 latest —— 每个服务的 latest 就是它自己的最新版。
 # =============================================================================
 TAG=latest
 
@@ -182,12 +183,30 @@ else
 fi
 
 if [ "${NO_PULL}" = false ]; then
-    print_info "Pulling latest images..."
-    ${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" pull
+    print_info "Pulling images for TAG=${TAG}..."
+    # 逐服务拉取，任何一个失败就在这里停下。
+    #
+    # 各服务是各自升版的：build.sh 只给"检测到变更"的服务升版本号，所以 build.sh 刚打印的
+    # v0.3.42 只存在于 frontend，backend / nginx / solar 都还停在各自的版本上。用这样的 TAG
+    # 部署时，整批 pull 只会拉到一个，然后 up -d 把那个容器重建掉，其余拉不到 —— 代理失去上游，
+    # 用户看到的是 502，日志里却只有一句拉取失败。逐个拉、并且指名是哪个服务，才不会静默半部署。
+    for svc in $(${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" config --services 2>/dev/null); do
+        if ! ${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" pull "${svc}"; then
+            print_error "无法拉取 ${svc}（TAG=${TAG}）"
+            print_info "各服务独立升版，版本号 TAG 只对刚变更过的服务存在。"
+            print_info "请用 TAG=latest 部署（每个服务的 latest 就是它自己的最新版），或不要设置 TAG。"
+            exit 1
+        fi
+    done
+    print_info "TAG=${TAG} 的镜像已就绪"
 fi
 
 print_info "Recreating containers..."
-${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" up -d --remove-orphans
+UP_ARGS="-d --remove-orphans"
+# --no-pull 要名副其实：compose 里写着 pull_policy: always，不显式 --pull never 它照样联网拉取，
+# 也就照样可能只拉到一半。这也是上面那条 502 的另一扇门。
+[ "${NO_PULL}" = true ] && UP_ARGS="${UP_ARGS} --pull never"
+${DOCKER_COMPOSE} -f "${COMPOSE_FILE}" up ${UP_ARGS}
 
 # =============================================================================
 # 数据库迁移 (--seed-db)
