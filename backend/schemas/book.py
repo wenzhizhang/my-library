@@ -267,8 +267,8 @@ class BookResponse(BaseModel):
      - tags: 标签列表
     """
     id: int
-    isbn: str
-    title_cn: str
+    isbn: Optional[str] = None
+    title_cn: Optional[str] = None
     title: str
     authors: Optional[List[AuthorSimple]] = None
     translator: Optional[str] = None

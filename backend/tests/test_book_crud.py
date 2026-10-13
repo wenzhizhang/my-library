@@ -369,3 +369,30 @@ def test_book_11_detail_lists_authors_as_strings(client, db):
         books = resp.json()["books"]
         assert len(books) == 1, url
         assert books[0]["authors"] == expected_authors, (url, books[0]["authors"])
+
+
+def test_book_12_nullable_title_cn(client, db):
+    """A book with no Chinese title (title_cn NULL) still serialises.
+
+    `books.title_cn` is nullable — an imported foreign-language book has no
+    Chinese title. BookResponse used to declare it (and isbn) as `str`, so
+    FastAPI raised ResponseValidationError → HTTP 500 on GET /api/books/{id},
+    even though the list endpoints (which don't use the model) rendered the
+    same book fine. BookDetails then showed its "not found" state.
+    """
+    from models import Book
+
+    book = Book(title="Childrens Classics Collection", isbn="9781509894741")
+    db.add(book)
+    db.commit()
+
+    resp = client.get(f"/api/books/{book.id}")
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["title_cn"] is None
+    assert data["title"] == "Childrens Classics Collection"
+
+    # PUT returns the same model
+    resp = client.put(f"/api/books/{book.id}", json={"pages": 42})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["title_cn"] is None
