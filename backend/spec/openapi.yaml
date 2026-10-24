@@ -724,12 +724,23 @@ components:
         results:
           type: array
           items: { $ref: "#/components/schemas/RagSearchResultItem" }
+    RagTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string, minLength: 1 }
     RagAnswerRequest:
       type: object
       required: [query]
       properties:
         query: { type: string, minLength: 1 }
-        top_k: { type: integer, default: 5, minimum: 1, maximum: 10 }
+        top_k: { type: integer, default: 5, minimum: 1, maximum: 5 }
+        history:
+          type: array
+          maxItems: 20
+          description: Earlier turns; follow-ups are rewritten against them
+          items: { $ref: "#/components/schemas/RagTurn" }
     RagAnswerSource:
       type: object
       required: [book_id]
@@ -750,6 +761,9 @@ components:
           type: array
           items: { $ref: "#/components/schemas/RagAnswerSource" }
         no_answer: { type: boolean }
+        rewritten_query:
+          type: string
+          description: Standalone query used for retrieval when history was given
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]

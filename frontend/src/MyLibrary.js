@@ -31,6 +31,7 @@ import Register from './components/Register';
 import StatsPage from './components/StatsPage';
 import ExportPage from './components/ExportPage';
 import Settings from './components/Settings';
+import Assistant from './components/Assistant';
 import './MyLibrary.css';
 
 function MyLibrary() {
@@ -80,6 +81,7 @@ function MyLibrary() {
               <Route path="settings" element={<Settings />} />
             </Routes>
           </main>
+          <Assistant />
         </div>
       </BackgroundProvider>
     </AuthProvider>

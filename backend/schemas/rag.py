@@ -36,10 +36,21 @@ class RagSummarizeResponse(BaseModel):
     updated: bool
 
 
+class RagTurn(BaseModel):
+    """One earlier turn of the conversation."""
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1)
+
+
 class RagAnswerRequest(BaseModel):
     """Answer generation request."""
     query: str = Field(..., min_length=1, description="Natural-language question")
     top_k: int = Field(5, ge=1, le=5, description="Max candidate books")
+    history: List[RagTurn] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Earlier turns; follow-ups are rewritten against them",
+    )
 
 
 class RagAnswerSource(BaseModel):
@@ -56,6 +67,7 @@ class RagAnswerResponse(BaseModel):
     answer: str
     sources: List[RagAnswerSource] = []
     no_answer: bool = False
+    rewritten_query: str = ""
 
 
 class RagReindexResponse(BaseModel):

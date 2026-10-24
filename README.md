@@ -215,13 +215,19 @@ POST /api/rag/answer
 Content-Type: application/json
 
 {"query": "沙陀往事讲了什么", "top_k": 5}
+
+# 多轮：追问会用对话历史改写成独立查询再检索
+{"query": "作者是谁", "top_k": 5,
+ "history": [{"role": "user", "content": "沙陀往事讲了什么"},
+             {"role": "assistant", "content": "它讲沙陀人的历史。"}]}
 ```
 
 只根据**你自己的书库**回答，不做通用问答：
 
 - **书名直通**：查询里点名某本书（如「沙陀往事」）时，只用那一本，向量层完全不参与；
 - **信号门控**：先取 FTS 命中里 BM25 ≥ 最优 50% 的书，再用余弦 ≥ 0.58 的向量命中补足（书讲某个主题时未必出现原词），最多 5 本；
-- **强制引用**：模型必须在回答末尾用 `[book_id=编号]` 标注来源，且**每个**编号都必须属于候选集，否则整条回答作废；
+- **多轮**：带 `history` 时先用一次 Flash 调用把追问改写成独立查询（改写失败自动回退原问题），回答 prompt 里也带上最近几轮；
+- **强制引用**：模型必须在回答末尾用 `[book_id=编号]` 标注来源，且**每个**编号都必须属于候选集，否则整条回答作废；比较多本书时必须分别引用；
 - **不硬答**：候选为空、模型回 `NONE`、或引用不合法时返回 `no_answer: true` 和空 `sources`。
 
 ```json
@@ -232,7 +238,7 @@ Content-Type: application/json
 相比 `/api/rag/search`（面向列表、优先召回），这个接口面向回答、优先精确，
 一次调用约 1-2 秒。
 
-量化评估（45 条 golden，当前基线：候选召回 1.000、无答案判定 1.000、非法引用 0、忠实度 0.94、平均 1.24s）：
+量化评估（70 条 golden，当前基线：候选召回 1.000、无答案判定 1.000、非法引用 0、引用覆盖 1.000、逐条 claim 支持率 0.961、平均 1.32s）：
 
 ```bash
 # 只跑确定性的门控评估，不花 API 调用
@@ -241,7 +247,22 @@ docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.
 docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live
 ```
 
+### 前端助手
+
+登录后页面右侧有一个悬浮按钮（问号/星光图标），点开即可向**自己的书库**提问：
+
+- 回答下方列出引用到的书，点击直接跳到图书详情页；
+- 支持追问：前端把对话历史随请求传给 `/api/rag/answer`，由后端取最近 8 轮改写成独立检索查询，响应里的 `rewritten_query` 会以小字提示；
+- 未找到时显示本地化提示；失败/未找到的轮次不会进入下一轮上下文；
+- 点击示例问题只填入输入框，不会直接发请求；
+- 「新对话」清空上下文；未配置模型的账户会看到明确的错误提示；
+- 移动端自动变成底部抽屉，`prefers-reduced-motion` 下关闭动画。
+
+组件：`frontend/src/components/Assistant.js`（样式 `Assistant.css`），在 `MyLibrary.js` 挂载；
+文案在 `i18n/{zh-CN,zh-TW,en}.json` 的 `assistant.*` 下。
+
 ### 增量 Reindex
+
 
 新书加入后只需要跑增量，不必重建整个书库：
 

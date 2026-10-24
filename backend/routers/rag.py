@@ -136,7 +136,12 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
     candidates), the reply is ``no_answer`` instead of a guess.
     """
     try:
-        result = answer_question(db, req.query, req.top_k)
+        result = answer_question(
+            db,
+            req.query,
+            req.top_k,
+            [turn.model_dump() for turn in req.history],
+        )
     except AnswerUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -145,6 +150,7 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
         answer=result.answer,
         sources=result.sources,
         no_answer=result.no_answer,
+        rewritten_query=result.rewritten_query,
     )
 
 

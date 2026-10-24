@@ -228,3 +228,223 @@ def test_answer_endpoint_returns_503_without_key(client, monkeypatch):
 
     assert resp.status_code == 503
     assert "DEEPSEEK_API_KEY" in resp.json()["detail"]
+
+
+def _cand(book):
+    return {
+        "book_id": book.id,
+        "title": book.title,
+        "title_cn": book.title_cn,
+        "summary": "简介",
+        "introduction": "",
+        "authors": [],
+    }
+
+
+def test_followup_is_rewritten_before_retrieval(db, monkeypatch):
+    book = _book(db, "沙陀往事")
+    seen = {}
+
+    def fake_retrieve(db_, query, top_k=5):
+        seen["query"] = query
+        return [_cand(book)]
+
+    monkeypatch.setattr(answer_module, "retrieve_for_answer", fake_retrieve)
+    systems = []
+
+    def fake_chat(prompt, *, system, **kwargs):
+        systems.append(system)
+        if "改写" in system:
+            return "沙陀往事 作者"
+        return f"作者是樊文礼。[book_id={book.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake_chat)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    history = [
+        {"role": "user", "content": "沙陀往事讲了什么"},
+        {"role": "assistant", "content": "它讲沙陀人的历史。"},
+    ]
+    result = answer_question(db, "作者是谁", history=history)
+
+    assert seen["query"] == "沙陀往事 作者"
+    assert result.rewritten_query == "沙陀往事 作者"
+    assert result.no_answer is False
+    assert len(systems) == 2  # one rewrite, one answer
+
+
+def test_followup_rewrite_failure_falls_back(db, monkeypatch):
+    book = _book(db, "沙陀往事")
+    seen = {}
+
+    def fake_retrieve(db_, query, top_k=5):
+        seen["query"] = query
+        return [_cand(book)]
+
+    monkeypatch.setattr(answer_module, "retrieve_for_answer", fake_retrieve)
+    replies = iter([None, f"答案。[book_id={book.id}]"])
+    monkeypatch.setattr(
+        answer_module, "deepseek_chat", lambda prompt, **kw: next(replies)
+    )
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    result = answer_question(
+        db, "作者是谁", history=[{"role": "user", "content": "沙陀往事"}]
+    )
+
+    assert seen["query"] == "作者是谁"
+    assert result.no_answer is False
+    assert result.rewritten_query == ""
+
+
+def test_no_history_skips_the_rewrite(db, monkeypatch):
+    book = _book(db, "沙陀往事")
+    monkeypatch.setattr(
+        answer_module, "retrieve_for_answer", lambda *a, **k: [_cand(book)]
+    )
+    systems = []
+
+    def fake_chat(prompt, *, system, **kwargs):
+        systems.append(system)
+        return f"答案。[book_id={book.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake_chat)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    answer_question(db, "沙陀往事")
+
+    assert len(systems) == 1
+
+
+def test_prompt_includes_history_and_caps_it(db):
+    candidates = [
+        {
+            "book_id": 1,
+            "title": "沙陀往事",
+            "title_cn": "沙陀往事",
+            "summary": "s",
+            "introduction": "",
+            "authors": [],
+        }
+    ]
+    history = [{"role": "user", "content": f"第{i}轮"} for i in range(10)]
+
+    prompt = build_prompt("作者是谁", candidates, history)
+
+    assert "对话历史" in prompt
+    assert "第9轮" in prompt
+    assert "第0轮" not in prompt
+
+
+def test_rewrite_only_sees_recent_turns(monkeypatch):
+    prompts = []
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda prompt, **kw: prompts.append(prompt) or "独立查询",
+    )
+    history = [{"role": "user", "content": f"第{i}轮"} for i in range(12)]
+
+    answer_module.resolve_followup_query("接下来呢", history)
+
+    assert "第11轮" in prompts[0]
+    assert "第0轮" not in prompts[0]
+
+
+def test_rewrite_strips_stray_book_brackets(monkeypatch):
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda prompt, **kw: "《沙陀往事》的作者是谁",
+    )
+
+    rewritten = answer_module.resolve_followup_query(
+        "作者是谁", [{"role": "user", "content": "沙陀往事"}]
+    )
+
+    assert rewritten == "沙陀往事的作者是谁"
+
+
+def test_multi_work_query_returns_every_named_work(db, monkeypatch):
+    books = [_book(db, title) for title in ("沙丘", "三体", "魔戒", "活着")]
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_for_answer(
+        db, "《沙丘》和三体、魔戒与活着分别讲了什么"
+    )
+
+    assert {c["book_id"] for c in candidates} == {book.id for book in books}
+    assert called == []
+
+
+def test_series_query_skips_the_title_fast_path(db, monkeypatch):
+    _book(db, "沙丘")
+    seen = []
+    monkeypatch.setattr(
+        answer_module, "search_fts", lambda *a, **k: seen.append("fts") or []
+    )
+    monkeypatch.setattr(answer_module, "search_vectors", lambda *a, **k: [])
+
+    candidates = retrieve_for_answer(db, "沙丘系列有哪些")
+
+    assert seen == ["fts"]
+    assert candidates == []
+
+
+def test_short_title_in_a_long_question_does_not_fast_path(db, monkeypatch):
+    _book(db, "沙丘")
+    seen = []
+    monkeypatch.setattr(
+        answer_module, "search_fts", lambda *a, **k: seen.append("fts") or []
+    )
+    monkeypatch.setattr(answer_module, "search_vectors", lambda *a, **k: [])
+
+    retrieve_for_answer(db, "我想了解一下沙丘这本书到底怎么样")
+
+    assert seen == ["fts"]
+
+
+def test_rewrite_is_exposed_when_the_answer_is_none(db, monkeypatch):
+    book = _book(db, "沙陀往事")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(
+        answer_module, "retrieve_for_answer", lambda *a, **k: [_cand(book)]
+    )
+    replies = iter(["沙陀往事 作者", "NONE"])
+    monkeypatch.setattr(
+        answer_module, "deepseek_chat", lambda prompt, **kw: next(replies)
+    )
+
+    result = answer_question(
+        db, "作者是谁", history=[{"role": "user", "content": "沙陀往事"}]
+    )
+
+    assert result.no_answer is True
+    assert result.rewritten_query == "沙陀往事 作者"
+
+
+def test_rewrite_is_exposed_when_there_are_no_candidates(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(answer_module, "retrieve_for_answer", lambda *a, **k: [])
+    monkeypatch.setattr(
+        answer_module, "deepseek_chat", lambda prompt, **kw: "沙陀往事 作者"
+    )
+
+    result = answer_question(
+        db, "作者是谁", history=[{"role": "user", "content": "沙陀往事"}]
+    )
+
+    assert result.reason == REASON_NO_CANDIDATES
+    assert result.rewritten_query == "沙陀往事 作者"
+
+
+def test_short_title_with_a_short_wrapper_fast_paths(db, monkeypatch):
+    book = _book(db, "三体")
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_for_answer(db, "三体的作者是谁")
+
+    assert [c["book_id"] for c in candidates] == [book.id]
+    assert called == []

@@ -280,7 +280,8 @@ OR book_fts.summary != _space_cjk(book.summary)
 
 **决定**：`POST /api/rag/answer`，DeepSeek Flash 生成，检索范围比 `/search` 窄得多。
 
-- 书名直通：归一化查询命中库内书名时，只用这些书，跳过检索层（含向量）。
+- 书名直通：归一化查询命中库内书名时，只用这些书，跳过检索层（含向量）。比较类问题（“《沙丘》和《三体》有什么区别”）会同时命中多本书；系列/续集类问题（“沙丘系列”“续集有哪些”）不走向量直通，交给检索召回多卷。
+- 多轮：带 history 时先用 Flash 把追问改写成独立查询（“作者是谁”→“沙陀往事 作者”），改写失败回退原问题；回答 prompt 附最近 4 轮。
 - 关键词门控：否则先取 FTS 命中里 BM25 ≥ 最优 50% 的书；关键字只覆盖“字面出现”的书，因此再用余弦 ≥ 0.58 的向量命中补足（“讲天文观测的书”未必出现“天文观测”四个字）。最多 5 本。
 - 为什么不用 RRF 分数做阈值：`hybrid_search` 的分数是按最高分归一化的 rank 融合值，第一名恒为 1.0；单分支命中时几乎全部 ≥0.76（挡不住），双分支命中时单分支一律 0.5（误杀）。整书向量本身的余弦对无关书就有 ~0.6，所以只能作为“补足”信号并配绝对下限。
 - 引用约束：prompt 要求只使用候选、末尾用 `[book_id=N]` 标注；模型回 `NONE`、无引用或引用不在候选集内，一律返回 `no_answer`，不回答。
@@ -298,12 +299,13 @@ OR book_fts.summary != _space_cjk(book.summary)
 - 当前 25 条覆盖实体、书名、作者、卷名、主题、语义、英文查询。
 - 后续建议扩充到 50-100 条，作为 CI/部署前回归。
 
-**回答侧**：`scripts/eval_answer.py` + `scripts/rag_answer_golden.jsonl`（45 条：20 书名/换句式、15 主题、10 书库外）。
+**回答侧**：`scripts/eval_answer.py` + `scripts/rag_answer_golden.jsonl`（70 条：20 书名/换句式、15 主题、10 书库外、5 作者、6 系列、4 多书对比、5 多轮追问、5 补充书名）。
 
 - 默认只跑**确定性门控**：`retrieve_for_answer` 的候选是否包含期望书、平均候选数——不花 API 调用，可以放 CI。
 - `--live` 再调用 Flash，统计 **grounded**（引用书是否属于期望）、**no_answer accuracy**（无关/实时问题是否正确拒答）、**非法引用拒绝数**、延迟。
-- `--judge` 追加 **LLM-as-judge 忠实度**：让模型只依据候选摘要核验回答，输出 supported / partial / unsupported。
-- 当前基线：candidate recall 1.000、grounded 1.000、no_answer 1.000、invalid citations 0、faithfulness 0.943（partial 2、unsupported 0）、平均 1.24s（候选数从 2.8 降到 2.3）。
+- 多轮条目只跑 `--live`（改写需要模型调用）；对比条目用 `expect_all`，统计多书引用覆盖率。
+- `--judge` 追加 **LLM-as-judge 忠实度**：把回答拆成逐条 claim，判断每条是否被候选摘要支持，统计 claim 支持率与“含未支持 claim 的回答数”。
+- 当前基线：candidate recall 1.000、grounded 1.000、no_answer 1.000、invalid citations 0、multi-source 覆盖 4/4、claim 支持率 390/406 = 0.961（12 条回答含未支持 claim）、平均 1.32s（judge 逐次有波动）。
 - 评测暴露过两个真实问题：① “今天股市行情怎么样” 曾被当成可回答问题（引用了投资书），已在 prompt 规则里加入“实时/外部信息 → NONE”；② 三条主题期望过窄（清朝/理财/魔兽），按书库实际书目修正。partial 的 1-2 条来自 320 字摘要截断与 judge 严格度，属可接受波动。
 
 ---
