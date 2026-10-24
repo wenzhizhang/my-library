@@ -37,6 +37,8 @@ SECURED_WRITES = [
     ("post", "/api/applications/"),
     ("put", "/api/applications/1"),
     ("delete", "/api/applications/1"),
+    ("post", "/api/rag/summarize/1"),
+    ("post", "/api/rag/reindex"),
 ]
 
 

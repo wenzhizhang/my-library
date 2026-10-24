@@ -4,10 +4,16 @@ All tables live inside the same per-user SQLite database used by the
 application, maintaining data isolation with zero extra infrastructure.
 """
 
+import logging
+import re
+from typing import Optional
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from .embedding import embed_text
+from .embedding import EMBEDDING_DIMS, EMBEDDING_MODEL_NAME, embed_text
+
+logger = logging.getLogger(__name__)
 
 # ── DDL ──────────────────────────────────────────────────────────────────────
 
@@ -31,8 +37,33 @@ CREATE VIRTUAL TABLE IF NOT EXISTS book_fts USING fts5(
     publisher_name,
     series_name,
     brand_name,
-    content='',
     prefix='2 3'
+)
+"""
+
+# Identifies the model that produced book_vectors.  A different model makes
+# the stored vectors incomparable with new query vectors — silently: search
+# just gets worse.  Recorded on index build, compared on startup.
+_EMBEDDING_FINGERPRINT_KEY = "embedding_fingerprint"
+_UNKNOWN_FINGERPRINT = "unknown"
+
+# Bump this whenever the FTS field encoding changes.  Existing tables are
+# dropped and rebuilt by the next reindex.
+_FTS_SCHEMA_VERSION = "cjk_spaced_v1"
+
+_SQL_CREATE_META = """
+CREATE TABLE IF NOT EXISTS rag_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
+"""
+
+# Per-book state for incremental reindex.  ``summary_done=0`` means the next
+# incremental run must (re)build this book's vector/FTS and try a summary.
+_SQL_CREATE_BOOK_STATE = """
+CREATE TABLE IF NOT EXISTS rag_book_state (
+    book_id INTEGER PRIMARY KEY,
+    summary_done INTEGER NOT NULL DEFAULT 0
 )
 """
 
@@ -57,9 +88,40 @@ INSERT OR REPLACE INTO book_fts (
 )
 """
 
-# contentless FTS5 cannot use DELETE FROM — use the 'delete' command
 _SQL_DELETE_FTS = """
-INSERT INTO book_fts(book_fts, rowid) VALUES('delete', :book_id)
+DELETE FROM book_fts WHERE rowid = :book_id
+"""
+
+# Remove index rows whose book no longer exists.
+_SQL_PRUNE_FTS = """
+DELETE FROM book_fts WHERE rowid NOT IN (SELECT id FROM books)
+"""
+
+_SQL_PRUNE_VECTORS = """
+DELETE FROM book_vectors WHERE book_id NOT IN (SELECT id FROM books)
+"""
+
+_SQL_UPSERT_BOOK_STATE = """
+INSERT OR REPLACE INTO rag_book_state (book_id, summary_done)
+VALUES (:book_id, :summary_done)
+"""
+
+_SQL_DELETE_BOOK_STATE = """
+DELETE FROM rag_book_state WHERE book_id = :book_id
+"""
+
+_SQL_PRUNE_BOOK_STATE = """
+DELETE FROM rag_book_state WHERE book_id NOT IN (SELECT id FROM books)
+"""
+
+# Existing databases predate rag_book_state.  Mark already-indexed books as
+# done once, so the first incremental run does not rebuild the whole library.
+_SQL_BOOTSTRAP_BOOK_STATE = """
+INSERT OR IGNORE INTO rag_book_state (book_id, summary_done)
+SELECT b.id, 1
+FROM books b
+WHERE EXISTS (SELECT 1 FROM book_vectors v WHERE v.book_id = b.id)
+  AND EXISTS (SELECT 1 FROM book_fts f WHERE f.book_id = b.id)
 """
 
 # ── Queries ──────────────────────────────────────────────────────────────────
@@ -74,6 +136,7 @@ _SQL_FTS_SEARCH = """
 SELECT rowid AS book_id, rank
 FROM book_fts
 WHERE book_fts MATCH :query
+ORDER BY rank
 LIMIT :top_k
 """
 
@@ -96,22 +159,187 @@ def _vec_table_dims_match(db: Session) -> bool:
         return False
 
 
+# Every range the indexer treats as CJK: Extension A, the unified ideographs,
+# and the compatibility ideographs.  ``_space_cjk`` (indexing) and
+# ``_fts_tokenize`` (queries) must agree on this set: a character stored as its
+# own token but dropped from the query can never be found.
+_CJK_RANGES = "\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+_CJK_CHAR_RE = re.compile(f"([{_CJK_RANGES}])")
+_CJK_RUN_RE = re.compile(f"[{_CJK_RANGES}]+")
+
+
+def _space_cjk(text: str) -> str:
+    """Space CJK characters so FTS5 ``unicode61`` indexes them individually.
+
+    ``unicode61`` treats a whole CJK run as one token, so ``甘道夫`` inside
+    ``睿智巫师甘道夫的到来`` is not searchable.  Spacing each CJK character
+    keeps Latin words intact while making every CJK substring matchable.
+    """
+    if not text:
+        return ""
+    return re.sub(r"\s+", " ", _CJK_CHAR_RE.sub(r" \1 ", text)).strip()
+
+
+def _fts_table_is_current(db: Session) -> bool:
+    """False when the FTS table uses an old encoding or column set."""
+    try:
+        version = db.execute(
+            text("SELECT value FROM rag_meta WHERE key='fts_tokenizer'")
+        ).scalar()
+    except Exception:
+        version = None
+    if version != _FTS_SCHEMA_VERSION:
+        return False
+
+    row = db.execute(
+        text("SELECT sql FROM sqlite_master WHERE type='table' AND name='book_fts'")
+    ).fetchone()
+    if row is None:
+        return True
+    sql = re.sub(r"\s+", "", (row[0] or "")).lower()
+    # contentless tables cannot delete/update reliably; they must be rebuilt.
+    return "content=''" not in sql and "brand_name" in sql
+
+
+def _sqlite_vec_version(db: Session) -> str:
+    try:
+        return str(db.execute(text("SELECT vec_version()")).scalar() or "?")
+    except Exception:
+        return "?"
+
+
+def _fastembed_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("fastembed")
+    except Exception:
+        return "?"
+
+
+def current_embedding_fingerprint(db: Session) -> str:
+    """Identify the model and libraries that produce/read these vectors."""
+    return (
+        f"{EMBEDDING_MODEL_NAME}|dim{EMBEDDING_DIMS}"
+        f"|vec{_sqlite_vec_version(db)}|fe{_fastembed_version()}"
+    )
+
+
+def stored_embedding_fingerprint(db: Session) -> Optional[str]:
+    """Fingerprint recorded in ``rag_meta``, or None when it was never set."""
+    try:
+        return db.execute(
+            text("SELECT value FROM rag_meta WHERE key = :key"),
+            {"key": _EMBEDDING_FINGERPRINT_KEY},
+        ).scalar()
+    except Exception:
+        return None
+
+
+def record_embedding_fingerprint(db: Session, *, commit: bool = False) -> str:
+    """Record the runtime fingerprint after the vectors were rebuilt."""
+    fingerprint = current_embedding_fingerprint(db)
+    db.execute(
+        text("INSERT OR REPLACE INTO rag_meta (key, value) VALUES (:key, :value)"),
+        {"key": _EMBEDDING_FINGERPRINT_KEY, "value": fingerprint},
+    )
+    if commit:
+        db.commit()
+    return fingerprint
+
+
+def embedding_fingerprint_status(db: Session) -> tuple[str, bool]:
+    """Return ``(stored fingerprint, matches the running model)``."""
+    stored = stored_embedding_fingerprint(db)
+    return stored or "", stored == current_embedding_fingerprint(db)
+
+
+def _check_embedding_fingerprint(db: Session) -> None:
+    """Record the fingerprint for an empty index; flag legacy or changed ones.
+
+    Vectors from another model are not comparable with query vectors, and
+    nothing else would ever notice, so a mismatch is logged loudly and left
+    for a full reindex to fix.  A pre-fingerprint database is not blessed:
+    its stored value becomes ``unknown`` until a full reindex rewrites it.
+    """
+    stored = stored_embedding_fingerprint(db)
+    current = current_embedding_fingerprint(db)
+    if stored is None:
+        has_vectors = (
+            db.execute(text("SELECT 1 FROM book_vectors LIMIT 1")).first() is not None
+        )
+        if has_vectors:
+            logger.warning(
+                "book_vectors predate model fingerprinting (runtime is %s) — "
+                "run a full reindex to confirm they are comparable",
+                current,
+            )
+            db.execute(
+                text(
+                    "INSERT OR REPLACE INTO rag_meta (key, value) "
+                    "VALUES (:key, :value)"
+                ),
+                {"key": _EMBEDDING_FINGERPRINT_KEY, "value": _UNKNOWN_FINGERPRINT},
+            )
+        else:
+            record_embedding_fingerprint(db)
+    elif stored != current:
+        logger.warning(
+            "RAG vectors were built with %s but this runtime is %s — "
+            "run a full reindex before trusting semantic search",
+            stored,
+            current,
+        )
+
+
 def ensure_rag_tables(db: Session) -> None:
     """Create book_vectors and book_fts tables if missing.
 
-    Drops and recreates the vector table if dimensions have changed.
+    Drops and recreates the vector table if dimensions have changed, and
+    rebuilds the FTS table if it was created with an old encoding or as a
+    contentless table (whose deletes corrupted the index).
     """
+    db.execute(text(_SQL_CREATE_META))
     if not _vec_table_dims_match(db):
+        logger.warning("book_vectors dimensions changed — rebuilding vector table")
         db.execute(text("DROP TABLE IF EXISTS book_vectors"))
+    if not _fts_table_is_current(db):
+        logger.warning("book_fts schema is outdated — rebuilding FTS table (run reindex)")
+        db.execute(text("DROP TABLE IF EXISTS book_fts"))
     db.execute(text(_SQL_CREATE_VEC_TABLE))
     db.execute(text(_SQL_CREATE_FTS_TABLE))
+    db.execute(text(_SQL_CREATE_BOOK_STATE))
+    bootstrapped = db.execute(
+        text("SELECT value FROM rag_meta WHERE key='book_state_bootstrapped'")
+    ).scalar()
+    has_books = db.execute(
+        text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='books'")
+    ).scalar()
+    if has_books and bootstrapped != "1":
+        db.execute(text(_SQL_BOOTSTRAP_BOOK_STATE))
+        db.execute(
+            text(
+                "INSERT OR REPLACE INTO rag_meta (key, value) "
+                "VALUES ('book_state_bootstrapped', '1')"
+            )
+        )
+    db.execute(
+        text(
+            "INSERT OR REPLACE INTO rag_meta (key, value) "
+            "VALUES ('fts_tokenizer', :version)"
+        ),
+        {"version": _FTS_SCHEMA_VERSION},
+    )
+    _check_embedding_fingerprint(db)
     db.commit()
 
 
 # ── CRUD ─────────────────────────────────────────────────────────────────────
 
 
-def upsert_book_vector(db: Session, book_id: int, embedding: list[float]) -> None:
+def upsert_book_vector(
+    db: Session, book_id: int, embedding: list[float], *, commit: bool = True
+) -> None:
     """Insert or update a book's vector embedding.
 
     vec0 tables do not support INSERT OR REPLACE on the PK, so we
@@ -119,17 +347,51 @@ def upsert_book_vector(db: Session, book_id: int, embedding: list[float]) -> Non
     """
     import json
 
-    db.execute(text(_SQL_DELETE_VECTOR), {"book_id": book_id})
     vec_blob = json.dumps(embedding)
-    db.execute(text(_SQL_INSERT_VECTOR), {"book_id": book_id, "embedding": vec_blob})
-    db.commit()
+    # Savepoint: a failed insert must not leave the old vector deleted.
+    with db.begin_nested():
+        db.execute(text(_SQL_DELETE_VECTOR), {"book_id": book_id})
+        db.execute(text(_SQL_INSERT_VECTOR), {"book_id": book_id, "embedding": vec_blob})
+    if commit:
+        db.commit()
 
 
-def delete_book_vector(db: Session, book_id: int) -> None:
+def delete_book_vector(db: Session, book_id: int, *, commit: bool = True) -> None:
     """Remove a book's vector and FTS entry."""
-    db.execute(text(_SQL_DELETE_VECTOR), {"book_id": book_id})
-    db.execute(text(_SQL_DELETE_FTS), {"book_id": book_id})
-    db.commit()
+    with db.begin_nested():
+        db.execute(text(_SQL_DELETE_VECTOR), {"book_id": book_id})
+        db.execute(text(_SQL_DELETE_FTS), {"book_id": book_id})
+    if commit:
+        db.commit()
+
+
+def prune_missing_books(db: Session, *, commit: bool = True) -> None:
+    """Drop index rows for books that no longer exist in this database."""
+    with db.begin_nested():
+        db.execute(text(_SQL_PRUNE_FTS))
+        db.execute(text(_SQL_PRUNE_VECTORS))
+        db.execute(text(_SQL_PRUNE_BOOK_STATE))
+    if commit:
+        db.commit()
+
+
+def upsert_book_state(
+    db: Session, book_id: int, *, summary_done: bool, commit: bool = True
+) -> None:
+    """Record whether incremental reindex still needs to process this book."""
+    db.execute(
+        text(_SQL_UPSERT_BOOK_STATE),
+        {"book_id": book_id, "summary_done": int(summary_done)},
+    )
+    if commit:
+        db.commit()
+
+
+def delete_book_state(db: Session, book_id: int, *, commit: bool = True) -> None:
+    """Drop a book's incremental state."""
+    db.execute(text(_SQL_DELETE_BOOK_STATE), {"book_id": book_id})
+    if commit:
+        db.commit()
 
 
 def upsert_book_fts(
@@ -146,25 +408,27 @@ def upsert_book_fts(
     publisher_name: str = "",
     series_name: str = "",
     brand_name: str = "",
+    commit: bool = True,
 ) -> None:
     """Insert or update a book's FTS5 index entry."""
     db.execute(
         text(_SQL_INSERT_FTS),
         {
             "book_id": book_id,
-            "title": title or "",
-            "title_cn": title_cn or "",
-            "authors_text": authors_text or "",
-            "tags_text": tags_text or "",
-            "introduction": introduction or "",
-            "summary": summary or "",
-            "catalog": catalog or "",
-            "publisher_name": publisher_name or "",
-            "series_name": series_name or "",
-            "brand_name": brand_name or "",
+            "title": _space_cjk(title),
+            "title_cn": _space_cjk(title_cn),
+            "authors_text": _space_cjk(authors_text),
+            "tags_text": _space_cjk(tags_text),
+            "introduction": _space_cjk(introduction),
+            "summary": _space_cjk(summary),
+            "catalog": _space_cjk(catalog),
+            "publisher_name": _space_cjk(publisher_name),
+            "series_name": _space_cjk(series_name),
+            "brand_name": _space_cjk(brand_name),
         },
     )
-    db.commit()
+    if commit:
+        db.commit()
 
 
 # ── Search ───────────────────────────────────────────────────────────────────
@@ -173,7 +437,12 @@ def upsert_book_fts(
 def search_vectors(
     db: Session, query_text: str, top_k: int = 10
 ) -> list[dict]:
-    """Semantic vector search via sqlite-vec kNN."""
+    """Semantic vector search via sqlite-vec kNN.
+
+    fastembed returns unit-length vectors, so L2 distance d maps to cosine
+    similarity ``1 - d²/2``.  Keeping the absolute value (instead of dividing
+    by this query's best hit) means scores are comparable across queries.
+    """
     query_vec = embed_text(query_text)
     import json
 
@@ -181,57 +450,76 @@ def search_vectors(
     rows = db.execute(
         text(_SQL_VEC_SEARCH), {"query_vec": vec_json, "top_k": top_k}
     ).fetchall()
-    return [{"book_id": r[0], "score": 1.0 / (1.0 + r[1])} for r in rows]
+    return [
+        {"book_id": r[0], "score": max(0.0, min(1.0, 1.0 - (r[1] * r[1]) / 2.0))}
+        for r in rows
+    ]
+
+
+_MAX_FTS_PARTS = 20
+
+# Interrogative tails add no retrieval signal and can match unrelated text
+# (e.g. "出自哪本书" matching a book summary's "出自哪位名家").
+_QUESTION_SUFFIXES = (
+    "出自哪本书",
+    "是哪本书",
+    "是什么书",
+    "出自哪里",
+    "是谁写的",
+    "哪本书",
+    "有哪些",
+    "是什么",
+    "是谁",
+    "怎么样",
+    "怎么",
+    "如何",
+    "为什么",
+)
+
+
+def _strip_question_suffix(query_text: str) -> str:
+    text = query_text.strip().rstrip("？?！!。.，,、;；:：")
+    for suffix in _QUESTION_SUFFIXES:
+        if text.endswith(suffix):
+            return text[: -len(suffix)].strip()
+    return text
 
 
 def _fts_tokenize(query_text: str) -> str:
-    """Split a query into FTS5-friendly tokens, handling CJK text properly.
+    """Turn a user query into a safe FTS5 query string.
 
-    CJK characters are each single tokens under FTS5's unicode61 tokenizer.
-    A long CJK phrase like "甘道夫是哪本书里的" would require every character
-    to appear in exact sequence — nearly impossible to match.  This function
-    breaks long CJK runs into shorter 3-4 char overlapping chunks joined with
-    OR, so "甘道夫" alone matches most CJK introductions.
-
-    Non-CJK tokens are handled as prefix queries (existing behaviour).
+    CJK fields are stored space-separated, so long runs are matched with
+    overlapping 3-grams (OR).  ASCII/digit runs become prefix terms.  Only
+    alphanumerics and CJK reach the query, so quotes and FTS operators in the
+    user's input cannot produce a syntax error.
     """
     import re
-    import unicodedata
 
-    terms = query_text.strip().split()
+    terms = _strip_question_suffix(query_text).split()
     if not terms:
         return ""
 
-    def _looks_like_punct(s: str) -> bool:
-        """Check if a string is composed entirely of punctuation/whitespace."""
-        return all(unicodedata.category(c).startswith("P") or c.isspace() for c in s)
-
     fts_parts: list[str] = []
     for term in terms:
-        cjk_runs = re.findall(r'[\u4e00-\u9fff]+', term)
-        non_cjk_raw = re.findall(r'[^\u4e00-\u9fff]+', term)
-        non_cjk = [t for t in non_cjk_raw if t.strip() and not _looks_like_punct(t)]
-
-        if not cjk_runs:
-            # Pure non-CJK → original behaviour: prefix match on each term
-            fts_parts.append(f'"{term}"*')
-            continue
-
-        for run in cjk_runs:
+        for run in _CJK_RUN_RE.findall(term):
             if len(run) <= 4:
-                fts_parts.append(f'"{run}"')
+                fts_parts.append(f'"{_space_cjk(run)}"')
             else:
-                chunks = [run[i:i+4] for i in range(0, len(run), 3)]
-                chunks = [c for c in chunks if len(c) >= 2]
+                # Overlapping trigrams: 甘道夫 in 甘道夫出自哪本书 must survive
+                # a boundary that 4-char fixed chunks would cut through.
+                chunks = [run[i : i + 3] for i in range(min(len(run) - 2, _MAX_FTS_PARTS))]
                 if chunks:
-                    fts_parts.append(" OR ".join(f'"{c}"' for c in chunks))
+                    fts_parts.append(
+                        " OR ".join(f'"{_space_cjk(c)}"' for c in chunks)
+                    )
 
-        for token in non_cjk:
-            if len(token) <= 4:
-                fts_parts.append(f'"{token}"*')
-            else:
-                fts_parts.append(f'"{token[:4]}"*')
+        for token in re.findall(r"[0-9A-Za-z]+", term):
+            fts_parts.append(f'"{token[:32]}"*')
 
+        if len(fts_parts) >= _MAX_FTS_PARTS:
+            break
+
+    fts_parts = fts_parts[:_MAX_FTS_PARTS]
     if not fts_parts:
         return ""
     return " AND ".join(f"({p})" if " OR " in p else p for p in fts_parts)
@@ -250,33 +538,63 @@ def search_fts(
     return [{"book_id": r[0], "score": -r[1]} for r in rows]
 
 
+_RRF_K = 60
+
+
 def hybrid_search(
     db: Session,
     query_text: str,
     top_k: int = 10,
     alpha: float = 0.5,
+    min_score: float = 0.0,
+    min_fts_results: int = 0,
 ) -> list[dict]:
-    """Hybrid search — merge vector + FTS5 scores via weighted sum."""
+    """Hybrid search — weighted reciprocal-rank fusion of vector and FTS5.
+
+    Raw cosine scores are not comparable with BM25 and, for a whole-book
+    vector, are often high for unrelated books.  RRF uses ranks instead, so a
+    strong FTS exact match is not buried by many mediocre vector hits.
+    ``alpha`` is the vector weight (0 = FTS only, 1 = vector only).
+    When FTS finds at least ``min_fts_results`` hits, vector hits are only
+    used to re-rank those FTS candidates; vector-only noise cannot enter the
+    result list.  Scores are normalised to the best hit so ``min_score``
+    stays 0..1.  Either branch may fail without taking the other down.
+    """
     if not query_text.strip():
         return []
 
-    vec_results = search_vectors(db, query_text, top_k=top_k * 2)
-    fts_results = search_fts(db, query_text, top_k=top_k * 2)
+    vec_results: list[dict] = []
+    if alpha > 0:
+        try:
+            vec_results = search_vectors(db, query_text, top_k=top_k * 2)
+        except Exception:
+            logger.exception("vector search failed — falling back to FTS")
+
+    fts_results: list[dict] = []
+    if alpha < 1:
+        try:
+            fts_results = search_fts(db, query_text, top_k=top_k * 2)
+        except Exception:
+            logger.exception("FTS search failed — falling back to vectors")
+
+    if min_fts_results and len(fts_results) >= min_fts_results:
+        fts_ids = {r["book_id"] for r in fts_results}
+        vec_results = [r for r in vec_results if r["book_id"] in fts_ids]
 
     merged: dict[int, float] = {}
+    for rank, r in enumerate(vec_results, 1):
+        merged[r["book_id"]] = merged.get(r["book_id"], 0.0) + alpha / (
+            _RRF_K + rank
+        )
+    for rank, r in enumerate(fts_results, 1):
+        merged[r["book_id"]] = merged.get(r["book_id"], 0.0) + (1 - alpha) / (
+            _RRF_K + rank
+        )
 
-    def _max_score(items):
-        return max((i["score"] for i in items), default=1.0)
-
-    fts_max = _max_score(fts_results)
-    vec_max = _max_score(vec_results)
-
-    for r in vec_results:
-        merged[r["book_id"]] = alpha * (r["score"] / vec_max if vec_max else 0)
-
-    for r in fts_results:
-        norm = (1 - alpha) * (r["score"] / fts_max if fts_max else 0)
-        merged[r["book_id"]] = merged.get(r["book_id"], 0) + norm
-
-    sorted_items = sorted(merged.items(), key=lambda x: -x[1])[:top_k]
-    return [{"book_id": bid, "score": s} for bid, s in sorted_items]
+    ranked = sorted(merged.items(), key=lambda x: -x[1])
+    best = ranked[0][1] if ranked else 0.0
+    return [
+        {"book_id": bid, "score": s / best}
+        for bid, s in ranked
+        if best and s / best >= min_score
+    ][:top_k]

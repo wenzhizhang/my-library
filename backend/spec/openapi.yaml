@@ -703,6 +703,7 @@ components:
         query: { type: string, minLength: 1 }
         top_k: { type: integer, default: 10, minimum: 1, maximum: 100 }
         alpha: { type: number, default: 0.5, minimum: 0, maximum: 1, description: "Vector weight (0 = FTS5 only, 1 = pure vector)" }
+        min_score: { type: number, default: 0.0, minimum: 0, maximum: 1, description: "Drop results below this merged score (0 keeps everything)" }
     RagSearchResultItem:
       type: object
       required: [book_id, score]
@@ -723,6 +724,16 @@ components:
         results:
           type: array
           items: { $ref: "#/components/schemas/RagSearchResultItem" }
+    RagSummarizeResponse:
+      type: object
+      required: [book_id, summary, source, updated]
+      properties:
+        book_id: { type: integer }
+        summary: { type: string }
+        source:
+          type: string
+          enum: [existing, local, deepseek]
+        updated: { type: boolean }
     RagReindexResponse:
       type: object
       properties:
@@ -735,6 +746,8 @@ components:
         indexed_count: { type: integer }
         total_books: { type: integer }
         model_loaded: { type: boolean }
+        index_model: { type: string, default: "" }
+        index_model_matches: { type: boolean, default: true }
         reindex_status: { type: string, default: "idle" }
         reindex_indexed: { type: integer, default: 0 }
         reindex_failed: { type: integer, default: 0 }
@@ -2395,14 +2408,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/RagSearchResponse"
 
+  /api/rag/summarize/{book_id}:
+    post:
+      tags: [RAG]
+      summary: Generate and persist one book's summary
+      security:
+        - BearerAuth: []
+      description: |
+        Generates a summary outside the full reindex. Existing summaries are
+        returned as-is unless `force=true`. An introduction shorter than
+        MIN_SUMMARY_INTRODUCTION_CHARS (400 characters) is embedded as-is and
+        is not summarized unless `force=true`; the summary itself is capped to
+        what the 512-token window leaves after the title/author/tag header.
+        Without `DEEPSEEK_API_KEY` the local extractive fallback is used. A
+        configured key that fails returns 502 and leaves the stored summary
+        unchanged.
+      parameters:
+        - name: book_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: force
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+          description: Regenerate even when the book already has a summary, or
+            when the introduction is too short to summarize by default
+      responses:
+        "200":
+          description: Generated or existing summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagSummarizeResponse"
+        "400":
+          description: Book has no introduction, or it is shorter than 400
+            characters and force is not set
+        "404":
+          description: Book not found
+        "502":
+          description: DeepSeek failed; stored summary was left unchanged
+
   /api/rag/reindex:
     post:
       tags: [RAG]
-      summary: Trigger a full background reindex
+      summary: Trigger a background reindex of the caller's database
+      security:
+        - BearerAuth: []
       description: |
-        Returns immediately; poll GET /api/rag/status for progress. Always answers
-        200, even when a reindex is already running. The job reindexes
-        `demo.db` (the shared demo database), not the caller's user database.
+        Reports index size, model availability and reindex progress, plus the
+        embedding fingerprint the stored vectors were built with
+        (`index_model`) and whether it matches the running model
+        (`index_model_matches`).
+
+        Requires a Bearer token. The job reindexes the caller's own user
+        database, not a shared hardcoded file.
+
+        By default this is a full rebuild. With `incremental=true`, only books
+        missing from the index, books whose summary was regenerated, and books
+        whose summary is still pending are processed.
+
+        Returns immediately; poll GET /api/rag/status for progress. Always
+        answers 200, even when a reindex for that database is already running.
+      parameters:
+        - name: incremental
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+          description: Only process new or pending books
       responses:
         "200":
           description: Reindex trigger result

@@ -1,13 +1,43 @@
-"""Build a structured plain-text document from a Book + related entities.
+"""Build structured text for embeddings and FTS fields.
 
-This document is used both for embedding (vector search) and for populating
-the FTS5 index fields.  Including relational context (author, publisher, …)
-makes search results richer without extra joins at query time.
+``build_book_document`` is the full fallback document;
+``build_book_embedding_document`` prefers a generated summary;
+``build_book_fts_fields`` keeps the full fields for exact keyword recall.
 """
 
-from typing import Optional
-
 from models import Book
+
+from .summarize import truncate_text
+
+# BGE truncates its input at 512 tokens.  A CJK character is roughly one
+# token (Latin text is cheaper per character), so character counts are a safe,
+# slightly conservative proxy.  The margin covers the tokenizer's special
+# tokens and drift between the proxy and the real tokenizer.
+EMBEDDING_WINDOW_CHARS = 512
+EMBEDDING_TOKEN_MARGIN = 16
+
+# A pathological header (dozens of authors/tags) must not starve the summary to
+# nothing; at that point the window is already lost.
+_MIN_SUMMARY_CHARS = 120
+
+
+def _title_text(book: Book) -> str:
+    title = book.title_cn or book.title or ""
+    if book.title_cn and book.title:
+        title = f"{book.title_cn} ({book.title})"
+    return title
+
+
+def _author_names(book: Book) -> list[str]:
+    names = []
+    for a in book.authors or []:
+        label = a.name_cn or a.name
+        if a.dynasty:
+            label = f"{a.dynasty}·{label}"
+        elif a.nation:
+            label = f"[{a.nation}] {label}"
+        names.append(label)
+    return names
 
 
 def build_book_document(book: Book) -> str:
@@ -19,31 +49,12 @@ def build_book_document(book: Book) -> str:
     parts: list[str] = []
 
     # ── Titles ──
-    if book.title:
-        title = book.title
-        if book.title_cn:
-            title = f"{book.title_cn} ({book.title})"
-        else:
-            title = book.title
+    title = _title_text(book)
+    if title:
         parts.append(f"书名: {title}")
 
-    if book.title and book.title_cn:
-        # both present → "书名" already covers it
-        pass
-
     # ── Authors ──
-    author_names = []
-    for a in book.authors or []:
-        if a.name_cn:
-            label = a.name_cn
-        else:
-            label = a.name
-        if a.dynasty:
-            label = f"{a.dynasty}·{label}"
-        elif a.nation:
-            label = f"[{a.nation}] {label}"
-        author_names.append(label)
-
+    author_names = _author_names(book)
     if author_names:
         parts.append(f"作者: {'; '.join(author_names)}")
 
@@ -90,6 +101,57 @@ def build_book_document(book: Book) -> str:
     if meta_parts:
         parts.append(" | ".join(meta_parts))
 
+    return "\n".join(parts)
+
+
+def _embedding_header(book: Book) -> list[str]:
+    """Title/author/tag lines shared by both embedding documents."""
+    parts = []
+    title = _title_text(book)
+    if title:
+        parts.append(f"书名: {title}")
+    author_names = _author_names(book)
+    if author_names:
+        parts.append(f"作者: {'; '.join(author_names)}")
+    if book.tags:
+        parts.append(f"标签: {', '.join(book.tags)}")
+    return parts
+
+
+def summary_char_budget(book: Book) -> int:
+    """Characters a summary may use beside the header and still fit the window.
+
+    The summary is embedded together with the title/author/tag header, so its
+    cap has to shrink when that header grows.  Summarization uses this budget
+    to store a summary that already fits; document building applies it again
+    as the final guard for a header edited after the summary was written.
+    """
+    header = "\n".join(_embedding_header(book))
+    overhead = len("摘要: ")
+    if header:
+        overhead += len(header) + 1
+    return max(
+        _MIN_SUMMARY_CHARS,
+        EMBEDDING_WINDOW_CHARS - EMBEDDING_TOKEN_MARGIN - overhead,
+    )
+
+
+def build_book_embedding_document(book: Book) -> str:
+    """Build the text that is embedded for one book.
+
+    A generated ``summary`` is the whole-book representation; including the
+    full introduction as well would push the summary past the model's 512
+    token limit.  The summary is clipped to ``summary_char_budget`` so the
+    header and the summary always fit the window — the stored summary keeps
+    its full text.  When no summary exists, keep the previous full-document
+    behaviour so reindexing remains backward compatible.
+    """
+    summary = (book.summary or "").strip()
+    if not summary:
+        return build_book_document(book)
+
+    parts = _embedding_header(book)
+    parts.append(f"摘要: {truncate_text(summary, summary_char_budget(book))}")
     return "\n".join(parts)
 
 

@@ -47,6 +47,7 @@ def create_book(book: BookCreation, db: Session = Depends(get_db), user_id: int 
     for author in authors:
         sync_book_author_to_root(db_book.id, author.id)
     recompute_weights(db)
+    sync_book(db, db_book.id)
     return {
         "id": db_book.id,
         "isbn": db_book.isbn,
@@ -299,6 +300,7 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
             sync_book_author_to_root(book.id, author.id)
     recompute_weights(db)
     db.refresh(book)
+    sync_book(db, book.id)
     return {
         "id": book.id,
         "isbn": book.isbn,
@@ -343,8 +345,8 @@ def delete_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depe
     book = db.query(Book).filter(Book.id == book_id).first()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
-    # remove_book(db, book_id)  # RAG disabled
     db.delete(book)
     db.commit()
+    remove_book(db, book_id)
     recompute_weights(db)
     return {"message": "Book deleted"}

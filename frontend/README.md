@@ -52,11 +52,13 @@ Docker 部署时，确保 `Dockerfile` 中包含上述依赖并设置 `HF_ENDPOI
 # 查看状态
 curl http://localhost:8080/api/rag/status
 
-# 全量重建（2616 本约 260 秒）
-curl -X POST http://localhost:8080/api/rag/reindex
+# 全量重建（2616 本约 260 秒）；需要登录，重建的是当前用户的数据库
+# TOKEN 从 POST /api/auth/login 获取
+curl -X POST http://localhost:8080/api/rag/reindex \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-索引会自动保持同步：创建/更新/删除图书时，后台自动调用索引钩子。
+索引会自动保持同步：创建/更新/删除图书时自动调用索引钩子。embedding 模型尚未加载时，创建/更新只同步 FTS5 并移除旧向量，跑一次 reindex 即可补齐向量。
 
 ### 4. 前端搜索
 
@@ -80,7 +82,8 @@ Content-Type: application/json
 {
   "query": "关于人工智能的科幻小说",
   "top_k": 10,
-  "alpha": 0.5
+  "alpha": 0.5,
+  "min_score": 0.0
 }
 ```
 
@@ -88,7 +91,8 @@ Content-Type: application/json
 |------|------|------|------|
 | `query` | string | — | 搜索查询（中英文） |
 | `top_k` | int | 10 | 返回结果数量 (1-100) |
-| `alpha` | float | 0.5 | 向量权重 (0=纯FTS5, 1=纯向量) |
+| `alpha` | float | 0.5 | 向量权重 (0=纯FTS5, 1=纯向量)；混合用 RRF |
+| `min_score` | float | 0.0 | 低于该混合分数的结果会被丢弃（0 表示不过滤） |
 
 ### 索引状态
 
@@ -96,15 +100,16 @@ Content-Type: application/json
 GET /api/rag/status
 ```
 
-返回 `{ indexed_count, total_books, model_loaded }`。
+返回 `{ indexed_count, total_books, model_loaded, reindex_status, reindex_indexed, reindex_failed, reindex_total, reindex_detail }`。
 
 ### 全量重索引
 
 ```bash
 POST /api/rag/reindex
+Authorization: Bearer <token>
 ```
 
-返回 `{ total, indexed, failed }`。
+立即返回 `{ status, message }`，实际重建在后台进行；轮询 `GET /api/rag/status` 查看进度。重建的是 token 对应用户的数据库；同一数据库已在重建时返回 200 且 `status="indexing"`。
 
 ---
 
@@ -112,11 +117,11 @@ POST /api/rag/reindex
 
 | 事件 | 行为 |
 |------|------|
-| 创建图书 | 自动生成嵌入 + FTS5 索引 |
-| 更新图书 | 重新生成嵌入并更新索引 |
+| 创建图书 | 立即更新 FTS5；模型已加载时同时生成向量 |
+| 更新图书 | 立即更新 FTS5；模型已加载时重建向量，否则移除旧向量 |
 | 删除图书 | 清除对应向量和 FTS5 记录 |
 
-索引在业务事务外执行（异常不影响主流程），通过 `rag.pipeline.sync_book()` / `remove_book()` 注入。
+索引在业务事务外执行（异常不影响主流程），通过 `rag.pipeline.sync_book()` / `remove_book()` 注入。reindex 会清理已删除图书遗留的孤儿索引，并在 embedding 失败时仍写入 FTS5。
 
 ---
 
@@ -124,8 +129,8 @@ POST /api/rag/reindex
 
 | 限制 | 说明 |
 |------|------|
-| **FTS5 中文分词** | SQLite FTS5 默认 tokenizer 不支持中文分词。纯 FTS5 模式（alpha=0）对中文短语效果有限，建议使用混合模式（alpha≥0.5） |
-| **重索引速度** | 单条 ~100ms（含向量推理），2616 本全量约 260 秒。可分批执行或后台异步 |
+| **FTS5 中文分词** | 写入时把 CJK 字符逐字空格化，FTS5 才能命中句子中间的“甘道夫”；查询端用重叠 3-gram。升级后必须 reindex 一次，否则旧 FTS 表会被重建为空 |
+| **重索引速度** | 单条 ~100ms（含向量推理），2616 本全量约 260 秒。接口在后台执行，不会阻塞请求 |
 | **模型冷启动** | 首次搜索触发模型加载约 2-12 秒（含第一次下载），后续搜索正常 |
 
 ---
@@ -158,9 +163,9 @@ frontend/
 ```
 Book CRUD → pipeline.sync_book()
     → build_book_document(book)     # 结构化文本
-    → embed_text(document)          # BGE 512-dim 向量
+    → embed_text(document)          # BGE 512-dim 向量（模型已加载时）
     → upsert_book_vector()          # vec0 DELETE + INSERT
-    → upsert_book_fts()             # FTS5 contentless
+    → upsert_book_fts()             # FTS5 普通表，INSERT OR REPLACE
 ```
 
 ---

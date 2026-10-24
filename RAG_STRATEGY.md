@@ -1,6 +1,8 @@
 # RAG 检索策略与实现说明
 
-> 本文档描述 My Library 的 RAG（检索增强生成）模块的完整设计、当前实现中的已知瓶颈，以及改进方向。
+> 本文档保留 My Library RAG 的问题分析、评测方法和后续路线；**最终实现与设计意图以 [`RAG_DESIGN.md`](RAG_DESIGN.md) 为准**。
+>
+> **更新说明**：接口与实现以 [`backend/spec/openapi.yaml`](backend/spec/openapi.yaml) 和代码为准。下文部分“当前实现”章节保留的是历史设计；关键差异：`book_fts` 已改为普通 FTS5 表（非 contentless），写入时 CJK 字符逐字空格化、查询端用重叠 3-gram，混合检索改用 RRF，默认 `alpha=0.5`；精确实体查询且 FTS 命中足够时向量只重排 FTS 候选，结果按规范化书名 + 第一作者去重；向量嵌入优先使用 `summary`，为空时回退完整文档；`summary` 在 reindex 时由 `introduction` 生成：优先 DeepSeek 官方 API 的 `deepseek-flash`（`DEEPSEEK_API_KEY`）；未配置 Key 时用离线抽取，配置后调用失败则保留空摘要供下次 reindex 重试（最多 500 字符，已有摘要不覆盖；`introduction` 短于 400 字符时不生成摘要，完整文档直接 embedding；摘要长度按书名/作者/标签实际占用从 512 token 预算中扣减）；单本可通过 `POST /api/rag/summarize/{book_id}` 单独生成（`force=true` 覆盖已有摘要）；reindex 按用户数据库后台执行，`POST /api/rag/reindex?incremental=true` 只处理新书/待重建书。P0 中的 FTS 排序、删除同步、查询分词已修复。
 
 ---
 
@@ -27,8 +29,8 @@
          └──────┬──────────┘
                 ▼
          ┌──────────────┐
-         │  Hybrid Merge │  加权合并 (alpha)
-         │  (加权求和)    │  默认 alpha=0.5
+         │  Hybrid Merge │  RRF 排名融合 (alpha)
+         │  (RRF)        │  默认 alpha=0.5
          └──────┬───────┘
                 ▼
          ┌──────────────┐
@@ -305,7 +307,7 @@ FTS5 的常见字分块（如"本书"）分数很高但完全不相关，
 ### P0 — 快速见效
 
 1. **嵌入模型升级**：`bge-small-zh-v1.5`(33MB) → `bge-base-zh-v1.5`(110MB) 或 `bge-large-zh-v1.5`(335MB)，更大的模型对中文化名/实体关联有更好的理解
-2. **alpha 调优**：中文查询默认降低 FTS5 权重（如 `alpha=0.7`），减少常见字噪声
+2. **alpha 调优**：中文图书搜索默认保持 `alpha=0.5`；精确实体/书名查询可降到 `0.0-0.3`，不要默认用 `0.7`（向量噪声会压过 FTS 精确命中）
 
 ### P1 — 结构改进
 
@@ -319,5 +321,5 @@ FTS5 的常见字分块（如"本书"）分数很高但完全不相关，
 
 ### P3 — 评估
 
-7. **建立测试集**：人工标注 30-50 条 query → 期望 book_id
-8. **加入 CI**：每次部署自动跑 recall@k 指标
+7. **建立测试集**：人工标注 30-50 条 query → 期望书名/作者；已提供 `backend/scripts/rag_golden.jsonl` 初始集和 `backend/scripts/eval_rag.py` 评测脚本
+8. **加入 CI**：每次部署自动跑 Recall@K / MRR / nDCG 指标

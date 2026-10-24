@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 
 class RagSearchRequest(BaseModel):
@@ -7,6 +7,9 @@ class RagSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Natural-language search query")
     top_k: int = Field(10, ge=1, le=100, description="Number of results")
     alpha: float = Field(0.5, ge=0.0, le=1.0, description="Vector weight (0=FTS5, 1=pure vector)")
+    min_score: float = Field(
+        0.0, ge=0.0, le=1.0, description="Drop results below this merged score"
+    )
 
 
 class RagSearchResultItem(BaseModel):
@@ -25,6 +28,14 @@ class RagSearchResponse(BaseModel):
     results: List[RagSearchResultItem]
 
 
+class RagSummarizeResponse(BaseModel):
+    """Summary generated for one book."""
+    book_id: int
+    summary: str
+    source: Literal["existing", "local", "deepseek"]
+    updated: bool
+
+
 class RagReindexResponse(BaseModel):
     """Reindex operation trigger result."""
     status: str = "idle"  # idle | indexing | completed | error
@@ -36,6 +47,8 @@ class RagStatusResponse(BaseModel):
     indexed_count: int
     total_books: int
     model_loaded: bool
+    index_model: str = ""
+    index_model_matches: bool = True
     reindex_status: str = "idle"       # idle | indexing | completed | error
     reindex_indexed: int = 0
     reindex_failed: int = 0

@@ -44,6 +44,9 @@ cd my-library
 ```bash
 # 豆瓣 API Key（可选，不设置则跳过豆瓣数据获取）
 echo "DOUBAN_KEY=你的豆瓣API密钥" >> .env
+
+# DeepSeek API Key（可选，用于 reindex 时生成图书摘要；不设置则用离线摘要）
+echo "DEEPSEEK_API_KEY=你的DeepSeek API密钥" >> .env
 ```
 
 ### 4. 构建并启动
@@ -52,7 +55,8 @@ echo "DOUBAN_KEY=你的豆瓣API密钥" >> .env
 ./build.sh up
 ```
 
-访问 `http://localhost/my-library`。
+访问 `http://localhost/my-library`。首次启动会下载 BGE embedding 模型到
+`model-cache` volume；之后重建容器不会重复下载。
 
 ### 5. 创建用户
 
@@ -148,6 +152,109 @@ DOUBAN_KEY=0ac44ae01...
 - 内容简介、作者介绍
 - 标签
 
+### DeepSeek AI 摘要
+
+`.env` 位于项目根目录（与 `docker-compose.yml` 同级）：
+`/home/wenzhi/projects/my-library/.env`。
+
+`DEEPSEEK_API_KEY` 设置后，执行 RAG reindex 时会调用 DeepSeek 官方 API
+（`https://api.deepseek.com/chat/completions`）的 `deepseek-flash`
+（DeepSeek V4.1 Flash），把 `introduction` 压缩成约 300-450 字的摘要，
+再用摘要做 embedding。未设置 Key 时自动回退到离线抽取式摘要；设置 Key
+但调用失败时保留空摘要，下次 reindex 只重试这些书。`introduction` 本身
+不足 400 字符（`MIN_SUMMARY_INTRODUCTION_CHARS`）时不做摘要：这段文字
+连同书名/作者/出版社等字段仍在 512 token 的 embedding 窗口内（400 就是留
+给这些字段的余量），压缩只会丢信息，所以直接用完整文档做 embedding。
+已有摘要不会被覆盖；单本创建/更新不会调用 LLM，避免请求被网络阻塞。
+
+先用 20 本书试跑，只打印摘要和 token 用量，不写数据库：
+
+```bash
+docker compose exec backend python scripts/summarize_sample.py --limit 20
+```
+
+注意：如果先用未设置 Key 的方式 reindex，会写入离线摘要；之后设置 Key
+时，批量 reindex 仍会保留旧摘要，需要先清空 `books.summary`。单本书可以
+用下面的 API 加 `?force=true` 直接重新生成。
+
+单独生成一本书的摘要（不需要跑完整 reindex）：
+
+```http
+POST /api/rag/summarize/{book_id}
+Authorization: Bearer <token>
+```
+
+默认已有摘要会原样返回；需要重新生成时加 `?force=true`：
+
+```bash
+curl -X POST "http://localhost:8000/api/rag/summarize/123?force=true" \
+  -H "Authorization: Bearer <token>"
+```
+
+返回：
+
+```json
+{
+  "book_id": 123,
+  "summary": "...",
+  "source": "deepseek",
+  "updated": true
+}
+```
+
+`source` 可能是 `existing`（已有摘要）、`local`（未配置 Key，离线摘要）或
+`deepseek`。简介为空、或简介短于 400 字符（默认不摘要）返回 400，此时可加
+`?force=true` 强制生成；书不存在返回 404；配置了 Key 但调用失败返回 502，
+并保留原摘要。这个接口只写 `books.summary`，不会自动更新向量/FTS；
+需要再跑一次 reindex 才会让 RAG 索引使用新摘要。
+
+### 增量 Reindex
+
+新书加入后只需要跑增量，不必重建整个书库：
+
+```http
+POST /api/rag/reindex?incremental=true
+Authorization: Bearer <token>
+```
+
+增量模式只处理：
+
+- 没有向量或 FTS 记录的书
+- 新书（`sync_book` 会把它标记为待生成摘要）
+- 通过摘要 API 更新过摘要的书
+- 上次摘要生成失败、仍待重试的书
+
+已索引且摘要未变的旧书会跳过。旧书库里本来就没有摘要的书不会在增量时
+被重新处理；需要补旧摘要时仍跑一次全量 `POST /api/rag/reindex`。首次部署
+这套状态表时，已同时存在向量和 FTS 的旧书会自动标记为已完成，所以第一次
+增量也不会全量重建。
+
+进度仍通过 `GET /api/rag/status` 查看，`reindex_total` 是本次待处理的书数。
+
+完整的数据结构、设计决策与意图见 [`RAG_DESIGN.md`](RAG_DESIGN.md)。
+
+### RAG 召回评测
+
+仓库自带一个可扩充的 golden set：`backend/scripts/rag_golden.jsonl`。
+每行一条 query，`relevant` 写期望命中的书名（可选 `author`）：
+
+```json
+{"query": "甘道夫出自哪本书？", "relevant": [{"title": "霍比特人"}, {"title": "魔戒"}]}
+```
+
+运行评测：
+
+```bash
+docker compose exec backend python scripts/eval_rag.py \
+  --db /app/data/<用户 uuid>.db \
+  --top-k 10 \
+  --alpha 0.5
+```
+
+脚本输出每条 query 的 Recall@K、Hit@K、MRR、nDCG，以及整体均值。
+加 `--show-results` 可查看实际返回的书名。建议先人工确认/扩充到
+50-100 条，再把它作为改检索逻辑后的回归基线。
+
 ### 购买渠道
 
 编辑 `backend/config/purchase_stores.json`，重启后端即可生效：
@@ -189,6 +296,7 @@ DOUBAN_KEY=0ac44ae01...
 | `/api/export/` | 数据导出 (SQL/CSV/Excel/Markdown/JSON) |
 | `/api/export/sync-to-root` | 批量同步到共享 root.db (支持增量/全量) |
 | `/api/isbn/{isbn}` | ISBN 查询 (用户库 → root.db → 豆瓣 → OpenLibrary) |
+| `/api/rag` | 混合搜索、reindex、单本摘要生成 |
 完整 API 文档见 `backend/spec/openapi.yaml`。
 
 ---
@@ -196,7 +304,7 @@ DOUBAN_KEY=0ac44ae01...
 ## 测试
 
 ```bash
-# 后端测试 (105 用例)
+# 后端测试 (207 用例)
 cd backend && python3 -m pytest tests/ -v
 
 # 前端测试 (40 用例)

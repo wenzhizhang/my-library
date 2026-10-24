@@ -31,6 +31,7 @@ services:
       - DATA_DIR=/app/data
       - HF_ENDPOINT=https://hf-mirror.com
       - DOUBAN_KEY=${DOUBAN_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - MEDIA_CACHE_ENABLED=${MEDIA_CACHE_ENABLED:-false}
       - ROOT_DB_PATH=/app/root-db/root.db
     restart: unless-stopped
@@ -39,6 +40,7 @@ services:
       - media-cache:/app/data/media-cache
       - ./backend/config:/app/config:ro
       - root-db-data:/app/root-db
+      - model-cache:/app/.model_cache
 
   # ---- my-library 前端 ----
   frontend:
@@ -65,4 +67,7 @@ volumes:
     driver: local
 
   media-cache:
+    driver: local
+
+  model-cache:
     driver: local

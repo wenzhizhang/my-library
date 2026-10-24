@@ -1,0 +1,26 @@
+# Starter golden set. Add queries, then verify labels against your own library.
+{"query": "甘道夫出自哪本书？", "kind": "entity", "relevant": [{"title": "霍比特人"}, {"title": "魔戒"}]}
+{"query": "佛罗多出自哪本书？", "kind": "entity", "relevant": [{"title": "魔戒"}, {"title": "魔戒 第二部：双塔奇兵"}]}
+{"query": "托尔金的书", "kind": "author", "relevant": [{"title": "霍比特人"}, {"title": "魔戒"}, {"title": "精灵宝钻"}, {"title": "努门诺尔与中洲之未完的传说"}, {"title": "未完成的故事"}]}
+{"query": "霍比特人", "kind": "title", "relevant": [{"title": "霍比特人"}]}
+{"query": "魔戒 第二部", "kind": "volume", "relevant": [{"title": "魔戒 第二部：双塔奇兵"}]}
+{"query": "三体", "kind": "title", "relevant": [{"title": "三体"}, {"title": "三体：地球往事"}, {"title": "三体Ⅱ：黑暗森林"}, {"title": "三体Ⅲ：死神永生"}]}
+{"query": "三体 黑暗森林", "kind": "volume", "relevant": [{"title": "三体Ⅱ：黑暗森林"}, {"title": "三体·黑暗森林"}]}
+{"query": "沙丘", "kind": "title", "relevant": [{"title": "沙丘"}, {"title": "沙丘2：沙丘救世主"}, {"title": "沙丘3：沙丘之子"}, {"title": "沙丘4：沙丘神帝"}, {"title": "沙丘5：沙丘异端"}, {"title": "沙丘6：圣殿沙丘"}]}
+{"query": "沙丘 救世主", "kind": "volume", "relevant": [{"title": "沙丘2：沙丘救世主"}]}
+{"query": "冰与火之歌", "kind": "title", "relevant": [{"title": "冰与火之歌卷一：权力的游戏"}, {"title": "冰与火之歌 卷二：列王的纷争"}, {"title": "冰与火之歌卷三：冰雨的风暴"}, {"title": "冰与火之歌卷四：群鸦的盛宴"}, {"title": "冰与火之歌卷五：魔龙的狂舞"}]}
+{"query": "冰与火之歌 卷二", "kind": "volume", "relevant": [{"title": "冰与火之歌 卷二：列王的纷争"}]}
+{"query": "银河帝国 基地", "kind": "title", "relevant": [{"title": "银河帝国1：基地"}, {"title": "银河帝国2：基地与帝国"}, {"title": "银河帝国3：第二基地"}]}
+{"query": "万历十五年", "kind": "title", "relevant": [{"title": "万历十五年"}]}
+{"query": "人类简史", "kind": "title", "relevant": [{"title": "人类简史"}, {"title": "人类简史：从动物到上帝"}]}
+{"query": "今日简史", "kind": "title", "relevant": [{"title": "今日简史"}]}
+{"query": "未来简史", "kind": "title", "relevant": [{"title": "未来简史"}]}
+{"query": "算法导论", "kind": "title", "relevant": [{"title": "算法导论"}]}
+{"query": "刘慈欣的书", "kind": "author", "relevant": [{"title": "三体"}, {"title": "三体Ⅱ：黑暗森林"}, {"title": "三体Ⅲ：死神永生"}, {"title": "刘慈欣文集"}, {"title": "刘慈欣合集：时间移民+2018"}]}
+{"query": "中国历史", "kind": "topic", "relevant": [{"title": "中国历史地图"}, {"title": "中国历史地图集"}, {"title": "中国历史纪年表"}, {"title": "中国简史"}, {"title": "开明中国历史讲义"}]}
+{"query": "讲计算机编程的书", "kind": "semantic", "relevant": [{"title": "Python编程 从入门到实践"}, {"title": "Go程序设计语言"}, {"title": "算法导论"}, {"title": "深入理解计算机系统（原书第3版）"}, {"title": "Perl 语言入门"}, {"title": "Python Cookbook"}]}
+{"query": "关于人工智能的书", "kind": "semantic", "relevant": [{"title": "进击的科技：从爱因斯坦到人工智能"}, {"title": "从零开始大模型开发与微调：基于PyTorch与ChatGLM"}, {"title": "不会被机器替代的人"}]}
+{"query": "适合儿童阅读的绘本", "kind": "semantic", "relevant": [{"title": "小羊上山儿童汉语分级读物第1级"}, {"title": "小小朗读家·一起念童谣"}, {"title": "大故事书：欧洲经典童话100篇"}, {"title": "恐龙大百科儿童注音版"}, {"title": "给孩子的自然图鉴"}, {"title": "经典蒙学绘本套装"}]}
+{"query": "如何学习书法", "kind": "semantic", "relevant": [{"title": "启功书法课"}, {"title": "中国书法通识课"}, {"title": "书法指要：沈尹默学书经验谈"}, {"title": "怎样临帖：外二种"}]}
+{"query": "The Hobbit", "kind": "english", "relevant": [{"title": "霍比特人"}]}
+{"query": "Foundation", "kind": "english", "relevant": [{"title": "银河帝国1：基地"}]}

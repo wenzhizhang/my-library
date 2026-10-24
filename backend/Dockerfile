@@ -22,7 +22,8 @@ ENV PYTHONUNBUFFERED=1
 
 # Model download endpoint. Change to https://huggingface.co if outside China.
 ENV HF_ENDPOINT=https://hf-mirror.com
-# Model cache directory — outside the DATA volume so pre-downloaded
-# model survives container restarts without being shadowed by the volume.
+# Model cache directory — mounted as a named volume so the model survives
+# container recreation and startup does not depend on HuggingFace being up.
 ENV HF_HOME=/app/.model_cache
+ENV FASTEMBED_CACHE_PATH=/app/.model_cache
 ENTRYPOINT ["/app/entrypoint.sh"]

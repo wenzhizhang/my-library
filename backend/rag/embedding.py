@@ -3,10 +3,16 @@
 Model: BAAI/bge-small-zh-v1.5  (33 MB, 512-dim via ONNX, bilingual Chinese/English)
 """
 
+import os
+from pathlib import Path
 from typing import List, Optional, Sequence
 
 _MODEL = None
-_MODEL_NAME = "BAAI/bge-small-zh-v1.5"
+# Public: the RAG model fingerprint records these to detect mixed indexes.
+EMBEDDING_MODEL_NAME = "BAAI/bge-small-zh-v1.5"
+EMBEDDING_DIMS = 512
+_MODEL_NAME = EMBEDDING_MODEL_NAME
+_MODEL_CACHE = Path(os.environ.get("FASTEMBED_CACHE_PATH", "/tmp/fastembed_cache"))
 
 
 def get_embedding_model(force_reload: bool = False):
@@ -17,6 +23,8 @@ def get_embedding_model(force_reload: bool = False):
     """
     global _MODEL
     if _MODEL is None or force_reload:
+        if (_MODEL_CACHE / "fast-bge-small-zh-v1.5").is_dir():
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
         from fastembed import TextEmbedding
 
         _MODEL = TextEmbedding(model_name=_MODEL_NAME)

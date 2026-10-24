@@ -1,270 +1,621 @@
-# My Library RAG 设计方案
+# My Library RAG 最终设计方案
 
-## 1. 现状分析
+> 状态：本次 RAG 改造完成后的最终方案。
+>
+> 适用范围：`backend/rag/`、`backend/routers/rag.py`、`backend/schemas/rag.py`、`backend/tests/`。
+>
+> 接口契约以 [`backend/spec/openapi.yaml`](backend/spec/openapi.yaml) 为准；问题分析与评测细节见 [`RAG_STRATEGY.md`](RAG_STRATEGY.md)。
 
-### 项目背景
+## 1. 目标与约束
 
-[My Library](https://github.com/dingfengbo/my-library) 是一个个人图书管理系统，后端 Python FastAPI + SQLite（多租户，每用户独立 DB），前端 React，部署在 Docker Compose。
+### 1.1 要解决的问题
 
-### 可检索文本字段
+1. 中文图书检索召回差：书名、作者、实体名在长简介中被稀释。
+2. 精确查询和语义查询互相干扰：ISBN/作者名需要 FTS，自然语言需要向量。
+3. 整本简介超过 BGE 512 token，关键信息容易被截断。
+4. 新增一本书不应该重建整个书库。
+5. 不引入新的基础设施，不改变前端，不破坏每用户 SQLite 隔离。
 
-| 实体 | 文本字段 | 类型 | 最大长度 |
-|------|----------|------|----------|
-| **Book** | title, title_cn, translator, catalog, introduction, summary, tags, edition, printing_info | 结构化描述 | catalog/intro/summary 各 2000 chars |
-| **Author** | name, name_cn, nation, dynasty, intro | 元数据 | intro 1000 chars |
-| **Publisher** | name, intro | 元数据 | intro 1000 chars |
-| **Brand** | name, intro | 元数据 | intro 1000 chars |
-| **Category** | name, path | 分类路径 | path 500 chars |
-| **BookSeries** | name, intro | 元数据 | intro 1000 chars |
-| **Bookshelf** | name, intro | 元数据 | intro 1000 chars |
+### 1.2 设计约束
 
-### 架构约束
+| 约束 | 影响 |
+|------|------|
+| 每用户独立 SQLite（`<uuid>.db` / `demo.db`） | 索引必须落在用户自己的 DB 内 |
+| 已使用 `sqlite-vec` + FTS5 | 不迁移到外部向量数据库 |
+| FastAPI 单进程 + Docker Compose | 后台任务用线程，不引入 Celery/Redis |
+| 个人图书库，单用户约 1 万册 | 不需要分布式索引 |
+| 中英双语 | 检索和分词必须同时覆盖 CJK 与 Latin |
 
-- **多租户 SQLite**：每用户独立 DB 文件（`<uuid>.db` / `demo.db`），数据天然隔离
-- **后端**：单进程 FastAPI，无外部依赖如 Redis/PostgreSQL
-- **部署**：Docker Compose，数据持久化 `my-library-data` volume
-- **现有搜索**：仅 SQL `LIKE`/`=` 过滤，无全文检索
-- **数据量级**：个人图书管理，单用户 ≤ 1 万册
-- **语言**：中英双语混合
+### 1.3 设计意图摘要
 
----
+这次改造的核心意图不是“把 RAG 做得更复杂”，而是：
 
-## 2. 技术选型
-
-### 2.1 向量存储 → `sqlite-vec`
-
-**选型理由**：
-
-- 直接利用已有**每用户独立 SQLite DB**，每用户一个向量表，数据隔离不变
-- SQLite 扩展（.so 加载），`CREATE VIRTUAL TABLE vec_books USING vec0(...)` 即可使用
-- 支持 kNN 查询（`ORDER BY distance LIMIT N`），向量维度 ≤ 1024
-- 无需额外服务，零运维成本，Docker 部署零改动
-- 1 万条级别性能足够（单次搜索 < 10ms）
-
-**对比淘汰**：
-
-| 方案 | 淘汰原因 |
-|------|----------|
-| ChromaDB | 额外进程 + 网络开销，破坏"单进程单DB"的简洁性 |
-| FAISS | 脱离 SQLite 事务，需额外持久化层 |
-| pgvector | 需要从 SQLite 迁移到 PostgreSQL，改动太大 |
-
-### 2.2 嵌入模型 → `BAAI/bge-small-zh-v1.5`（通过 `fastembed`）
-
-**选型理由**：
-
-- **中英双语**：BGE 系列同时在中英文上训练，匹配本项目双语数据
-- **小体积**：33MB（vs `bge-base-zh` 110MB）
-- **512 维**（ONNX 版本）：在 `sqlite-vec` 1024 维上限内
-- **MIT 许可证**
-- **`fastembed` 封装**：纯 ONNX 推理，无需 torch（避免 ~800MB 镜像膨胀）
-
-> ⚠️ 实际部署时，`fastembed` 的 ONNX 版本输出为 **512 维**（非原始 PyTorch 的 384 维）。需要设置 `HF_ENDPOINT=https://hf-mirror.com` 环境变量以使用国内镜像下载模型。
-
-### 2.3 检索策略 → 混合检索（Hybrid Search）
-
-```
-用户查询
-    │
-    ├──→ FTS5 关键词检索（精确匹配：书名、作者名、ISBN、标签）
-    │        ↑ SQLite 内置，零额外依赖
-    │
-    └──→ 向量相似度检索（语义匹配："关于AI的科幻书"）
-             ↑ BGE embedding + vec0 kNN
-    │
-    └──→ 加权合并（Weighted Sum）
-             ↑ 参数 α 控制向量权重 (0=纯FTS5, 1=纯向量)
-```
-
-**为什么保留 FTS5**：
-
-- ISBN 精确查找、作者朝代、出版社名 — 语义搜索不擅长精确匹配
-- FTS5 是 SQLite 内置模块，零额外依赖，索引与数据在同一事务中
-
-### 2.4 集成方式 → 内置模块（非独立服务）
-
-```
-backend/
-  rag/
-    __init__.py       # 模块入口
-    embedding.py      # fastembed 封装（惰性加载）
-    vector_store.py   # sqlite-vec 表管理、CRUD、搜索
-    document.py       # Book → 结构化文档 + FTS5 字段提取
-    pipeline.py       # 索引同步 hook（sync/remove/reindex）
-```
-
-无需新建 Docker 服务，直接在现有 FastAPI 进程中运行。
+- **用混合检索解决“精确 vs 语义”**：FTS5 保精确，向量保语义，RRF 做融合。
+- **用摘要解决长文本截断**：摘要作为整本书的语义代表，FTS 仍保留完整字段。
+- **用增量状态解决新书成本**：新书只处理新书，旧书不重复 embedding。
+- **把失败变成可重试状态**：摘要失败不写入错误结果，而是留空等待下次重试。
+- **保持数据可迁移**：模型缓存、向量、摘要、增量状态都能随 DB/volume 搬到云服务器。
 
 ---
 
-## 3. 数据结构设计
+## 2. 最终架构
 
-### 3.1 SQLite 扩展表（每用户 DB 内创建）
+```
+                    ┌──────────────────────────────┐
+                    │          Book CRUD            │
+                    │  create / update / delete     │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │        rag.pipeline           │
+                    │  sync_book / remove_book      │
+                    │  reindex_all / start_reindex  │
+                    └───────┬───────────────┬───────┘
+                            │               │
+              ┌─────────────▼──────┐  ┌─────▼──────────────┐
+              │   book_fts (FTS5)  │  │ book_vectors (vec0)│
+              │   完整字段 + CJK    │  │ 512 维 BGE 向量     │
+              └─────────────┬──────┘  └─────┬──────────────┘
+                            │               │
+                            └───────┬───────┘
+                                    ▼
+                         ┌────────────────────┐
+                         │   hybrid_search     │
+                         │   weighted RRF      │
+                         └─────────┬──────────┘
+                                   │
+                                   ▼
+                         ┌────────────────────┐
+                         │ enrich + diversify  │
+                         │ 过滤 + 版本去重      │
+                         └─────────┬──────────┘
+                                   │
+                                   ▼
+                              搜索结果
+
+摘要链路：
+books.introduction ──> generate_book_summary ──> books.summary
+                                                   │
+                          ┌────────────────────────┘
+                          ▼
+              POST /api/rag/summarize/{book_id}
+                          │
+                          ▼
+              标记 rag_book_state 待重建
+                          │
+                          ▼
+          POST /api/rag/reindex?incremental=true
+```
+
+### 2.1 模块职责
+
+| 文件 | 职责 |
+|------|------|
+| `rag/embedding.py` | fastembed/BGE 惰性加载、单条/批量推理 |
+| `rag/document.py` | Book → 向量文档、FTS5 字段 |
+| `rag/vector_store.py` | vec0 + FTS5 + `rag_meta` + `rag_book_state` 建表、CRUD、混合检索 |
+| `rag/pipeline.py` | CRUD hook、摘要生成、全量/增量 reindex、后台进度 |
+| `rag/summarize.py` | 离线抽取式摘要 + DeepSeek API 调用 |
+| `routers/rag.py` | search / summarize / reindex / status API |
+| `schemas/rag.py` | 请求/响应模型 |
+| `scripts/eval_rag.py` | golden set 评测：Recall@K、Hit@K、MRR、nDCG |
+
+---
+
+## 3. 关键设计决策与意图
+
+### 3.1 保留 `sqlite-vec` + FTS5，不引入外部向量库
+
+**决定**：继续使用每用户 SQLite 内的 `book_vectors` 和 `book_fts`。
+
+**意图**：
+
+- 数据隔离天然成立：每个用户一个 DB，索引不会串库。
+- 零额外运维：不需要 Chroma、Milvus、PostgreSQL/pgvector。
+- 索引与业务数据同事务，删除/更新不容易出现“DB 已删、向量还在”。
+- 1 万册以内，SQLite 的 kNN 和 FTS5 性能足够。
+
+**代价**：没有分布式能力；库特别大时需要换方案。当前项目规模不需要。
+
+### 3.2 混合检索：FTS5 + 向量 + 加权 RRF
+
+**决定**：`hybrid_search` 分别取 FTS5 和向量结果，用加权 RRF 融合，默认 `alpha=0.5`。
+
+**意图**：
+
+- FTS5 擅长精确命中：书名、作者、出版社、ISBN、系列名。
+- 向量擅长语义： “关于人工智能的科幻小说” 这类没有精确词的查询。
+- BM25 分数和余弦分数不可直接比较，RRF 用排名融合，避免某一路分数尺度压倒另一路。
+- `alpha` 保留可调：0 是纯 FTS，1 是纯向量。
+
+**评测依据**（真实库，`top_k=10`）：
+
+| alpha | Recall@10 | Hit@10 | MRR | nDCG@10 |
+|-------|-----------|--------|-----|---------|
+| 0.3 | 0.948 | 1.000 | 0.870 | 0.856 |
+| **0.5** | **0.948** | **1.000** | **0.909** | **0.872** |
+| 0.7 | 0.880 | 0.960 | 0.875 | 0.839 |
+
+因此默认保持 `alpha=0.5`，不把向量权重调得更高。
+
+### 3.3 CJK 逐字空格 + 查询端重叠 3-gram
+
+**决定**：写入 FTS5 时把每个 CJK 字符用空格隔开；查询端把长 CJK 串切成重叠 3-gram，用 OR 连接。
+
+**意图**：
+
+- FTS5 的 `unicode61` 会把一整段中文当成一个 token，`甘道夫` 在 `睿智巫师甘道夫的到来` 里无法单独命中。
+- 逐字空格后，每个汉字都是可检索 token，任意子串都能被定位。
+- 查询端用重叠 3-gram，避免固定 4 字切块把实体从中间切断。
+- 查询前剥离“出自哪本书 / 是谁写的 / 是什么”等疑问尾缀，避免这些高频词污染 FTS 排名。
+
+**兼容性**：`rag_meta.fts_tokenizer = cjk_spaced_v1`。旧 FTS 表在 `ensure_rag_tables` 中自动删除重建，需要跑一次 reindex。
+
+### 3.4 精确实体查询保护
+
+**决定**：如果查询没有触发 OR 扩展（说明是短实体/书名类查询），且 FTS 命中数 ≥ `top_k`，则向量只用于重排 FTS 候选，不引入纯向量结果。
+
+**意图**：
+
+- “甘道夫出自哪本书”这类查询，FTS 已经能给出可靠候选。
+- 纯向量结果里常有语义相近但不相关的书，容易把精确命中挤下去。
+- 长自然语言查询仍允许向量补位，不牺牲语义召回。
+
+**效果**：`甘道夫出自哪本书？` 返回 7 条相关结果，`魔戒` 位于第 4 位。
+
+### 3.5 结果按“作品”去重，而不是按书名去重
+
+**决定**：用“规范化书名 + 第一作者”分组，优先保留最短/最规范标题；不同卷/不同作品仍保留。
+
+**意图**：
+
+- 同一本书的套装、周年纪念版、精装版、不同版次会重复占据 top_k。
+- 直接按书名去重会误伤《三体》和《三体 II》这类不同卷。
+- 规范化时只去掉版次/装帧后缀，不合并不同卷。
+
+### 3.6 向量用摘要，FTS 用完整字段
+
+**决定**：
+
+- 向量文档：`书名 + 作者 + 标签 + summary`；没有 summary 时回退到完整文档。
+- FTS5：仍然索引 title、title_cn、authors、tags、introduction、summary、catalog、publisher、series、brand。
+
+**意图**：
+
+- BGE 只有 512 token，整本 2000 字简介会被截断，关键实体可能丢失。
+- 按 header 预算后的摘要（通常 400-450 字）更适合作为“整本书的语义代表”，信噪比更高，也不会被 512 token 截断。
+- FTS 不需要摘要，它需要完整字段做精确召回；两者职责分开。
+- 没有摘要的旧书回退完整文档，保证兼容，不会因为没摘要就搜不到。
+- 短简介（<400 字符）本身就是最好的整书表示，压缩成摘要反而损失信息，还多一次 LLM 调用，因此直接走完整文档回退。
+
+### 3.7 摘要生成：DeepSeek 优先，本地兜底，失败留空
+
+**决定**：
+
+- 有 `DEEPSEEK_API_KEY`：调用 DeepSeek 官方 API（`deepseek-flash`，非 thinking，`temperature=0.3`，`max_tokens=1024`，60s 超时，最多 2 次）。
+- 没有 Key：使用离线抽取式摘要（按词频选句，不依赖 jieba）。
+- 有 Key 但调用失败：reindex 时摘要留空，不写入本地摘要，等待下次重试；单本摘要 API 返回 502，原摘要不变。
+- 已有摘要默认不覆盖；`POST /api/rag/summarize/{book_id}?force=true` 可强制覆盖。
+- 单本 CRUD 不调用 LLM，避免创建/更新请求被网络阻塞。
+- `introduction` 短于 `MIN_SUMMARY_INTRODUCTION_CHARS`（400 字符）时不做摘要：完整文档直接 embedding，`summary` 留空并视为已完成；单本 API 对此返回 400，`?force=true` 才生成。400 = 512 token 窗口减去书名/作者/出版社/标签等字段的余量，保证回退文档不被模型截断。
+- 摘要长度不是固定 500 字符：`document.summary_char_budget` 按该书 header（书名/作者/标签）实际占用，从 512 token 中扣除 tokenizer 余量（16）后得到每本书的预算，生成端按预算截断，构建 embedding 文档时再兜底裁一次——标题/作者后改过也不会让模型截掉摘要尾部。
+
+**意图**：
+
+- 在线时优先质量，离线时仍可用。
+- 失败时不要把低质量本地摘要“永久锁死”，留空才能重试。
+- 摘要生成是慢操作，不应阻塞普通图书 CRUD。
+- 单本摘要 API 让用户可以在不跑全量 reindex 的情况下补一本书。
+
+**长度**：摘要最多 500 字符，给书名/作者/标签留出 token 余量。
+
+### 3.8 增量 reindex：每本书一个状态，而不是靠时间戳
+
+**决定**：新增 `rag_book_state(book_id, summary_done)`。
+
+- `summary_done=1`：摘要已完成，或本来就没有简介可生成，或简介短于 400 字符无需摘要。
+- `summary_done=0` 或没有 state 行：下次增量需要处理。
+- `sync_book` 只在向量与 FTS 都写成功后写入 state（摘要仍缺时写 `summary_done=0`）；写入失败或模型未加载时删掉 state，把重建留给增量 reindex。
+- 摘要 API 更新摘要后删除 state 行，强制下次增量重建该书。
+- reindex 成功处理后写入 `summary_done=1`；摘要或向量写入失败则保持 0 / 不写 state 行，下次重试。
+- 旧库首次初始化时，已有向量 + FTS 的书自动补 `summary_done=1`，避免第一次增量变成全量。
+
+**增量 pending 判定**：
+
+```
+缺 book_vectors 行
+OR 缺 book_fts 行
+OR rag_book_state.summary_done != 1
+OR book_fts.summary != _space_cjk(book.summary)
+```
+
+**意图**：
+
+- 不能只看“有没有向量”：新书创建时 `sync_book` 可能已经写了向量/FTS，但它还没有摘要，仍然需要增量处理。
+- 不能靠时间戳：导入旧书、手动改 DB、时钟偏差都会让时间戳判断不可靠。
+- 每本书的状态是确定性的，重启后仍然有效。
+- 摘要 API 只写 `books.summary`，通过删 state 把“重建索引”交给增量 reindex，职责清晰。
+- 摘要失败保持 0，让增量可以重试，而不是悄悄跳过。
+
+**取舍**：旧库中已经索引、但摘要为空的旧书会被 bootstrap 标记为完成，增量不会重试它们；需要补旧摘要时跑一次全量 reindex。这是为了避免每次增量都重复调用 LLM。
+
+### 3.9 全量 reindex 仍然保留
+
+**决定**：`POST /api/rag/reindex` 默认全量；`?incremental=true` 才增量。
+
+**意图**：
+
+- 模型升级、FTS schema 变更、摘要策略变更时，全量是唯一可靠的重建方式。
+- 增量是日常新书路径，不是替代全量。
+- 全量按批 embedding，单批失败逐条重试；仍失败的书保留 FTS，向量下次再补。
+- 清理孤儿索引行、持久化摘要、写入向量/FTS 都在各自短事务里提交；DeepSeek 与 ONNX 执行期间不持有任何 SQLite 事务，因此图书增删改不会被 reindex 卡住。
+- 写入阶段开始前先把这些书的 state 行删掉并提交：任何一次写入失败或被跳过，书都保持“待处理”，不会被增量误判为已完成。
+- 每本书写入前在同一事务内比对 `books.updated_at` 与开始嵌入前的快照，reindex 期间被编辑过的书跳过并留待下次增量，不会用旧快照覆盖新编辑。
+
+### 3.10 模型指纹：换模型/换库时必须能发现
+
+**决定**：在 `rag_meta` 里记录 `embedding_fingerprint = 模型名|维度|sqlite-vec 版本|fastembed 版本`。
+
+- 新库（还没有向量）：初始化时写入当前指纹。
+- 老库（已有向量但没指纹）：不当作兼容，写入 `unknown` 并告警，等全量 reindex 重写。
+- 指纹不一致：启动时告警“准备用哪个模型、存储的是哪个模型”，`GET /api/rag/status` 返回 `index_model` / `index_model_matches=false`。
+- 全量 reindex 成功（`failed == 0`）后才写入新指纹；部分失败不更新，避免把混合模型索引标成一致。
+
+**意图**：不同模型的向量不可比，而且不会报错，只会检索悄悄变差。把本机 reindex 好的库复制到另一台服务器时，指纹能证明两边模型一致；模型升级后也能提示必须重建。
+
+### 3.11 模型缓存持久化
+
+**决定**：fastembed 缓存放到 `/app/.model_cache`，Docker volume `model-cache` 持久化。
+
+**意图**：
+
+- 容器重建不重新下载 91MB 模型。
+- 离线/内网环境也能启动。
+- 模型缓存可以直接复制到云服务器，但必须保证模型名、版本、维度一致。
+
+**注意**：模型缓存只解决“加载模型”，不包含向量；向量在用户 DB 的 `book_vectors` 表里。
+
+### 3.12 用 golden set 量化检索质量
+
+**决定**：`backend/scripts/rag_golden.jsonl` + `backend/scripts/eval_rag.py`，指标为 Recall@K、Hit@K、MRR、nDCG@K。
+
+**意图**：
+
+- 检索改动不能只靠“感觉好一点”，要有回归基线。
+- 当前 25 条覆盖实体、书名、作者、卷名、主题、语义、英文查询。
+- 后续建议扩充到 50-100 条，作为 CI/部署前回归。
+
+---
+
+## 4. 数据结构
+
+### 4.1 向量表
 
 ```sql
--- 向量表（sqlite-vec 虚表）
 CREATE VIRTUAL TABLE book_vectors USING vec0(
-    book_id INTEGER PRIMARY KEY,   -- references books.id
-    embedding FLOAT[512]            -- BGE 512 维向量（ONNX）
+    book_id INTEGER PRIMARY KEY,
+    embedding FLOAT[512]
 );
+```
 
--- FTS5 全文索引表（contentless 模式）
+- BGE ONNX 版本输出 512 维。
+- vec0 不支持 `INSERT OR REPLACE`，更新时先 `DELETE` 再 `INSERT`。
+- 维度变化时 `ensure_rag_tables` 会重建向量表，必须全量 reindex。
+
+### 4.2 FTS5 表
+
+```sql
 CREATE VIRTUAL TABLE book_fts USING fts5(
     book_id UNINDEXED,
-    title, title_cn,
+    title,
+    title_cn,
     authors_text,
     tags_text,
-    introduction, summary, catalog,
-    publisher_name, series_name,
+    introduction,
+    summary,
+    catalog,
+    publisher_name,
+    series_name,
     brand_name,
-    content='',
     prefix='2 3'
 );
 ```
 
-> ⚠️ **vec0 upsert 限制**：vec0 虚表不支持 `INSERT OR REPLACE`，更新向量时需要先 `DELETE` 再 `INSERT`。
-> ⚠️ **FTS5 contentless 删除**：`content=''` 表不支持 `DELETE FROM`，必须使用 `INSERT INTO ... VALUES('delete', :book_id)` 语法。
+- 普通 FTS5 表，不是 contentless，支持可靠的 `DELETE`/`INSERT OR REPLACE`。
+- 写入时所有文本字段经过 `_space_cjk`。
+- `rag_meta.fts_tokenizer` 记录编码版本，当前为 `cjk_spaced_v1`。
 
-### 3.2 文档构建格式
+### 4.3 元数据表
 
-每条 Book 构建为一个扁平文本，用于生成嵌入向量：
-
-```
-书名: 《三体》
-英文: The Three-Body Problem
-作者: 刘慈欣 [中国] | dynasty: 现代
-出版社: 重庆出版社
-品牌: 科幻世界
-分类: 科幻小说 > 硬科幻
-标签: 科幻, 外星文明, 物理学
-简介: 文化大革命如火如荼进行的同时，军方探寻外星文明的绝秘计划"红岸工程"...
-目录: 第一章 科学边界... 第二章 三体问题...
+```sql
+CREATE TABLE rag_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 ```
 
-文档同时用于 FTS5 索引和向量嵌入。
+关键 key：
+
+| key | 含义 |
+|-----|------|
+| `fts_tokenizer` | FTS 编码版本，当前 `cjk_spaced_v1` |
+| `book_state_bootstrapped` | 旧库是否已完成 `rag_book_state` 初始化 |
+
+### 4.4 增量状态表
+
+```sql
+CREATE TABLE rag_book_state (
+    book_id INTEGER PRIMARY KEY,
+    summary_done INTEGER NOT NULL DEFAULT 0
+);
+```
+
+| 值 | 含义 |
+|----|------|
+| `1` | 摘要已完成，或没有简介可生成 |
+| `0` | 下次增量需要处理 |
+| 无行 | 视为待处理；摘要 API 更新后也会删除该行 |
+
+### 4.5 摘要字段
+
+`books.summary` 是摘要的唯一持久化位置。摘要 API 只写这个字段，不直接改向量/FTS。
 
 ---
 
-## 4. 索引同步策略
+## 5. 索引与检索流程
 
-### 4.1 事件驱动（CRUD Hook）
-
-| 事件 | 动作 |
-|------|------|
-| `create_book` | 构建文档 → 生成向量 → `DELETE+INSERT` vec 表 + `INSERT OR REPLACE` FTS 表 |
-| `update_book` | 重新生成文档 → 新向量 → 同上 |
-| `delete_book` | `DELETE` vec 表 + `INSERT ... VALUES('delete')` FTS 表 |
-
-在 `routers/book.py` 和 `main.py` 的表单 `add_book` 中注射 hook 调用 `rag.pipeline.sync_book()`。
-
-### 4.2 全量重建命令
+### 5.1 单书写入：`sync_book`
 
 ```
-POST /api/rag/reindex
+create/update book
+  -> 重新查询 Book + 关联实体
+  -> build_book_embedding_document(book)   # 摘要优先，否则完整文档
+  -> build_book_fts_fields(book)           # 完整字段
+  -> 模型已加载？
+       是：embed_text -> upsert_book_vector
+       否：删除旧向量，避免指向旧文本
+  -> upsert_book_fts
+  -> upsert_book_state(summary_done = 有摘要 or 无简介)
+  -> commit
 ```
 
-- 逐条遍历 books，调用 `sync_book()` 执行 delete+insert
-- 返回 `{total, indexed, failed}` 统计
-- 🔴 2616 本全量重建约 260 秒（单条 ~100ms），可用于后台异步执行
+**意图**：
+
+- 普通 CRUD 后索引立即更新，搜索不会读到旧标题/旧作者。
+- 模型没加载时不在请求里下载模型，避免阻塞；向量交给后续 reindex。
+- 状态写入和向量/FTS 在同一个 savepoint，失败不会留下半条索引。
+
+### 5.2 查询：`POST /api/rag/search`
+
+```
+query
+  -> _strip_question_suffix        # 去掉“出自哪本书”等尾缀
+  -> _fts_tokenize                 # CJK 重叠 3-gram + Latin prefix
+  -> FTS5 search  +  vector search
+  -> 精确实体查询且 FTS 足够？
+       是：向量只重排 FTS 候选
+       否：正常混合
+  -> 加权 RRF
+  -> enrich（过滤 archived / wishlist）
+  -> diversify（规范化书名 + 第一作者）
+  -> top_k
+```
+
+**意图**：
+
+- 精确查询不被向量噪声污染。
+- 长自然语言查询保留语义补位。
+- 返回结果去重，避免同一本书的多个版本占满列表。
+
+### 5.3 摘要：`POST /api/rag/summarize/{book_id}`
+
+```
+book
+  -> 已有摘要且 force=false ? 直接返回 existing
+  -> 无简介且需要生成 ? 400
+  -> 无 Key ? 本地摘要 local
+  -> 有 Key ? DeepSeek deepseek；失败 502
+  -> 写入 books.summary
+  -> 删除 rag_book_state 行（标记待重建）
+  -> 返回 {summary, source, updated}
+```
+
+**意图**：
+
+- 摘要生成和索引重建解耦：摘要接口快，索引交给增量 reindex。
+- 失败不覆盖已有摘要。
+- `source` 明确告诉调用方摘要来自哪里。
+
+### 5.4 Reindex
+
+**全量**：
+
+```
+ensure_rag_tables
+  -> prune_missing_books
+  -> 加载所有书
+  -> 生成空摘要
+  -> 构建文档
+  -> 分批 embedding（batch_size=32，失败逐条重试）
+  -> 逐本 upsert vector + FTS + state
+```
+
+**增量**：
+
+```
+ensure_rag_tables
+  -> prune_missing_books
+  -> 加载所有书
+  -> _books_needing_index 过滤
+       缺向量 / 缺 FTS / state != 1 / FTS 摘要与当前摘要不一致
+  -> 只对 pending 书生成摘要、构建文档、embedding、写库
+  -> 写 state
+```
+
+**意图**：
+
+- 全量用于模型/schema/策略升级。
+- 增量用于日常新书和摘要更新，避免 2600 本重复 embedding。
+- 增量 `reindex_total` 是本次待处理书数，不是全书数。
 
 ---
 
-## 5. API 设计
+## 6. API
 
-### 混合搜索
+### 6.1 搜索
 
-```
+```http
 POST /api/rag/search
 {
   "query": "关于人工智能的科幻小说",
   "top_k": 10,
-  "alpha": 0.5
+  "alpha": 0.5,
+  "min_score": 0.0
 }
-→
+```
+
+### 6.2 单本摘要
+
+```http
+POST /api/rag/summarize/{book_id}
+POST /api/rag/summarize/{book_id}?force=true
+Authorization: Bearer <token>
+```
+
+响应：
+
+```json
 {
-  "query": "关于人工智能的科幻小说",
-  "total": 5,
-  "results": [
-    {
-      "book_id": 1,
-      "score": 0.92,
-      "title": "三体",
-      "title_cn": "三体",
-      "authors": ["刘慈欣"]
-    }
-  ]
+  "book_id": 1,
+  "summary": "……",
+  "source": "existing | local | deepseek",
+  "updated": true
 }
 ```
 
-### 全量重索引
+错误：
 
-```
+| 状态码 | 含义 |
+|--------|------|
+| 400 | 没有简介，无法生成 |
+| 404 | 书不存在 |
+| 502 | 配置了 DeepSeek 但调用失败，原摘要不变 |
+
+### 6.3 Reindex
+
+```http
 POST /api/rag/reindex
-→
-{
-  "total": 2616,
-  "indexed": 2616,
-  "failed": 0
-}
+POST /api/rag/reindex?incremental=true
+Authorization: Bearer <token>
 ```
 
-### 索引状态
+- 默认全量。
+- `incremental=true` 只处理新书/待重建书。
+- 后台线程执行，立即返回；进度看 `/api/rag/status`。
 
-```
+### 6.4 状态
+
+```http
 GET /api/rag/status
-→
-{
-  "indexed_count": 42,
-  "total_books": 2616,
-  "model_loaded": false
-}
 ```
+
+返回 `indexed_count`、`total_books`、`model_loaded`、`reindex_status`、`reindex_indexed`、`reindex_failed`、`reindex_total`、`reindex_detail`。
 
 ---
 
-## 6. 约束与风险
+## 7. 部署与数据复用
+
+### 7.1 模型缓存
+
+- 路径：`/app/.model_cache`，Docker volume `model-cache`。
+- 当前模型目录：`/app/.model_cache/fast-bge-small-zh-v1.5/`，约 91MB。
+- 云服务器可以直接复制该目录/volume，设置 `FASTEMBED_CACHE_PATH=/app/.model_cache`。
+- 必须保持同一模型、同一维度（512）和同一 `fastembed` 版本；否则向量不可复用，需要全量 reindex。
+
+### 7.2 用户数据库
+
+直接复制用户 `.db` 可以复用：
+
+- `book_vectors`
+- `book_fts`
+- `books.summary`
+- `rag_meta`
+- `rag_book_state`
+
+注意事项：
+
+1. 云端代码版本必须包含 `cjk_spaced_v1` 和 `rag_book_state`，否则 `ensure_rag_tables` 可能重建 FTS/向量表。
+2. 云端 DB 文件名必须对应用户 UUID，否则应用不会使用该库。
+3. 复制前备份云端原 DB，复制时停后端，避免写入冲突。
+4. 复制后检查 `/api/rag/status` 的 `indexed_count`，并跑一次搜索。
+5. 只复制 DB、不复制模型缓存时，查询 embedding 仍需要模型；云端必须能下载或已有缓存。
+
+### 7.3 DeepSeek
+
+DeepSeek 是官方 API，没有本地权重需要复制；云端配置 `DEEPSEEK_API_KEY` 即可生成新摘要。已有摘要和向量可以随 DB 直接复用。
+
+---
+
+## 8. 验收结果
+
+| 项目 | 结果 |
+|------|------|
+| 后端测试 | `207 passed` |
+| 真实库规模 | 2622 本书，2622 条向量，2622 条 FTS |
+| 增量 bootstrap | 旧库首次初始化后 `pending=0`，不会全量重建 |
+| 实体查询 | `甘道夫出自哪本书？` 返回 7 条相关结果，`魔戒` 第 4 位 |
+| 检索基线（alpha=0.5） | Recall@10 `0.948`，Hit@10 `1.000`，MRR `0.909`，nDCG@10 `0.872` |
+| 模型缓存 | 约 91MB，容器重建后离线加载约 0.7s |
+| API 安全 | 未登录 `POST /api/rag/reindex` 返回 401 |
+| OpenAPI | `/api/rag/reindex` 已包含 `incremental` 参数 |
+
+---
+
+## 9. 约束、风险与未做
 
 | 项目 | 说明 |
 |------|------|
-| **ONNX 推理速度** | CPU 上约 50-100ms/条（单条），批量 32 条约 200ms |
-| **模型加载** | 首次使用约 2-12 秒（含下载 ~33MB），之后惰性缓存 |
-| **多租户隔离** | 每 DB 独立的向量表 + FTS5 表，无交叉泄露 |
-| **事务一致性** | `sync_book` 在同一个 SQLAlchemy session 中执行，与业务操作原子 |
-| **Docker 镜像** | 无需 torch，镜像增量 ~50MB（onnxruntime + fastembed） |
-| **网络要求** | 首次需访问 HuggingFace（或配置 `HF_ENDPOINT=https://hf-mirror.com`） |
-| **全量重索引** | 2616 本 ~260 秒，建议用后台任务或分批执行 |
+| 没有分块 | 整本书仍是单向量；超长简介靠摘要缓解，未做 chunking |
+| 增量判定 | 只比较索引存在性、state、摘要文本；不比较所有字段 hash。普通编辑由 `sync_book` 即时更新，直接改 DB 需要全量 reindex |
+| 旧空摘要 | 旧库中已索引但摘要为空的旧书不会在增量中重试，需全量 reindex 补 |
+| 模型变更 | 换模型/维度必须重建向量表并全量 reindex |
+| FTS schema 变更 | `fts_tokenizer` 版本变化会重建 FTS，需要 reindex |
+| DeepSeek | 有 API 成本/延迟；失败留空重试；并发 4 个 worker |
+| golden set | 当前 25 条，建议扩充到 50-100 条并接入 CI |
+| 前端 | 本次未改前端 |
+| 部署复制 | DB 复制依赖相同代码版本和正确 UUID；模型缓存需单独复制 |
 
 ---
 
-## 7. 实施记录
+## 10. 关键文件
 
-### Phase 1 — 基础设施 ✅
-- [x] 本设计文档
-- [x] 安装依赖：`sqlite-vec==0.1.9`, `fastembed==0.8.0`
-- [x] 创建 `backend/rag/` 模块结构（5 个文件）
-- [x] 实现 `embedding.py`（fastembed 惰性加载 BGE ONNX 512-dim）
-- [x] 实现 `vector_store.py`（vec0+FTS5 建表、CRUD、hybrid_search）
-- [x] 修改 `database.py`：sqlite-vec 扩展通过 SQLAlchemy event 自动加载，RAG 表自动初始化
+```
+backend/rag/
+  embedding.py       # fastembed/BGE
+  document.py        # 文档 + FTS 字段
+  vector_store.py    # vec0 / FTS5 / rag_meta / rag_book_state
+  pipeline.py        # sync / remove / summary / reindex
+  summarize.py       # 本地摘要 + DeepSeek
+backend/routers/rag.py
+backend/schemas/rag.py
+backend/spec/openapi.yaml
+backend/scripts/rag_golden.jsonl
+backend/scripts/eval_rag.py
+backend/tests/test_rag.py
+backend/tests/test_rag_summary.py
+backend/tests/test_rag_incremental.py
+backend/tests/test_rag_eval.py
+```
 
-### Phase 2 — 索引同步 ✅
-- [x] 实现 `document.py`：Book + 关联实体 → 结构化文档 + FTS5 字段提取
-- [x] 实现 `pipeline.py`：`sync_book`（delete+insert）、`remove_book`、`reindex_all`
-- [x] 注入 hooks：`routers/book.py`（create/update/delete）+ `main.py`（表单 add_book）
+---
 
-### Phase 3 — 搜索 API ✅
-- [x] 创建 `schemas/rag.py`：请求/响应模型
-- [x] 创建 `routers/rag.py`：`POST /api/rag/search`、`POST /api/rag/reindex`、`GET /api/rag/status`
-- [x] 注册到 `routers/__init__.py` 和 `main.py`
+## 11. 设计意图总结
 
-### Phase 4 — 前端集成（可选）
-- [ ] RAG 搜索 UI 组件
-- [ ] 匹配片段高亮展示
+这套方案优先保证三件事：
 
-### 实施中发现的关键修正
+1. **检索质量**：FTS5 保精确，向量保语义，RRF 融合，精确实体查询不被噪声污染。
+2. **可维护性**：所有索引状态都在用户自己的 SQLite 内，没有额外服务；失败可重试，旧数据可兼容。
+3. **增量成本**：新书只处理新书，摘要 API 和增量 reindex 解耦，模型缓存和 DB 都可以直接迁移到云服务器。
 
-| # | 问题 | 修复 |
-|---|------|------|
-| 1 | ONNX 版本 `bge-small-zh-v1.5` 输出 512 维（非文档说的 384） | 所有 SQL schema 改为 `FLOAT[512]`，添加维度迁移检测 |
-| 2 | HFC 网络不可达 | 分布式部署需设置 `HF_ENDPOINT=https://hf-mirror.com` |
-| 3 | vec0 不支持 `INSERT OR REPLACE`（UNIQUE 约束） | 改为 `DELETE + INSERT` 实现 upsert |
-| 4 | FTS5 contentless 表不支持 `DELETE FROM` | 改为 `INSERT INTO ... VALUES('delete', :book_id)` |
+如果未来书库规模、查询复杂度或摘要质量要求明显上升，下一步才是 chunking、更大的 embedding 模型、cross-encoder 重排和动态 alpha；当前方案刻意没有提前引入这些复杂度。
