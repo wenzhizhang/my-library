@@ -39,6 +39,8 @@ services:
     volumes:
       - my-library-data:/app/data
       - ./config/projects.json:/app/config/projects.json:ro
+      # Dev-only: mount configs for hot editing. The prod compose does NOT
+      # mount this, so the image's /app/config is authoritative there.
       - ./backend/config:/app/config:ro
       - media-cache:/app/data/media-cache
       - root-db-data:/app/root-db

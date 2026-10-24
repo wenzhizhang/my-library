@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ---- 反向代理入口 ----
   nginx:
@@ -38,7 +36,9 @@ services:
     volumes:
       - backend-data:/app/data
       - media-cache:/app/data/media-cache
-      - ./backend/config:/app/config:ro
+      # /app/config comes from the image (COPY . .).  Do not bind-mount a host
+      # directory over it: a missing/empty host dir silently hides every config
+      # file and the backend dies on import (nations.json).
       - root-db-data:/app/root-db
       - model-cache:/app/.model_cache
 

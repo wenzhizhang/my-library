@@ -10,7 +10,7 @@
 - **ISBN 入库**: 输入 ISBN 自动查找（用户库 → 共享库 → 豆瓣/OpenLibrary），支持表单自动填充
 - **共享数据库 (root.db)**: 作者/出版社/品牌/分类/系列/图书的公共参考数据跨用户共享，创建时自动同步
 - **导出功能**: 支持 SQL / CSV / Excel / Markdown / JSON 五种格式，可按表选择导出范围
-- **个性化背景图**: 用户可在「设置」中从背景图列表选择个人背景，仅对当前账号生效；背景图列表由 `backend/config/backgrounds.json` 配置，热更新无需重建镜像/容器
+- **个性化背景图**: 用户可在「设置」中从背景图列表选择个人背景，仅对当前账号生效；背景图列表由 `backend/config/backgrounds.json` 配置（生产环境随镜像发布，改动后需重新构建镜像；开发环境的 compose 会挂载该目录，改完重启后端即可）
 
 ---
 
@@ -257,7 +257,7 @@ docker compose exec backend python scripts/eval_rag.py \
 
 ### 购买渠道
 
-编辑 `backend/config/purchase_stores.json`，重启后端即可生效：
+编辑 `backend/config/purchase_stores.json` 后生效（开发环境挂载生效、重启后端即可；生产环境随镜像发布，需重新构建镜像）：
 
 ```json
 {
