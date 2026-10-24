@@ -30,6 +30,7 @@ from rag.summarize import (
 )
 from rag.vector_store import (
     _fts_tokenize,
+    normalize_query,
     current_embedding_fingerprint,
     embedding_fingerprint_status,
     delete_book_vector,
@@ -689,3 +690,17 @@ def test_rag_status_reports_the_index_model(client, db):
     body = resp.json()
     assert body["index_model"] == current_embedding_fingerprint(db)
     assert body["index_model_matches"] is True
+
+
+def test_normalize_query_strips_question_scaffolding():
+    assert normalize_query("有哪些讲唐史的书") == "唐史"
+    assert normalize_query("三国演义讲了什么") == "三国演义"
+    assert normalize_query("《老人与海》这本书怎么样") == "老人与海"
+    assert normalize_query("刘慈欣的书") == "刘慈欣"
+    assert normalize_query("关于人工智能的书") == "人工智能"
+
+
+def test_normalize_query_keeps_titles_that_are_not_questions():
+    assert normalize_query("旧唐书") == "旧唐书"
+    assert normalize_query("讲谈社·中国的历史") == "讲谈社·中国的历史"
+    assert normalize_query("三体") == "三体"

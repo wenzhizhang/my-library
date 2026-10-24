@@ -208,6 +208,39 @@ curl -X POST "http://localhost:8000/api/rag/summarize/123?force=true" \
 并保留原摘要。这个接口只写 `books.summary`，不会自动更新向量/FTS；
 需要再跑一次 reindex 才会让 RAG 索引使用新摘要。
 
+### 内容生成（RAG 问答）
+
+```http
+POST /api/rag/answer
+Content-Type: application/json
+
+{"query": "沙陀往事讲了什么", "top_k": 5}
+```
+
+只根据**你自己的书库**回答，不做通用问答：
+
+- **书名直通**：查询里点名某本书（如「沙陀往事」）时，只用那一本，向量层完全不参与；
+- **信号门控**：先取 FTS 命中里 BM25 ≥ 最优 50% 的书，再用余弦 ≥ 0.58 的向量命中补足（书讲某个主题时未必出现原词），最多 5 本；
+- **强制引用**：模型必须在回答末尾用 `[book_id=编号]` 标注来源，且**每个**编号都必须属于候选集，否则整条回答作废；
+- **不硬答**：候选为空、模型回 `NONE`、或引用不合法时返回 `no_answer: true` 和空 `sources`。
+
+```json
+{"query": "...", "answer": "...", "sources": [{"book_id": 2300, "title_cn": "沙陀往事", "authors": ["..."]}], "no_answer": false}
+```
+
+需要 `DEEPSEEK_API_KEY`（`deepseek-flash`），未配置或调用失败返回 503。
+相比 `/api/rag/search`（面向列表、优先召回），这个接口面向回答、优先精确，
+一次调用约 1-2 秒。
+
+量化评估（45 条 golden，当前基线：候选召回 1.000、无答案判定 1.000、非法引用 0、忠实度 0.94、平均 1.24s）：
+
+```bash
+# 只跑确定性的门控评估，不花 API 调用
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db
+# 加上真实回答质量（20 次 Flash 调用，约 30 秒）
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live
+```
+
 ### 增量 Reindex
 
 新书加入后只需要跑增量，不必重建整个书库：

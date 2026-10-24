@@ -724,6 +724,32 @@ components:
         results:
           type: array
           items: { $ref: "#/components/schemas/RagSearchResultItem" }
+    RagAnswerRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, minLength: 1 }
+        top_k: { type: integer, default: 5, minimum: 1, maximum: 10 }
+    RagAnswerSource:
+      type: object
+      required: [book_id]
+      properties:
+        book_id: { type: integer }
+        title: { type: string, nullable: true }
+        title_cn: { type: string, nullable: true }
+        authors:
+          type: array
+          items: { type: string }
+    RagAnswerResponse:
+      type: object
+      required: [query, answer, no_answer]
+      properties:
+        query: { type: string }
+        answer: { type: string }
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/RagAnswerSource" }
+        no_answer: { type: boolean }
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]
@@ -2407,6 +2433,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RagSearchResponse"
+
+  /api/rag/answer:
+    post:
+      tags: [RAG]
+      summary: Answer a question strictly from the caller's library
+      description: |
+        Narrows retrieval before generating: an exact title match answers from
+        that work only, otherwise just the top score cluster (>= 70% of the
+        best hit, at most 5 books) is kept. The model must cite
+        `[book_id=N]`; an answer without a citation inside the candidate set,
+        or the model's `NONE`, returns `no_answer=true` with an empty source
+        list instead of a guess. Requires `DEEPSEEK_API_KEY`; otherwise 503.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagAnswerRequest"
+      responses:
+        "200":
+          description: Grounded answer or a no-answer result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagAnswerResponse"
+        "503":
+          description: Answer model not configured or unreachable
 
   /api/rag/summarize/{book_id}:
     post:

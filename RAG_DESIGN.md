@@ -276,7 +276,19 @@ OR book_fts.summary != _space_cjk(book.summary)
 
 **注意**：模型缓存只解决“加载模型”，不包含向量；向量在用户 DB 的 `book_vectors` 表里。
 
-### 3.12 用 golden set 量化检索质量
+### 3.12 答案生成：门控检索 + 引用校验
+
+**决定**：`POST /api/rag/answer`，DeepSeek Flash 生成，检索范围比 `/search` 窄得多。
+
+- 书名直通：归一化查询命中库内书名时，只用这些书，跳过检索层（含向量）。
+- 关键词门控：否则先取 FTS 命中里 BM25 ≥ 最优 50% 的书；关键字只覆盖“字面出现”的书，因此再用余弦 ≥ 0.58 的向量命中补足（“讲天文观测的书”未必出现“天文观测”四个字）。最多 5 本。
+- 为什么不用 RRF 分数做阈值：`hybrid_search` 的分数是按最高分归一化的 rank 融合值，第一名恒为 1.0；单分支命中时几乎全部 ≥0.76（挡不住），双分支命中时单分支一律 0.5（误杀）。整书向量本身的余弦对无关书就有 ~0.6，所以只能作为“补足”信号并配绝对下限。
+- 引用约束：prompt 要求只使用候选、末尾用 `[book_id=N]` 标注；模型回 `NONE`、无引用或引用不在候选集内，一律返回 `no_answer`，不回答。
+- 列表接口 `/search` 保持宽召回（用户自己挑），两个接口目标不同：搜索要 recall，回答要 precision。
+
+**意图**：书库问答最贵的错误不是"没找到"，而是"用错书还答得很像"。把相关性判断交给两层——先由检索门控裁掉明显无关的书，再由模型对候选做最后一轮判断，并用引用校验兜底。
+
+### 3.13 用 golden set 量化检索与回答质量
 
 **决定**：`backend/scripts/rag_golden.jsonl` + `backend/scripts/eval_rag.py`，指标为 Recall@K、Hit@K、MRR、nDCG@K。
 
@@ -285,6 +297,14 @@ OR book_fts.summary != _space_cjk(book.summary)
 - 检索改动不能只靠“感觉好一点”，要有回归基线。
 - 当前 25 条覆盖实体、书名、作者、卷名、主题、语义、英文查询。
 - 后续建议扩充到 50-100 条，作为 CI/部署前回归。
+
+**回答侧**：`scripts/eval_answer.py` + `scripts/rag_answer_golden.jsonl`（45 条：20 书名/换句式、15 主题、10 书库外）。
+
+- 默认只跑**确定性门控**：`retrieve_for_answer` 的候选是否包含期望书、平均候选数——不花 API 调用，可以放 CI。
+- `--live` 再调用 Flash，统计 **grounded**（引用书是否属于期望）、**no_answer accuracy**（无关/实时问题是否正确拒答）、**非法引用拒绝数**、延迟。
+- `--judge` 追加 **LLM-as-judge 忠实度**：让模型只依据候选摘要核验回答，输出 supported / partial / unsupported。
+- 当前基线：candidate recall 1.000、grounded 1.000、no_answer 1.000、invalid citations 0、faithfulness 0.943（partial 2、unsupported 0）、平均 1.24s（候选数从 2.8 降到 2.3）。
+- 评测暴露过两个真实问题：① “今天股市行情怎么样” 曾被当成可回答问题（引用了投资书），已在 prompt 规则里加入“实时/外部信息 → NONE”；② 三条主题期望过窄（清朝/理财/魔兽），按书库实际书目修正。partial 的 1-2 条来自 320 字摘要截断与 judge 严格度，属可接受波动。
 
 ---
 

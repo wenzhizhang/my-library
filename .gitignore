@@ -28,3 +28,6 @@ backend/config/nginx.conf
 
 # Per-service version tracking
 .version-*
+
+# Local secrets — never commit
+.env

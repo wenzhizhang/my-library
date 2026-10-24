@@ -443,7 +443,7 @@ def search_vectors(
     similarity ``1 - d²/2``.  Keeping the absolute value (instead of dividing
     by this query's best hit) means scores are comparable across queries.
     """
-    query_vec = embed_text(query_text)
+    query_vec = embed_text(normalize_query(query_text))
     import json
 
     vec_json = json.dumps(query_vec)
@@ -460,7 +460,29 @@ _MAX_FTS_PARTS = 20
 
 # Interrogative tails add no retrieval signal and can match unrelated text
 # (e.g. "出自哪本书" matching a book summary's "出自哪位名家").
+# One table for every trailing phrase the query normaliser and the FTS
+# tokenizer drop; keep them in sync by adding to this tuple only.  Longer
+# entries must win ("这本书讲了什么" before "这本书"), so consumers sort by
+# length descending.
 _QUESTION_SUFFIXES = (
+    "这本书讲的是什么",
+    "这本书讲了什么",
+    "这本书说了什么",
+    "这本书怎么样",
+    "这本书",
+    "讲的是什么",
+    "讲了什么",
+    "说了什么",
+    "讲了啥",
+    "主要内容",
+    "内容简介",
+    "的相关书籍",
+    "相关的书",
+    "的书籍",
+    "的书",
+    "书籍",
+    "的图书",
+    "图书",
     "出自哪本书",
     "是哪本书",
     "是什么书",
@@ -475,11 +497,52 @@ _QUESTION_SUFFIXES = (
     "如何",
     "为什么",
 )
+_QUESTION_SUFFIXES_BY_LENGTH = tuple(
+    sorted(_QUESTION_SUFFIXES, key=len, reverse=True)
+)
+
+
+# Interrogative scaffolding around the topic: "有哪些讲唐史的书" → "唐史".
+# The FTS tokenizer otherwise turns the wrapper itself into trigrams
+# ("有 哪 些", "史 的 书") that match unrelated introductions and outrank the
+# books actually about the topic.  Only anchored wrappers are removed, so a
+# title that merely contains these characters ("旧唐书", "讲谈社·中国的历史")
+# is left alone.
+_LEADING_SCAFFOLD_RE = re.compile(
+    r"^(?:请问|帮我找|帮我|我想找|想找|找找|有没有|有哪些|有什么|哪些|"
+    r"请推荐|推荐一些|推荐|介绍一下|介绍|讲讲|说说|聊聊|谈谈|关于)\s*"
+)
+_TRAILING_SCAFFOLD_RE = re.compile(
+    "(?:"
+    + "|".join(re.escape(suffix) for suffix in _QUESTION_SUFFIXES_BY_LENGTH)
+    + r")\s*$"
+)
+_LEADING_VERB_RE = re.compile(r"^(?:讲|写|谈|介绍)\s*")
+
+
+def normalize_query(query_text: str) -> str:
+    """Strip the question wrapper so retrieval sees the topic itself.
+
+    Applied before both FTS tokenization and embedding, so the topic — not the
+    phrasing — drives the match.
+    """
+    normalized = (query_text or "").strip().strip("《》“”\"'‘’")
+    for _ in range(2):
+        previous = normalized
+        normalized = _LEADING_SCAFFOLD_RE.sub("", normalized).strip()
+        normalized = _TRAILING_SCAFFOLD_RE.sub("", normalized).strip()
+        if normalized != previous:
+            # "讲唐史的书" only betrays its verb once the wrapper is gone.
+            normalized = _LEADING_VERB_RE.sub("", normalized).strip()
+        normalized = normalized.strip("《》“”\"'‘’").strip()
+        if normalized == previous:
+            break
+    return normalized or (query_text or "").strip()
 
 
 def _strip_question_suffix(query_text: str) -> str:
     text = query_text.strip().rstrip("？?！!。.，,、;；:：")
-    for suffix in _QUESTION_SUFFIXES:
+    for suffix in _QUESTION_SUFFIXES_BY_LENGTH:
         if text.endswith(suffix):
             return text[: -len(suffix)].strip()
     return text
@@ -529,7 +592,7 @@ def search_fts(
     db: Session, query_text: str, top_k: int = 10
 ) -> list[dict]:
     """FTS5 full-text search with BM25 scoring."""
-    fts_query = _fts_tokenize(query_text)
+    fts_query = _fts_tokenize(normalize_query(query_text))
     if not fts_query:
         return []
     rows = db.execute(

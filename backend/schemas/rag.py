@@ -36,6 +36,28 @@ class RagSummarizeResponse(BaseModel):
     updated: bool
 
 
+class RagAnswerRequest(BaseModel):
+    """Answer generation request."""
+    query: str = Field(..., min_length=1, description="Natural-language question")
+    top_k: int = Field(5, ge=1, le=5, description="Max candidate books")
+
+
+class RagAnswerSource(BaseModel):
+    """One book an answer was grounded in."""
+    book_id: int
+    title: Optional[str] = None
+    title_cn: Optional[str] = None
+    authors: List[str] = []
+
+
+class RagAnswerResponse(BaseModel):
+    """Grounded answer, or ``no_answer`` when the library has nothing."""
+    query: str
+    answer: str
+    sources: List[RagAnswerSource] = []
+    no_answer: bool = False
+
+
 class RagReindexResponse(BaseModel):
     """Reindex operation trigger result."""
     status: str = "idle"  # idle | indexing | completed | error

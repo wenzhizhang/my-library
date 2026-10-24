@@ -1,0 +1,45 @@
+{"query": "沙陀往事讲了什么", "kind": "title", "expect_any": ["沙陀往事"]}
+{"query": "《老人与海》这本书怎么样", "kind": "title", "expect_any": ["老人与海"]}
+{"query": "介绍一下人类简史", "kind": "title", "expect_any": ["人类简史"]}
+{"query": "万历十五年说了什么", "kind": "title", "expect_any": ["万历十五年"]}
+{"query": "月亮与六便士讲了什么", "kind": "title", "expect_any": ["月亮与六便士"]}
+{"query": "《浮生六记》这本书怎么样", "kind": "title", "expect_any": ["浮生六记"]}
+{"query": "介绍一下许三观卖血记", "kind": "title", "expect_any": ["许三观卖血记"]}
+{"query": "追风筝的人说了什么", "kind": "title", "expect_any": ["追风筝的人"]}
+{"query": "福尔摩斯探案全集讲了什么", "kind": "title", "expect_any": ["福尔摩斯探案全集"]}
+{"query": "三国演义讲了什么", "kind": "title", "expect_any": ["三国演义"]}
+{"query": "青瓷讲了什么", "kind": "title", "expect_any": ["青瓷"]}
+{"query": "冰与火之歌讲了什么", "kind": "title", "expect_any": ["冰与火之歌"]}
+{"query": "精灵宝钻讲了什么", "kind": "title", "expect_any": ["精灵宝钻"]}
+{"query": "面纱讲了什么", "kind": "title", "expect_any": ["面纱"]}
+{"query": "癌症·真相讲了什么", "kind": "title", "expect_any": ["癌症·真相"]}
+{"query": "希修斯之船讲了什么", "kind": "title", "expect_any": ["希修斯之船"]}
+{"query": "天文之书讲了什么", "kind": "title", "expect_any": ["天文之书"]}
+{"query": "爱因斯坦传讲了什么", "kind": "title", "expect_any": ["爱因斯坦传"]}
+{"query": "庄子全书讲了什么", "kind": "title", "expect_any": ["庄子全书"]}
+{"query": "国家宝藏讲了什么", "kind": "title", "expect_any": ["国家宝藏"]}
+{"query": "有哪些讲唐史的书", "kind": "topic", "expect_any": ["隋唐制度渊源略论稿", "剑桥中国隋唐史", "安史之乱", "六至九世纪中国政治史", "唐长孺文集"]}
+{"query": "讲计算机编程的书", "kind": "topic", "expect_any": ["深入理解计算机系统", "算法导论", "Go程序设计语言", "数据结构与算法", "Python金融实战"]}
+{"query": "关于人工智能的书", "kind": "topic", "expect_any": ["进击的科技：从爱因斯坦到人工智能", "机器学习", "Python机器学习实践指南"]}
+{"query": "讲刘慈欣的书", "kind": "topic", "expect_any": ["刘慈欣文集", "刘慈欣合集", "三体", "球状闪电"]}
+{"query": "适合儿童阅读的书", "kind": "topic", "expect_any": ["凯迪克金奖绘本系列", "经典蒙学绘本套装", "四季变化", "小羊上山", "恐龙大百科儿童注音版"]}
+{"query": "关于清朝历史的书", "kind": "topic", "expect_any": ["显微镜下的古人生活 清朝篇", "清人社会生活", "剑桥中国晚清史", "清承明制", "从晚清到民国"]}
+{"query": "讲宋朝历史的书", "kind": "topic", "expect_any": ["简读宋朝史", "宋朝的江山风月", "宋朝的祛魅", "清明上河图"]}
+{"query": "关于心理学的书", "kind": "topic", "expect_any": ["行为心理学", "心理学", "儿童行为心理学"]}
+{"query": "讲投资理财的书", "kind": "topic", "expect_any": ["驾驭周期", "从零开始稳稳赚"]}
+{"query": "讲中国书法的书", "kind": "topic", "expect_any": ["书法", "中国书法：167个练习", "中国书法理论体系", "书法有法"]}
+{"query": "关于宇宙的书", "kind": "topic", "expect_any": ["时间简史", "无言的宇宙", "宇宙：从地球到宇宙边缘的旅行", "宇宙之美", "量子宇宙"]}
+{"query": "讲天文观测的书", "kind": "topic", "expect_any": ["天文之书", "天体写真", "星空的琴弦", "通俗天文学"]}
+{"query": "讲魔兽世界故事的书", "kind": "topic", "expect_any": ["魔兽世界·吉安娜", "魔兽世界·萨尔", "魔兽世界：伊利丹", "魔兽世界·阿尔萨斯", "魔兽世界·巨龙的黎明", "魔兽世界编年史", "魔兽世界：氏族之王", "魔兽：杜隆坦", "魔兽世界：战争罪行"]}
+{"query": "讲庄子的书", "kind": "topic", "expect_any": ["庄子全书"]}
+{"query": "关于癌症的科普书", "kind": "topic", "expect_any": ["癌症·真相"]}
+{"query": "清蒸鲈鱼怎么做", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "明天北京天气怎么样", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "2026年世界杯冠军是谁", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "如何办理护照", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "怎么修空调", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "怎么申请信用卡", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "感冒了吃什么药", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "如何学习开飞机", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "手机屏幕碎了怎么修", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "今天股市行情怎么样", "kind": "out_of_scope", "expect_no_answer": true}
