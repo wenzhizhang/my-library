@@ -9,6 +9,7 @@ from sqlalchemy import text
 from auth import require_user_id
 from database import get_db
 from models import Book
+from rag.answer import AnswerUnavailable, answer_question
 from rag.pipeline import (
     MIN_SUMMARY_INTRODUCTION_CHARS,
     generate_book_summary,
@@ -23,6 +24,8 @@ from rag.vector_store import (
 )
 from rag.embedding import is_model_loaded
 from schemas.rag import (
+    RagAnswerRequest,
+    RagAnswerResponse,
     RagSearchRequest,
     RagSearchResponse,
     RagSearchResultItem,
@@ -115,6 +118,34 @@ def _enrich_results(db: Session, raw: list[dict]) -> list[RagSearchResultItem]:
             )
         )
     return results
+
+
+@router.post(
+    "/answer",
+    response_model=RagAnswerResponse,
+    responses={
+        503: {"description": "Answer model not configured or unreachable"},
+    },
+)
+def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
+    """Answer a question strictly from the caller's own library.
+
+    Retrieval is narrower than ``/search``: an exact title match answers from
+    that work only, otherwise just the top score cluster is used.  When
+    nothing relevant is found (or the model cannot ground its answer in the
+    candidates), the reply is ``no_answer`` instead of a guess.
+    """
+    try:
+        result = answer_question(db, req.query, req.top_k)
+    except AnswerUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return RagAnswerResponse(
+        query=result.query,
+        answer=result.answer,
+        sources=result.sources,
+        no_answer=result.no_answer,
+    )
 
 
 @router.post("/search", response_model=RagSearchResponse)
