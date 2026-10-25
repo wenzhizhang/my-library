@@ -36,10 +36,36 @@ class RagSummarizeResponse(BaseModel):
     updated: bool
 
 
+class RagTurn(BaseModel):
+    """One earlier turn of the conversation.
+
+    ``content`` may be blank: a "more books" reply carries its payload in
+    ``more`` rather than prose, and older clients sent such turns with an
+    empty string. The backend drops blank turns before using them.
+    """
+    role: Literal["user", "assistant"]
+    content: str = Field("", max_length=4000)
+
+
 class RagAnswerRequest(BaseModel):
     """Answer generation request."""
     query: str = Field(..., min_length=1, description="Natural-language question")
     top_k: int = Field(5, ge=1, le=5, description="Max candidate books")
+    history: List[RagTurn] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Earlier turns; follow-ups are rewritten against them",
+    )
+    seen_book_ids: List[int] = Field(
+        default_factory=list,
+        max_length=2000,
+        description="Books already shown in the conversation; used for 'more'",
+    )
+    focus_book_id: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Answer from this book only (the user quoted it)",
+    )
 
 
 class RagAnswerSource(BaseModel):
@@ -48,6 +74,7 @@ class RagAnswerSource(BaseModel):
     title: Optional[str] = None
     title_cn: Optional[str] = None
     authors: List[str] = []
+    thumb_image: Optional[str] = None
 
 
 class RagAnswerResponse(BaseModel):
@@ -56,6 +83,10 @@ class RagAnswerResponse(BaseModel):
     answer: str
     sources: List[RagAnswerSource] = []
     no_answer: bool = False
+    rewritten_query: str = ""
+    more: List[RagAnswerSource] = []
+    has_more: bool = False
+    reason: str = ""
 
 
 class RagReindexResponse(BaseModel):

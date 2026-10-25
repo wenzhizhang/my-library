@@ -724,12 +724,34 @@ components:
         results:
           type: array
           items: { $ref: "#/components/schemas/RagSearchResultItem" }
+    RagTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content:
+          type: string
+          description: May be blank for a "more books" reply; blank turns are dropped
     RagAnswerRequest:
       type: object
       required: [query]
       properties:
         query: { type: string, minLength: 1 }
-        top_k: { type: integer, default: 5, minimum: 1, maximum: 10 }
+        top_k: { type: integer, default: 5, minimum: 1, maximum: 5 }
+        history:
+          type: array
+          maxItems: 20
+          description: Earlier turns; follow-ups are rewritten against them
+          items: { $ref: "#/components/schemas/RagTurn" }
+        seen_book_ids:
+          type: array
+          maxItems: 2000
+          description: Books already shown; a "more" follow-up continues after them
+          items: { type: integer }
+        focus_book_id:
+          type: integer
+          minimum: 1
+          description: Answer from this book only (the user quoted it)
     RagAnswerSource:
       type: object
       required: [book_id]
@@ -740,6 +762,10 @@ components:
         authors:
           type: array
           items: { type: string }
+        thumb_image:
+          type: string
+          nullable: true
+          description: Relative media path; join with /api/media
     RagAnswerResponse:
       type: object
       required: [query, answer, no_answer]
@@ -750,6 +776,19 @@ components:
           type: array
           items: { $ref: "#/components/schemas/RagAnswerSource" }
         no_answer: { type: boolean }
+        rewritten_query:
+          type: string
+          description: Standalone query used for retrieval when history was given
+        more:
+          type: array
+          description: Next page of candidates for a "show me more" follow-up
+          items: { $ref: "#/components/schemas/RagAnswerSource" }
+        has_more:
+          type: boolean
+          description: Whether the candidate pool has books beyond those returned
+        reason:
+          type: string
+          description: Why the answer was empty (no_candidates, model_none, no_more, ...)
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]

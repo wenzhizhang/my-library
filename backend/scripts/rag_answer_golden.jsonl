@@ -43,3 +43,28 @@
 {"query": "如何学习开飞机", "kind": "out_of_scope", "expect_no_answer": true}
 {"query": "手机屏幕碎了怎么修", "kind": "out_of_scope", "expect_no_answer": true}
 {"query": "今天股市行情怎么样", "kind": "out_of_scope", "expect_no_answer": true}
+{"query": "托尔金的书", "kind": "author", "expect_any": ["霍比特人", "魔戒", "精灵宝钻", "刚多林的陷落", "贝伦与露西恩"]}
+{"query": "阿西莫夫的书", "kind": "author", "expect_any": ["银河帝国", "基地", "机器人"]}
+{"query": "J.K.罗琳的书", "kind": "author", "expect_any": ["哈利波特"]}
+{"query": "曹雪芹的书", "kind": "author", "expect_any": ["红楼梦"]}
+{"query": "柯南·道尔的书", "kind": "author", "expect_any": ["福尔摩斯"]}
+{"query": "沙丘系列有哪些", "kind": "series", "expect_any": ["沙丘", "沙丘2", "沙丘3", "沙丘4", "沙丘5", "沙丘6"]}
+{"query": "三体系列有哪些", "kind": "series", "expect_any": ["三体", "三体Ⅱ", "三体Ⅲ"]}
+{"query": "银河帝国系列有哪些", "kind": "series", "expect_any": ["银河帝国1", "银河帝国2", "银河帝国3"]}
+{"query": "冰与火之歌系列有哪些", "kind": "series", "expect_any": ["冰与火之歌卷一", "冰与火之歌 卷二", "冰与火之歌卷三"]}
+{"query": "哈利波特系列有哪些", "kind": "series", "expect_any": ["哈利波特与魔法石", "哈利波特与密室", "哈利波特与阿兹卡班"]}
+{"query": "魔戒系列有哪些", "kind": "series", "expect_any": ["魔戒", "霍比特人", "精灵宝钻"]}
+{"query": "《沙丘》和《三体》有什么区别", "kind": "compare", "expect_all": ["沙丘", "三体"]}
+{"query": "《老人与海》和《月亮与六便士》有什么区别", "kind": "compare", "expect_all": ["老人与海", "月亮与六便士"]}
+{"query": "《万历十五年》和《人类简史》有什么不同", "kind": "compare", "expect_all": ["万历十五年", "人类简史"]}
+{"query": "《魔戒》和《霍比特人》有什么关系", "kind": "compare", "expect_all": ["魔戒", "霍比特人"]}
+{"query": "作者是谁", "kind": "multi_turn", "expect_any": ["沙陀往事"], "history": [{"role": "user", "content": "沙陀往事讲了什么"}, {"role": "assistant", "content": "它讲沙陀人的族源、迁徙与三王朝历史。"}]}
+{"query": "作者是谁", "kind": "multi_turn", "expect_any": ["三体"], "history": [{"role": "user", "content": "三体讲了什么"}, {"role": "assistant", "content": "它讲地球文明与三体文明的接触与对抗。"}]}
+{"query": "续集有哪些", "kind": "multi_turn", "expect_any": ["沙丘2", "沙丘3", "沙丘4", "沙丘5", "沙丘6"], "history": [{"role": "user", "content": "沙丘讲了什么"}, {"role": "assistant", "content": "它讲厄拉科斯星球的香料与保罗的命运。"}]}
+{"query": "它们有什么关系", "kind": "multi_turn", "expect_any": ["魔戒", "霍比特人", "精灵宝钻"], "history": [{"role": "user", "content": "霍比特人讲了什么"}, {"role": "assistant", "content": "它讲比尔博与十三矮人寻宝的冒险。"}]}
+{"query": "陈寅恪那本讲了什么", "kind": "multi_turn", "expect_any": ["隋唐制度渊源略论稿"], "history": [{"role": "user", "content": "有哪些讲唐史的书"}, {"role": "assistant", "content": "有《隋唐制度渊源略论稿》《剑桥中国隋唐史》等。"}]}
+{"query": "魔戒讲了什么", "kind": "title", "expect_any": ["魔戒"]}
+{"query": "沙丘讲了什么", "kind": "title", "expect_any": ["沙丘"]}
+{"query": "三体讲了什么", "kind": "title", "expect_any": ["三体"]}
+{"query": "红楼梦讲了什么", "kind": "title", "expect_any": ["红楼梦"]}
+{"query": "哈利波特与魔法石讲了什么", "kind": "title", "expect_any": ["哈利波特与魔法石"]}

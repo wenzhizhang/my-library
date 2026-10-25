@@ -440,5 +440,31 @@
   "sphere": {
     "bloom": "Bloom",
     "hint": "Click for details"
+  },
+  "assistant": {
+    "title": "Library Assistant",
+    "open": "Open library assistant",
+    "close": "Close assistant",
+    "newChat": "New chat",
+    "placeholder": "Ask about your library, Enter to send",
+    "send": "Send",
+    "empty": "Try asking:",
+    "example1": "沙陀往事讲了什么",
+    "example2": "有哪些讲唐史的书",
+    "example3": "《沙陀往事》和《万历十五年》有什么区别",
+    "thinking": "Searching your library…",
+    "errorNetwork": "Request failed, please try again.",
+    "errorUnavailable": "The assistant is not configured (model service unavailable).",
+    "disclaimer": "Answers are grounded in your library only.",
+    "noAnswer": "No relevant books found in your library.",
+    "rewritten": "Searched for “{{query}}”",
+    "books": "Books",
+    "moreBooks": "More books:",
+    "moreCta": "Show more",
+    "moreRequest": "Show me more",
+    "noMore": "No more books.",
+    "quote": "Quote this book",
+    "quoted": "Quoting",
+    "removeQuote": "Remove quote"
   }
 }

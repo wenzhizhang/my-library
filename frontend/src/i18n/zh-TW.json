@@ -440,5 +440,31 @@
   "sphere": {
     "bloom": "綻放",
     "hint": "點擊查看詳情"
+  },
+  "assistant": {
+    "title": "藏書助手",
+    "open": "開啟藏書助手",
+    "close": "關閉助手",
+    "newChat": "新對話",
+    "placeholder": "問問你的書庫，Enter 傳送",
+    "send": "傳送",
+    "empty": "可以這樣問：",
+    "example1": "沙陀往事講了什麼",
+    "example2": "有哪些講唐史的書",
+    "example3": "《沙陀往事》和《萬曆十五年》有什麼區別",
+    "thinking": "正在翻書…",
+    "errorNetwork": "請求失敗，請稍後再試。",
+    "errorUnavailable": "助手暫未設定模型服務，請聯絡管理員。",
+    "disclaimer": "回答僅依據你的書庫，可能不完整。",
+    "noAnswer": "未在書庫中找到相關書籍。",
+    "rewritten": "已按「{{query}}」檢索",
+    "books": "相關圖書",
+    "moreBooks": "還有這些：",
+    "moreCta": "還有更多",
+    "moreRequest": "還有麼？",
+    "noMore": "沒有更多了。",
+    "quote": "引用此書",
+    "quoted": "引用",
+    "removeQuote": "取消引用"
   }
 }

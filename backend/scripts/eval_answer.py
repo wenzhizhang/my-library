@@ -41,7 +41,7 @@ from rag.answer import (  # noqa: E402
     _excerpt,
     answer_question,
     deepseek_chat,
-    retrieve_for_answer,
+    retrieve_candidates,
     title_matches,
 )
 
@@ -55,60 +55,91 @@ def any_title_hit(titles: list[str], expected_titles: list[str]) -> bool:
     )
 
 
-def candidate_hit(candidates: list[dict], expected_titles: list[str]) -> bool:
-    return any_title_hit(
-        [c["title_cn"] or c["title"] for c in candidates], expected_titles
-    )
+_CLAIMS_PROMPT = """把被评估的回答拆成若干条独立的事实性论断，逐条判断候选书籍摘要是否支持它。
+只输出 JSON：
+{"claims": [{"claim": "…", "supported": true}], "reason": "一句话"}
+不要评判文风；摘要无法核实或与回答矛盾的论断记为 false。"""
 
 
-def source_hit(sources: list[dict], expected_titles: list[str]) -> bool:
-    return any_title_hit(
-        [s.get("title_cn") or s.get("title") or "" for s in sources],
-        expected_titles,
-    )
-
-
-_VERDICT_RE = re.compile(r'"(supported|partial|unsupported)"', re.IGNORECASE)
-_VERDICTS = {"supported", "partial", "unsupported"}
-
-
-def parse_verdict(raw: str) -> str:
-    """Extract the judge's verdict; ``error`` when it is unusable."""
-    if not raw:
-        return "error"
-    match = _VERDICT_RE.search(raw)
-    if match:
-        return match.group(1).lower()
+def _extract_json(raw: str) -> dict | None:
+    start, end = raw.find("{"), raw.rfind("}")
+    if start < 0 or end <= start:
+        return None
     try:
-        verdict = str(json.loads(raw).get("verdict", "")).lower()
-    except Exception:  # noqa: BLE001 - any malformed output is an error
-        return "error"
-    return verdict if verdict in _VERDICTS else "error"
+        value = json.loads(raw[start : end + 1])
+    except Exception:  # noqa: BLE001 - malformed judge output is an error
+        return None
+    return value if isinstance(value, dict) else None
 
 
-def judge_answer(query: str, candidates: list[dict], answer: str) -> str:
+def _claim_error() -> dict:
+    return {"claims": [], "supported": 0, "total": 0, "error": True}
+
+
+def parse_claims(raw: str) -> dict:
+    """Parse the judge's per-claim verdicts; ``error`` when unusable."""
+    payload = _extract_json(raw or "")
+    claims = payload.get("claims") if payload else None
+    if not isinstance(claims, list) or not claims:
+        return _claim_error()
+
+    parsed = []
+    for item in claims:
+        if not isinstance(item, dict):
+            return _claim_error()
+        claim = str(item.get("claim", "")).strip()
+        supported = item.get("supported")
+        if not claim or not isinstance(supported, bool):
+            return _claim_error()
+        parsed.append({"claim": claim, "supported": supported})
+
+    supported = sum(1 for claim in parsed if claim["supported"])
+    return {
+        "claims": parsed,
+        "supported": supported,
+        "total": len(parsed),
+        "error": False,
+    }
+
+
+def judge_answer(
+    query: str,
+    candidates: list[dict],
+    answer: str,
+    total_candidates: int = 0,
+    total_titles: int = 0,
+) -> dict:
     """LLM-as-judge: is every claim in ``answer`` supported by the candidates?"""
     context = "\n".join(
         f"[book_id={c['book_id']}] {c['title_cn'] or c['title']}｜{_excerpt(c)}"
         for c in candidates
     )
+    scope = (
+        f"（回答只看到前 {len(candidates)} 本；书库中相关书籍共 "
+        f"{total_candidates} 本、{total_titles or total_candidates} 种）"
+        if total_candidates > len(candidates)
+        else ""
+    )
     prompt = (
         f"用户问题：{query}\n\n"
-        f"候选书籍摘要：\n{context}\n\n"
-        f"被评估的回答：\n{answer}\n\n"
-        "请判断回答中的事实性内容能否由候选摘要支持。只输出 JSON：\n"
-        '{"verdict": "supported|partial|unsupported", "reason": "一句话"}\n'
-        "- supported：所有事实论断都有摘要依据；\n"
-        "- partial：部分有依据，部分超出摘要或无法核实；\n"
-        "- unsupported：核心论断没有依据或与摘要矛盾。"
+        f"候选书籍摘要{scope}：\n{context}\n\n"
+        f"被评估的回答：\n{answer}"
     )
     raw = deepseek_chat(
         prompt,
-        system="你是严格的事实核验员。只输出 JSON，不要多余文字。",
-        max_tokens=200,
+        system=_CLAIMS_PROMPT,
+        max_tokens=500,
         temperature=0.0,
     )
-    return parse_verdict(raw or "")
+    return parse_claims(raw or "")
+
+
+def item_hit(titles: list[str], item: dict) -> bool:
+    """Match a golden item: every ``expect_all`` title, else any ``expect_any``."""
+    expected_all = item.get("expect_all") or []
+    if expected_all:
+        return all(any_title_hit(titles, [title]) for title in expected_all)
+    return any_title_hit(titles, item.get("expect_any") or [])
 
 
 def load_golden(path: str) -> list[dict]:
@@ -131,48 +162,80 @@ def evaluate(
     rows = []
     for item in golden:
         query = item["query"]
+        history = item.get("history") or None
         expected = item.get("expect_any") or []
-        candidates = retrieve_for_answer(db, query, top_k)
+        expect_all = item.get("expect_all") or []
+
+        if history and not live:
+            # A follow-up needs the rewriter, i.e. a model call.
+            rows.append(
+                {
+                    "query": query,
+                    "kind": item.get("kind", "topic"),
+                    "skipped": "needs_history",
+                }
+            )
+            continue
 
         row = {
             "query": query,
             "kind": item.get("kind", "topic"),
-            "candidates": len(candidates),
             "expect_no_answer": bool(item.get("expect_no_answer")),
-            "candidate_hit": candidate_hit(candidates, expected)
-            if expected
-            else None,
+            "expect_all": bool(expect_all),
         }
 
         if live:
             started = time.time()
             try:
-                result = answer_question(db, query, top_k)
+                result = answer_question(db, query, top_k, history)
                 row["latency"] = time.time() - started
                 row["no_answer"] = result.no_answer
-                row["grounded"] = (
-                    source_hit(result.sources, expected) if expected else None
-                )
                 row["reason"] = result.reason
                 row["invalid_citation"] = (
                     result.reason == REASON_INVALID_CITATION
                 )
-                row["sources"] = [
-                    s.get("title_cn") or s.get("title") or "" for s in result.sources
+                candidates = result.more or result.candidates
+                source_titles = [
+                    s.get("title_cn") or s.get("title") or ""
+                    for s in result.sources
                 ]
-                row["answer"] = result.answer
+                row["grounded"] = (
+                    item_hit(source_titles, item)
+                    if (expected or expect_all)
+                    else None
+                )
                 if judge and not result.no_answer:
-                    row["verdict"] = judge_answer(query, candidates, result.answer)
+                    verdict = judge_answer(
+                        query,
+                        candidates,
+                        result.answer,
+                        result.total_candidates,
+                        result.total_titles,
+                    )
+                    row["claims_total"] = verdict["total"]
+                    row["claims_supported"] = verdict["supported"]
+                    row["claims_error"] = verdict["error"]
             except Exception as exc:  # noqa: BLE001 - reported per row
                 row["latency"] = time.time() - started
                 row["error"] = str(exc)
+                candidates = []
+        else:
+            candidates = retrieve_candidates(db, query, limit=top_k)
 
+        row["candidates"] = len(candidates)
+        row["candidate_hit"] = (
+            item_hit([c["title_cn"] or c["title"] for c in candidates], item)
+            if (expected or expect_all)
+            else None
+        )
         rows.append(row)
     return {"rows": rows}
 
 
 def summarise(report: dict, live: bool) -> dict:
-    rows = report["rows"]
+    all_rows = report["rows"]
+    skipped = [r for r in all_rows if r.get("skipped")]
+    rows = [r for r in all_rows if not r.get("skipped")]
     answer_cases = [r for r in rows if not r["expect_no_answer"]]
     no_answer_cases = [r for r in rows if r["expect_no_answer"]]
 
@@ -188,6 +251,7 @@ def summarise(report: dict, live: bool) -> dict:
         "mean_candidates": (
             sum(r["candidates"] for r in rows) / len(rows) if rows else 0.0
         ),
+        "skipped_offline": len(skipped),
     }
 
     if live:
@@ -210,18 +274,25 @@ def summarise(report: dict, live: bool) -> dict:
                     1 for r in rows if r.get("invalid_citation")
                 ),
                 "errors": sum(1 for r in rows if "error" in r),
-                "faithfulness": (
-                    sum(1 for r in answered if r.get("verdict") == "supported")
-                    / sum(1 for r in answered if "verdict" in r)
-                    if any("verdict" in r for r in answered)
-                    else None
+                "claims_total": sum(
+                    r.get("claims_total", 0) for r in rows if "claims_total" in r
                 ),
-                "partial": sum(1 for r in rows if r.get("verdict") == "partial"),
-                "unsupported": sum(
-                    1 for r in rows if r.get("verdict") == "unsupported"
+                "claims_supported": sum(
+                    r.get("claims_supported", 0)
+                    for r in rows
+                    if "claims_supported" in r
                 ),
-                "judge_errors": sum(
-                    1 for r in rows if r.get("verdict") == "error"
+                "answers_with_unsupported": sum(
+                    1
+                    for r in rows
+                    if r.get("claims_total", 0) > r.get("claims_supported", 0)
+                ),
+                "judge_errors": sum(1 for r in rows if r.get("claims_error")),
+                "multi_source_cases": sum(
+                    1 for r in answered if r.get("expect_all")
+                ),
+                "multi_source_ok": sum(
+                    1 for r in answered if r.get("expect_all") and r["grounded"]
                 ),
                 "latency_mean": (
                     sum(r["latency"] for r in rows if "latency" in r)
@@ -277,7 +348,9 @@ def main() -> None:
     stats = summarise(report, args.live)
 
     print(f"DB: {args.db}")
-    print(f"Golden: {args.golden} ({stats['queries']} queries)")
+    print(f"Golden: {args.golden} ({stats['queries']} scored queries)")
+    if stats.get("skipped_offline"):
+        print(f"  skipped offline (need --live for history): {stats['skipped_offline']}")
     print(
         f"  answer={stats['answer_cases']}  no_answer={stats['no_answer_cases']}"
         f"  top_k={args.top_k}"
@@ -293,16 +366,28 @@ def main() -> None:
         )
         print(f"errors                : {stats['errors']}")
         print(f"latency mean          : {stats['latency_mean']:.2f}s")
-        if stats.get("faithfulness") is not None:
-            print(f"faithfulness (judge)  : {stats['faithfulness']:.3f}")
+        if stats.get("claims_total"):
             print(
-                f"  partial={stats['partial']} unsupported={stats['unsupported']}"
+                f"claim support (judge): {stats['claims_supported']}/"
+                f"{stats['claims_total']} = "
+                f"{stats['claims_supported'] / stats['claims_total']:.3f}"
+            )
+            print(
+                f"  answers_with_unsupported={stats['answers_with_unsupported']}"
                 f" judge_errors={stats['judge_errors']}"
+            )
+        if stats.get("multi_source_cases"):
+            print(
+                f"multi-source coverage : {stats['multi_source_ok']}/"
+                f"{stats['multi_source_cases']}"
             )
 
     if args.show or args.live:
         print()
         for row in report["rows"]:
+            if row.get("skipped"):
+                print(f"  [{row['kind']:<12}] {row['query'][:24]:<26} skipped ({row['skipped']})")
+                continue
             status = "ok"
             if row.get("error"):
                 status = f"ERROR {row['error'][:40]}"
@@ -314,7 +399,11 @@ def main() -> None:
                     status = "MISS (no_answer)"
                 elif not expected_no_answer and not row["grounded"]:
                     status = "UNGROUNDED"
-            verdict = f" judge={row['verdict']}" if "verdict" in row else ""
+            verdict = (
+                f" claims={row['claims_supported']}/{row['claims_total']}"
+                if "claims_total" in row
+                else ""
+            )
             print(
                 f"  [{row['kind']:<12}] {row['query'][:24]:<26}"
                 f" cands={row['candidates']} {status}{verdict}"
