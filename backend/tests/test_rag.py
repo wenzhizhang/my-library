@@ -704,3 +704,26 @@ def test_normalize_query_keeps_titles_that_are_not_questions():
     assert normalize_query("旧唐书") == "旧唐书"
     assert normalize_query("讲谈社·中国的历史") == "讲谈社·中国的历史"
     assert normalize_query("三体") == "三体"
+
+
+def test_rag_search_resolves_an_author_query(client, db, monkeypatch):
+    import routers.rag as rag_router
+    from models import Author
+
+    author = Author(name="Su Shi", name_cn="苏轼")
+    db.add(author)
+    db.commit()
+    book = Book(title="东坡乐府笺", title_cn="东坡乐府笺")
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    book.authors.append(author)
+    db.commit()
+    upsert_book_fts(db, book.id, title="东坡乐府笺")
+
+    monkeypatch.setattr(rag_router, "hybrid_search", lambda *a, **k: [])
+
+    resp = client.post("/api/rag/search", json={"query": "苏轼的书", "top_k": 5})
+
+    assert resp.status_code == 200
+    assert [r["book_id"] for r in resp.json()["results"]] == [book.id]

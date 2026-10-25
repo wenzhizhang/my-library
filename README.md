@@ -302,7 +302,7 @@ Authorization: Bearer <token>
 
 ### RAG 召回评测
 
-仓库自带一个可扩充的 golden set：`backend/scripts/rag_golden.jsonl`。
+仓库自带一个可扩充的 golden set：`backend/scripts/rag_golden.jsonl`（当前 61 条：标题/主题/作者/系列/版本/英文/对比等），当前基线 Recall@10 0.969、Hit@10 1.000、MRR 0.822、nDCG@10 0.822。
 每行一条 query，`relevant` 写期望命中的书名（可选 `author`）：
 
 ```json
@@ -319,8 +319,9 @@ docker compose exec backend python scripts/eval_rag.py \
 ```
 
 脚本输出每条 query 的 Recall@K、Hit@K、MRR、nDCG，以及整体均值。
-加 `--show-results` 可查看实际返回的书名。建议先人工确认/扩充到
-50-100 条，再把它作为改检索逻辑后的回归基线。
+加 `--show-results` 可查看实际返回的书名；`--json` 落盘、`--compare` 对比历史报告。
+`/search` 现在也会解析作者/系列实体（`book_authors` / `book_series`）并置顶，
+此前 4 条作者/系列未命中已全部回收；剩余 partial recall 来自多期望书目里个别排到 10 名外。
 
 ### 购买渠道
 

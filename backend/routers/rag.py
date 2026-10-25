@@ -10,6 +10,7 @@ from auth import require_user_id
 from database import get_db
 from models import Book
 from rag.answer import AnswerUnavailable, BookNotFound, answer_question
+from rag.intent import resolve_entity_books
 from rag.pipeline import (
     MIN_SUMMARY_INTRODUCTION_CHARS,
     generate_book_summary,
@@ -180,6 +181,15 @@ def rag_search(req: RagSearchRequest, db: Session = Depends(get_db)):
         min_score=req.min_score,
         min_fts_results=req.top_k if exact_query else 0,
     )
+    # Author/series questions ("苏轼的书", "甲骨文丛书有哪些") must not rely on
+    # BM25: resolve the entity deterministically and put its books first.
+    entity_ids = resolve_entity_books(db, req.query, req.top_k * 3)
+    if entity_ids:
+        seen = set(entity_ids)
+        raw = [{"book_id": bid, "score": 1.0} for bid in entity_ids] + [
+            item for item in raw if item["book_id"] not in seen
+        ]
+
     results = _diversify_results(_enrich_results(db, raw), req.top_k)
     return RagSearchResponse(query=req.query, total=len(results), results=results)
 

@@ -1085,3 +1085,29 @@ def test_more_after_an_author_answer_keeps_the_author_intent(db, monkeypatch):
         "带上她的眼睛",
         "球状闪电",
     }
+
+
+def test_resolve_entity_books_for_author_and_series(db):
+    from models import Author, BookSeries
+    from rag.intent import resolve_entity_books
+
+    author = Author(name="Su Shi", name_cn="苏轼")
+    series = BookSeries(name="甲骨文丛书")
+    db.add_all([author, series])
+    db.commit()
+
+    by_him = _book(db, "东坡乐府笺")
+    by_him.authors.append(author)
+    series_book = _book(db, "秦汉帝国：中国古代帝国之兴亡")
+    series_book.book_series_id = series.id
+    db.commit()
+
+    author_ids = resolve_entity_books(db, "苏轼的书", 10)
+    assert {db.get(Book, bid).title_cn for bid in author_ids} == {"东坡乐府笺"}
+
+    series_ids = resolve_entity_books(db, "甲骨文丛书有哪些", 10)
+    assert {db.get(Book, bid).title_cn for bid in series_ids} == {
+        "秦汉帝国：中国古代帝国之兴亡"
+    }
+
+    assert resolve_entity_books(db, "关于人工智能的书", 10) == []

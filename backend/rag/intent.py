@@ -221,6 +221,32 @@ def _exact_author_query(db: Session, query: str) -> bool:
     )
 
 
+_AUTHOR_QUERY_HINTS = (
+    "著", "作者", "作品", "著作", "写过", "写的", "的小说", "的书",
+)
+
+
+def resolve_entity_books(db: Session, query: str, limit: int) -> list[int]:
+    """Books named by an author/series entity in the query, for /search.
+
+    The answer pipeline resolves these through the intent classifier; list
+    search is synchronous and must not pay an LLM call, so it only applies the
+    deterministic matchers (and only when the phrasing is clearly about an
+    author, to avoid hijacking topic queries).
+    """
+    series_ids = _series_match_ids(db, query, limit)
+    if series_ids:
+        return series_ids
+
+    if not (
+        "著" in query
+        or any(hint in (query or "") for hint in _AUTHOR_QUERY_HINTS)
+        or _exact_author_query(db, query)
+    ):
+        return []
+    return _author_match_ids(db, query, limit)
+
+
 _INTENT_RESOLVERS = {
     "author": _author_ids_for_name,
     "series": _series_ids_for_name,
