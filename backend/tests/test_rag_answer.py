@@ -549,6 +549,11 @@ def test_more_request_returns_the_next_page_without_the_model(db, monkeypatch):
     monkeypatch.setattr(
         answer_module, "deepseek_chat", lambda *a, **k: calls.append(a)
     )
+    monkeypatch.setattr(
+        answer_module,
+        "resolve_followup_query",
+        lambda query, turns: "红楼梦有哪些版本",
+    )
     history = [
         {"role": "user", "content": "红楼梦有哪些版本"},
         {"role": "assistant", "content": "有这些版本。"},
@@ -1011,3 +1016,72 @@ def test_seen_book_ids_accepts_a_long_conversation():
     request = RagAnswerRequest(query="x", seen_book_ids=list(range(250)))
 
     assert len(request.seen_book_ids) == 250
+
+
+def test_list_continuations_are_more_requests():
+    assert answer_module._looks_like_more("列出来")
+    assert answer_module._looks_like_more("都列出来")
+    assert answer_module._looks_like_more("具体说说")
+
+
+def test_focus_author_question_expands_to_the_authors_works(db, monkeypatch):
+    from models import Author
+
+    liu = Author(name="Liu Cixin", name_cn="刘慈欣")
+    db.add(liu)
+    db.commit()
+    works = []
+    for title in ("三体", "流浪地球", "带上她的眼睛"):
+        book = _book(db, title)
+        book.authors.append(liu)
+        works.append(book)
+    db.commit()
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"刘慈欣还写过《流浪地球》。[book_id={works[1].id}]")
+
+    result = answer_question(db, "该书作者还有哪些作品", focus_book_id=works[0].id)
+
+    titles = {candidate["title_cn"] for candidate in result.candidates}
+    assert "流浪地球" in titles
+    assert "三体" in titles
+
+
+def test_more_after_an_author_answer_keeps_the_author_intent(db, monkeypatch):
+    from models import Author
+
+    liu = Author(name="Liu Cixin", name_cn="刘慈欣")
+    db.add(liu)
+    db.commit()
+    works = []
+    for title in ("三体", "流浪地球", "带上她的眼睛", "球状闪电"):
+        book = _book(db, title)
+        book.authors.append(liu)
+        works.append(book)
+    db.commit()
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(
+        answer_module,
+        "resolve_followup_query",
+        lambda query, turns: "刘慈欣的作品有哪些",
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "刘慈欣"},
+    )
+
+    result = answer_module.answer_question(
+        db,
+        "列出来",
+        history=[
+            {"role": "user", "content": "该书作者还有哪些作品"},
+            {"role": "assistant", "content": "刘慈欣还写过《流浪地球》。"},
+        ],
+        seen_book_ids=[works[0].id],
+    )
+
+    assert {book["title_cn"] for book in result.more} == {
+        "流浪地球",
+        "带上她的眼睛",
+        "球状闪电",
+    }

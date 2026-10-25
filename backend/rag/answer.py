@@ -36,7 +36,9 @@ from sqlalchemy.orm import Session
 from .intent import (
     _INTENT_NOTES,
     _INTENT_RESOLVERS,
+    _author_ids_for_book,
     _author_ids_for_name,
+    _books_by_author_ids,
     _author_match_ids,
     _exact_author_query,
     _series_ids_for_name,
@@ -61,6 +63,8 @@ _MIN_VECTOR_SIMILARITY = 0.58
 _TITLE_CONTAINMENT_MIN = 4
 # "沙丘系列有哪些" is a series question, not the single book "沙丘".
 _SERIES_HINTS = ("系列", "套装", "全集", "合集", "丛书", "续集", "后续")
+# "这本书的作者还有哪些作品" is about the author, not just the quoted book.
+_AUTHOR_SCOPE_HINTS = ("作者", "作品", "著作", "写过", "写的", "所著")
 # A comparison ("《沙丘》和《三体》") may fast-path two-character titles; a plain
 # long question that happens to contain one must not.
 _CONJUNCTIONS = ("和", "与", "、", "及", "跟")
@@ -85,7 +89,8 @@ _POOL_LIMIT = 40
 _MORE_CUES_ZH = (
     "还有", "更多", "再来", "再给", "再列", "再几", "多来", "多列", "换一批",
     "其他版本", "其它版本", "别的版本", "别本", "其它的", "继续", "全部",
-    "所有版本", "几本", "几种", "几个",
+    "所有版本", "几本", "几种", "几个", "列出来", "列出", "列一下",
+    "都列", "都说", "具体说", "说说", "剩下的", "其余的", "全部列",
 )
 _MORE_CUES_EN = ("more", "others", "other versions", "next", "another", "show more")
 _MORE_HINTS = ("还", "再", "多", "别", "其他", "其它", "继续", "几", "more", "other")
@@ -676,6 +681,12 @@ def _answer_more(
 ) -> AnswerResult:
     """Page through the candidate pool for "还有么"/"more" follow-ups."""
     context = _more_context(query, turns)
+    if len(_strip_more_cues(query)) < 4:
+        # "列出来" carries no topic; rewrite it against the conversation so the
+        # intent (the author the previous answer named) is not lost.
+        rewritten = resolve_followup_query(query, turns)
+        if len(_strip_more_cues(rewritten)) >= 4:
+            context = rewritten
     pool = retrieve_candidates(
         db, context, limit=_POOL_LIMIT, intent=parse_intent(context)
     )
@@ -735,9 +746,18 @@ def answer_question(
         pool = _load_candidates(db, [int(focus_book_id)])
         if not pool:
             raise BookNotFound(f"book {focus_book_id} not found")
+        if any(hint in query for hint in _AUTHOR_SCOPE_HINTS):
+            # "这本书的作者还有哪些作品" needs the author's other books, not
+            # the quoted book alone.
+            author_ids = _author_ids_for_book(db, int(focus_book_id))
+            expanded = _load_candidates(
+                db, _books_by_author_ids(db, author_ids, _POOL_LIMIT)
+            )
+            if expanded:
+                pool = expanded
         effective_query = query
         rewritten = ""
-        candidates = pool
+        candidates = pool[: max(1, min(int(top_k), MAX_CANDIDATES))]
     elif turns and _is_more_request(query, turns):
         return _answer_more(db, query, turns, seen_book_ids or [], top_k)
     else:

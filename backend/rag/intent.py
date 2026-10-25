@@ -130,6 +130,16 @@ def _books_by_series_ids(
     ][:limit]
 
 
+def _author_ids_for_book(db: Session, book_id: int) -> list[int]:
+    return [
+        row[0]
+        for row in db.execute(
+            text("SELECT author_id FROM book_authors WHERE book_id = :book_id"),
+            {"book_id": book_id},
+        )
+    ]
+
+
 def _author_ids_for_name(db: Session, value: str, limit: int) -> list[int]:
     """Books written by an author named by the intent parser."""
     value_key = title_key(value)
