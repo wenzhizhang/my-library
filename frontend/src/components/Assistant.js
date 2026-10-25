@@ -7,17 +7,9 @@ import MessageList from './assistant/MessageList';
 import useAssistantChat from './assistant/useAssistantChat';
 import './Assistant.css';
 
-function SparkleIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3.2l1.9 4.6a4 4 0 0 0 2.3 2.3l4.6 1.9-4.6 1.9a4 4 0 0 0-2.3 2.3L12 20.8l-1.9-4.6a4 4 0 0 0-2.3-2.3L3.2 12l4.6-1.9a4 4 0 0 0 2.3-2.3L12 3.2z"
-        fill="currentColor"
-      />
-      <circle cx="19" cy="5" r="1.4" fill="currentColor" opacity="0.75" />
-    </svg>
-  );
-}
+// 320px version of the source artwork: the avatar renders at 60px, so this
+// stays sharp on 2x/3x screens without shipping the 1.6 MB original.
+const ASSISTANT_LOGO = '/images/logo/assistant-320.png';
 
 export default function Assistant() {
   const { isAuthenticated } = useAuth();
@@ -86,7 +78,12 @@ export default function Assistant() {
         onClick={() => setOpen(true)}
         data-testid="assistant-trigger"
       >
-        <SparkleIcon />
+        <img
+          className="assistant-trigger-img"
+          src={ASSISTANT_LOGO}
+          alt=""
+          aria-hidden="true"
+        />
       </button>
 
       <section
@@ -96,68 +93,77 @@ export default function Assistant() {
         aria-hidden={!open}
         data-testid="assistant-panel"
       >
-        <header className="assistant-header">
-          <div className="assistant-title">
-            <SparkleIcon />
-            <span>{t('assistant.title')}</span>
-          </div>
-          <div className="assistant-actions">
-            <button
-              type="button"
-              className="assistant-action"
-              onClick={newChat}
-              data-testid="assistant-new"
-            >
-              {t('assistant.newChat')}
-            </button>
-            <button
-              type="button"
-              className="assistant-action assistant-close"
-              onClick={() => setOpen(false)}
-              aria-label={t('assistant.close')}
-              data-testid="assistant-close"
-            >
-              ×
-            </button>
-          </div>
-        </header>
-
-        <MessageList
-          messages={messages}
-          loading={loading}
-          listRef={listRef}
-          onNavigate={() => setOpen(false)}
-          onExample={fillExample}
+        <img
+          className="assistant-avatar"
+          src={ASSISTANT_LOGO}
+          alt=""
+          aria-hidden="true"
+          data-testid="assistant-avatar"
         />
 
-        <form
-          className="assistant-input"
-          onSubmit={(event) => {
-            event.preventDefault();
-            submit();
-          }}
-        >
-          <textarea
-            ref={inputRef}
-            rows={2}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={t('assistant.placeholder')}
-            aria-label={t('assistant.placeholder')}
-            data-testid="assistant-input"
+        <div className="assistant-body">
+          <header className="assistant-header">
+            <div className="assistant-title">
+              <span>{t('assistant.title')}</span>
+            </div>
+            <div className="assistant-actions">
+              <button
+                type="button"
+                className="assistant-action"
+                onClick={newChat}
+                data-testid="assistant-new"
+              >
+                {t('assistant.newChat')}
+              </button>
+              <button
+                type="button"
+                className="assistant-action assistant-close"
+                onClick={() => setOpen(false)}
+                aria-label={t('assistant.close')}
+                data-testid="assistant-close"
+              >
+                ×
+              </button>
+            </div>
+          </header>
+
+          <MessageList
+            messages={messages}
+            loading={loading}
+            listRef={listRef}
+            onNavigate={() => setOpen(false)}
+            onExample={fillExample}
           />
-          <button
-            type="submit"
-            className="assistant-send"
-            disabled={!input.trim() || loading}
-            aria-label={t('assistant.send')}
-            data-testid="assistant-send"
+
+          <form
+            className="assistant-input"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submit();
+            }}
           >
-            ↑
-          </button>
-        </form>
-        <p className="assistant-disclaimer">{t('assistant.disclaimer')}</p>
+            <textarea
+              ref={inputRef}
+              rows={2}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={t('assistant.placeholder')}
+              aria-label={t('assistant.placeholder')}
+              data-testid="assistant-input"
+            />
+            <button
+              type="submit"
+              className="assistant-send"
+              disabled={!input.trim() || loading}
+              aria-label={t('assistant.send')}
+              data-testid="assistant-send"
+            >
+              ↑
+            </button>
+          </form>
+          <p className="assistant-disclaimer">{t('assistant.disclaimer')}</p>
+        </div>
       </section>
     </>
   );

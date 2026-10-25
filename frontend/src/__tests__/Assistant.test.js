@@ -78,6 +78,20 @@ test('opens the dialog from the floating trigger', () => {
   expect(screen.getByTestId('assistant-panel')).toHaveAttribute('aria-hidden', 'false');
 });
 
+test('uses the mascot logo on the trigger and floating over the dialog', () => {
+  openAssistant();
+
+  const trigger = screen.getByTestId('assistant-trigger');
+  expect(trigger.querySelector('img')).toHaveAttribute(
+    'src',
+    '/images/logo/assistant-320.png'
+  );
+  expect(screen.getByTestId('assistant-avatar')).toHaveAttribute(
+    'src',
+    '/images/logo/assistant-320.png'
+  );
+});
+
 test('sends a question and renders the answer with its sources', async () => {
   openAssistant();
 
