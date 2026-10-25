@@ -453,11 +453,18 @@
     "example2": "有哪些讲唐史的书",
     "example3": "《沙陀往事》和《万历十五年》有什么区别",
     "thinking": "Searching your library…",
-    "sources": "Sources",
     "errorNetwork": "Request failed, please try again.",
     "errorUnavailable": "The assistant is not configured (model service unavailable).",
     "disclaimer": "Answers are grounded in your library only.",
     "noAnswer": "No relevant books found in your library.",
-    "rewritten": "Searched for “{{query}}”"
+    "rewritten": "Searched for “{{query}}”",
+    "books": "Books",
+    "moreBooks": "More books:",
+    "moreCta": "Show more",
+    "moreRequest": "Show me more",
+    "noMore": "No more books.",
+    "quote": "Quote this book",
+    "quoted": "Quoting",
+    "removeQuote": "Remove quote"
   }
 }

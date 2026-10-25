@@ -9,7 +9,7 @@ from sqlalchemy import text
 from auth import require_user_id
 from database import get_db
 from models import Book
-from rag.answer import AnswerUnavailable, answer_question
+from rag.answer import AnswerUnavailable, BookNotFound, answer_question
 from rag.pipeline import (
     MIN_SUMMARY_INTRODUCTION_CHARS,
     generate_book_summary,
@@ -141,7 +141,11 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
             req.query,
             req.top_k,
             [turn.model_dump() for turn in req.history],
+            req.seen_book_ids,
+            req.focus_book_id,
         )
+    except BookNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except AnswerUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -151,6 +155,9 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
         sources=result.sources,
         no_answer=result.no_answer,
         rewritten_query=result.rewritten_query,
+        more=result.more,
+        has_more=result.has_more,
+        reason=result.reason,
     )
 
 

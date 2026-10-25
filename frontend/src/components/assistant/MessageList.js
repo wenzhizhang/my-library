@@ -3,11 +3,75 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { LIBRARY_PATH } from '../../config';
+import { MEDIA_BASE_URL } from '../Config';
+
+const QUOTE_ICON = '/images/icon/quote.gif';
 
 function messageTestId(message) {
   if (message.error) return 'assistant-message-error';
   if (message.noAnswer) return 'assistant-message-no-answer';
   return `assistant-message-${message.role}`;
+}
+
+function thumbUrl(path) {
+  return `${MEDIA_BASE_URL}/${String(path).replace(/^\/+/, '')}`;
+}
+
+function BookRow({ book, onNavigate, onQuote }) {
+  const { t } = useTranslation();
+
+  return (
+    <li className="assistant-book-row">
+      <Link
+        className="assistant-book"
+        to={`${LIBRARY_PATH}/books/${book.book_id}`}
+        onClick={onNavigate}
+        data-testid="assistant-book"
+      >
+        {book.thumb_image ? (
+          <img
+            className="assistant-book-thumb"
+            src={thumbUrl(book.thumb_image)}
+            alt=""
+            loading="lazy"
+          />
+        ) : (
+          <span
+            className="assistant-book-thumb assistant-book-thumb-empty"
+            aria-hidden="true"
+          />
+        )}
+        <span className="assistant-book-info">
+          <span className="assistant-book-title">
+            {book.title_cn || book.title || `#${book.book_id}`}
+          </span>
+          {book.authors?.length > 0 && (
+            <span className="assistant-book-authors">
+              {book.authors.join(' / ')}
+            </span>
+          )}
+        </span>
+        <span className="assistant-book-arrow" aria-hidden="true">
+          ›
+        </span>
+      </Link>
+      <button
+        type="button"
+        className="assistant-quote-button"
+        onClick={() => onQuote(book)}
+        aria-label={t('assistant.quote')}
+        title={t('assistant.quote')}
+        data-testid="assistant-quote-book"
+      >
+        <img
+          className="assistant-quote-icon"
+          src={QUOTE_ICON}
+          alt=""
+          aria-hidden="true"
+        />
+      </button>
+    </li>
+  );
 }
 
 export default function MessageList({
@@ -16,6 +80,8 @@ export default function MessageList({
   listRef,
   onNavigate,
   onExample,
+  onMore,
+  onQuote,
 }) {
   const { t } = useTranslation();
 
@@ -49,29 +115,43 @@ export default function MessageList({
           }${message.noAnswer ? ' is-empty-answer' : ''}`}
           data-testid={messageTestId(message)}
         >
-          <div className="assistant-bubble">{message.content}</div>
+          {message.content && !message.isMore && (
+            <div className="assistant-bubble">{message.content}</div>
+          )}
+
           {message.rewritten && (
             <p className="assistant-rewritten" data-testid="assistant-rewritten">
               {t('assistant.rewritten', { query: message.rewritten })}
             </p>
           )}
-          {message.sources && (
-            <div className="assistant-sources">
-              <span className="assistant-sources-label">
-                {t('assistant.sources')}
+
+          {message.books?.length > 0 && !message.focused && (
+            <div className="assistant-books">
+              <span className="assistant-books-label">
+                {message.isMore ? t('assistant.moreBooks') : t('assistant.books')}
               </span>
-              {message.sources.map((source) => (
-                <Link
-                  key={source.book_id}
-                  className="assistant-source"
-                  to={`${LIBRARY_PATH}/books/${source.book_id}`}
-                  onClick={onNavigate}
-                  data-testid="assistant-source"
-                >
-                  {source.title_cn || source.title || `#${source.book_id}`}
-                </Link>
-              ))}
+              <ul>
+                {message.books.map((book) => (
+                  <BookRow
+                    key={book.book_id}
+                    book={book}
+                    onNavigate={onNavigate}
+                    onQuote={onQuote}
+                  />
+                ))}
+              </ul>
             </div>
+          )}
+
+          {message.hasMore && (
+            <button
+              type="button"
+              className="assistant-more"
+              onClick={onMore}
+              data-testid="assistant-more"
+            >
+              {t('assistant.moreCta')}
+            </button>
           )}
         </div>
       ))}

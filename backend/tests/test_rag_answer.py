@@ -2,6 +2,8 @@
 
 import pytest
 
+from datetime import datetime
+
 from models import Book
 from rag import answer as answer_module
 from rag.answer import (
@@ -12,7 +14,7 @@ from rag.answer import (
     AnswerUnavailable,
     answer_question,
     build_prompt,
-    retrieve_for_answer,
+    retrieve_candidates,
     select_candidates,
 )
 
@@ -26,6 +28,25 @@ def _no_embedding_model(monkeypatch):
     )
     monkeypatch.setattr("rag.embedding.embed_text", lambda text: [0.0] * 512)
     monkeypatch.setattr("rag.vector_store.embed_text", lambda text: [0.0] * 512)
+
+
+REAL_PARSE_INTENT = answer_module.parse_intent
+
+
+def retrieve_for_answer(db, query, top_k=5):
+    """Test helper: the narrow view an answer is built from."""
+    top_k = min(top_k, answer_module.MAX_CANDIDATES)
+    return retrieve_candidates(db, query, limit=top_k)[:top_k]
+
+
+@pytest.fixture(autouse=True)
+def _topic_intent(monkeypatch):
+    """Most tests are not about intent; classify them as a topic."""
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "topic", "value": ""},
+    )
 
 
 def _book(db, title, summary=None, introduction="简介"):
@@ -238,6 +259,7 @@ def _cand(book):
         "summary": "简介",
         "introduction": "",
         "authors": [],
+        "thumb_image": "",
     }
 
 
@@ -245,11 +267,11 @@ def test_followup_is_rewritten_before_retrieval(db, monkeypatch):
     book = _book(db, "沙陀往事")
     seen = {}
 
-    def fake_retrieve(db_, query, top_k=5):
+    def fake_retrieve(db_, query, *args, **kwargs):
         seen["query"] = query
         return [_cand(book)]
 
-    monkeypatch.setattr(answer_module, "retrieve_for_answer", fake_retrieve)
+    monkeypatch.setattr(answer_module, "retrieve_candidates", fake_retrieve)
     systems = []
 
     def fake_chat(prompt, *, system, **kwargs):
@@ -277,11 +299,11 @@ def test_followup_rewrite_failure_falls_back(db, monkeypatch):
     book = _book(db, "沙陀往事")
     seen = {}
 
-    def fake_retrieve(db_, query, top_k=5):
+    def fake_retrieve(db_, query, *args, **kwargs):
         seen["query"] = query
         return [_cand(book)]
 
-    monkeypatch.setattr(answer_module, "retrieve_for_answer", fake_retrieve)
+    monkeypatch.setattr(answer_module, "retrieve_candidates", fake_retrieve)
     replies = iter([None, f"答案。[book_id={book.id}]"])
     monkeypatch.setattr(
         answer_module, "deepseek_chat", lambda prompt, **kw: next(replies)
@@ -300,7 +322,7 @@ def test_followup_rewrite_failure_falls_back(db, monkeypatch):
 def test_no_history_skips_the_rewrite(db, monkeypatch):
     book = _book(db, "沙陀往事")
     monkeypatch.setattr(
-        answer_module, "retrieve_for_answer", lambda *a, **k: [_cand(book)]
+        answer_module, "retrieve_candidates", lambda *a, **k: [_cand(book)]
     )
     systems = []
 
@@ -392,24 +414,25 @@ def test_series_query_skips_the_title_fast_path(db, monkeypatch):
     assert candidates == []
 
 
-def test_short_title_in_a_long_question_does_not_fast_path(db, monkeypatch):
-    _book(db, "沙丘")
+def test_long_question_about_a_short_title_still_fast_paths(db, monkeypatch):
+    book = _book(db, "沙丘")
     seen = []
     monkeypatch.setattr(
         answer_module, "search_fts", lambda *a, **k: seen.append("fts") or []
     )
     monkeypatch.setattr(answer_module, "search_vectors", lambda *a, **k: [])
 
-    retrieve_for_answer(db, "我想了解一下沙丘这本书到底怎么样")
+    candidates = retrieve_for_answer(db, "我想了解一下沙丘这本书到底怎么样")
 
-    assert seen == ["fts"]
+    assert [candidate["book_id"] for candidate in candidates] == [book.id]
+    assert seen == []
 
 
 def test_rewrite_is_exposed_when_the_answer_is_none(db, monkeypatch):
     book = _book(db, "沙陀往事")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setattr(
-        answer_module, "retrieve_for_answer", lambda *a, **k: [_cand(book)]
+        answer_module, "retrieve_candidates", lambda *a, **k: [_cand(book)]
     )
     replies = iter(["沙陀往事 作者", "NONE"])
     monkeypatch.setattr(
@@ -426,7 +449,7 @@ def test_rewrite_is_exposed_when_the_answer_is_none(db, monkeypatch):
 
 def test_rewrite_is_exposed_when_there_are_no_candidates(db, monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
-    monkeypatch.setattr(answer_module, "retrieve_for_answer", lambda *a, **k: [])
+    monkeypatch.setattr(answer_module, "retrieve_candidates", lambda *a, **k: [])
     monkeypatch.setattr(
         answer_module, "deepseek_chat", lambda prompt, **kw: "沙陀往事 作者"
     )
@@ -448,3 +471,543 @@ def test_short_title_with_a_short_wrapper_fast_paths(db, monkeypatch):
 
     assert [c["book_id"] for c in candidates] == [book.id]
     assert called == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "还有么？",
+        "还有更多么",
+        "再来几种",
+        "还有其他版本吗",
+        "more",
+        "show me more",
+    ],
+)
+def test_more_intent_phrases(text):
+    assert answer_module._looks_like_more(text)
+
+
+def test_plain_questions_are_not_more_requests():
+    assert not answer_module._looks_like_more("红楼梦讲了什么")
+    assert not answer_module._looks_like_more("有哪些讲唐史的书")
+
+
+def test_closing_phrases_are_not_more_requests():
+    assert not answer_module._looks_like_more("就这些吗")
+    assert not answer_module._looks_like_more("没了")
+
+
+def test_more_context_prefers_the_followups_own_topic():
+    history = [{"role": "user", "content": "红楼梦有什么版本"}]
+
+    assert (
+        answer_module._more_context("还有哪些讲唐史的书", history)
+        == "还有哪些讲唐史的书"
+    )
+    assert answer_module._more_context("还有么？", history) == "红楼梦有什么版本"
+
+
+def test_sources_carry_thumbnails(db, monkeypatch):
+    book = Book(
+        title="沙陀往事",
+        title_cn="沙陀往事",
+        summary="s",
+        introduction="i",
+        thumb_image="/images/books/1.webp",
+    )
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"答案。[book_id={book.id}]")
+
+    result = answer_question(db, "沙陀往事")
+
+    assert result.sources[0]["thumb_image"] == "/images/books/1.webp"
+
+
+def test_more_request_returns_the_next_page_without_the_model(db, monkeypatch):
+    _book(db, "红楼梦")
+    books = []
+    for index in range(10):
+        book = Book(
+            title=f"红楼梦（版本{index}）",
+            title_cn=f"红楼梦（版本{index}）",
+            summary="s",
+            introduction="i",
+            thumb_image=f"/images/books/{index}.webp",
+        )
+        db.add(book)
+        books.append(book)
+    db.commit()
+    for book in books:
+        db.refresh(book)
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    calls = []
+    monkeypatch.setattr(
+        answer_module, "deepseek_chat", lambda *a, **k: calls.append(a)
+    )
+    history = [
+        {"role": "user", "content": "红楼梦有哪些版本"},
+        {"role": "assistant", "content": "有这些版本。"},
+    ]
+    seen = [book.id for book in books[:3]]
+
+    result = answer_question(
+        db, "还有么？", history=history, seen_book_ids=seen
+    )
+
+    assert calls == []  # a "more" reply is pure retrieval
+    assert result.no_answer is False
+    assert result.more
+    assert all(book["book_id"] not in seen for book in result.more)
+    assert result.has_more is True
+
+
+def test_more_request_is_exhausted_after_the_last_page(db, monkeypatch):
+    book = _book(db, "红楼梦")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(
+        answer_module, "deepseek_chat", lambda *a, **k: "不应调用"
+    )
+
+    result = answer_question(
+        db,
+        "还有么？",
+        history=[{"role": "user", "content": "红楼梦有哪些版本"}],
+        seen_book_ids=[book.id],
+    )
+
+    assert result.no_answer is True
+    assert result.reason == answer_module.REASON_NO_MORE
+
+
+def test_normal_answer_reports_when_more_books_exist(db, monkeypatch):
+    book = _book(db, "红楼梦")
+    pool = [{**_cand(book), "book_id": index} for index in range(6)]
+    monkeypatch.setattr(
+        answer_module, "retrieve_candidates", lambda *a, **k: pool
+    )
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"答案。[book_id={book.id}]")
+
+    result = answer_question(db, "红楼梦")
+
+    assert result.has_more is True
+
+
+def test_comparison_keeps_one_edition_of_each_work(db, monkeypatch):
+    for index in range(6):
+        _book(db, f"三体（版本{index}）")
+    for index in range(6):
+        _book(db, f"沙丘（版本{index}）")
+    _book(db, "三体")
+    _book(db, "沙丘")
+    _no_search(monkeypatch, [])
+
+    candidates = retrieve_for_answer(db, "《沙丘》和《三体》有什么区别")
+
+    titles = [candidate["title_cn"] for candidate in candidates]
+    assert any("沙丘" in title for title in titles)
+    assert any("三体" in title for title in titles)
+
+
+def test_blank_history_turns_are_accepted_and_dropped():
+    from schemas.rag import RagAnswerRequest
+
+    request = RagAnswerRequest(
+        query="x", history=[{"role": "assistant", "content": ""}]
+    )
+    assert request.history[0].content == ""
+    assert answer_module._normalise_turns(
+        [{"role": "assistant", "content": ""}]
+    ) == []
+
+
+def test_answer_endpoint_accepts_a_blank_history_turn(client, monkeypatch):
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+
+    resp = client.post(
+        "/api/rag/answer",
+        json={"query": "x", "history": [{"role": "assistant", "content": ""}]},
+    )
+
+    assert resp.status_code == 503  # validated, then blocked on the missing key
+
+
+def test_focus_book_answers_from_that_book_only(db, monkeypatch):
+    book = _book(db, "沙陀往事", summary="讲沙陀人的历史。")
+    _book(db, "别的书")
+    called = []
+    _no_search(monkeypatch, called)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"它讲沙陀人的历史。[book_id={book.id}]")
+
+    result = answer_question(db, "这本书讲了什么", focus_book_id=book.id)
+
+    assert [candidate["book_id"] for candidate in result.candidates] == [book.id]
+    assert [source["book_id"] for source in result.sources] == [book.id]
+    assert called == []
+
+
+def test_focus_book_missing_is_not_found(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+
+    with pytest.raises(answer_module.BookNotFound):
+        answer_question(db, "这本书讲了什么", focus_book_id=999999)
+
+
+def test_answer_endpoint_404_for_missing_focus_book(client, monkeypatch):
+    from routers import rag as rag_router
+
+    def boom(*args, **kwargs):
+        raise rag_router.BookNotFound("book 999999 not found")
+
+    monkeypatch.setattr(rag_router, "answer_question", boom)
+
+    resp = client.post(
+        "/api/rag/answer", json={"query": "x", "focus_book_id": 999999}
+    )
+
+    assert resp.status_code == 404
+
+
+def test_prompt_includes_publication_metadata_for_a_quoted_book(db, monkeypatch):
+    book = Book(
+        title="沙陀往事",
+        title_cn="沙陀往事",
+        summary="讲沙陀人的历史。",
+        introduction="i",
+        publish_date=datetime(2020, 1, 1),
+        isbn="9787000000000",
+        pages=300,
+        price=59.0,
+        binding_type="精装",
+    )
+    db.add(book)
+    db.commit()
+    db.refresh(book)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    prompts = []
+
+    def fake_chat(prompt, **kwargs):
+        prompts.append(prompt)
+        return f"答案。[book_id={book.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake_chat)
+
+    answer_question(db, "这本书哪年出版的", focus_book_id=book.id)
+
+    prompt = prompts[0]
+    assert "2020-01-01" in prompt
+    assert "9787000000000" in prompt
+    assert "精装" in prompt
+    assert "300" in prompt
+
+
+def test_book_meta_skips_empty_fields():
+    meta = answer_module._book_meta(
+        {
+            "publish_date": "2015-11-01",
+            "publisher": "",
+            "edition": "",
+            "printing_info": "",
+            "isbn": "",
+            "pages": "",
+            "binding_type": "",
+            "language": "",
+            "price": "",
+            "book_count": "",
+            "series": "",
+            "category": "",
+            "douban_score": "",
+            "tags": "[]",
+        }
+    )
+
+    assert meta == "出版日期：2015-11-01"
+
+
+def test_series_question_returns_every_volume_distinct_titles_first(db, monkeypatch):
+    from models import BookSeries
+
+    series = BookSeries(name="尚古一读")
+    db.add(series)
+    db.commit()
+    db.refresh(series)
+    for title in ("喻世明言", "喻世明言", "警世通言", "醒世恒言", "文选"):
+        book = Book(
+            title=title,
+            title_cn=title,
+            summary="s",
+            introduction="i",
+            book_series_id=series.id,
+        )
+        db.add(book)
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_candidates(db, "尚古一读有哪些书", limit=40)
+
+    assert called == []
+    assert len(candidates) == 5
+    assert [c["title_cn"] for c in candidates] == [
+        "喻世明言",
+        "警世通言",
+        "醒世恒言",
+        "文选",
+        "喻世明言",
+    ]
+
+
+def test_prompt_notes_that_more_books_exist(db):
+    candidates = [
+        {
+            "book_id": 1,
+            "title": "文选",
+            "title_cn": "文选",
+            "summary": "s",
+            "introduction": "",
+            "authors": [],
+        }
+    ]
+
+    prompt = build_prompt(
+        "尚古一读有哪些书",
+        candidates,
+        total_candidates=8,
+        total_titles=8,
+    )
+
+    assert "共 8 本（8 种）" in prompt
+    assert "还有 7 种没有列出" in prompt
+
+
+def test_author_question_returns_books_by_that_author(db, monkeypatch):
+    from models import Author
+
+    tolkien = Author(name="J.R.R. Tolkien", name_cn="约翰·罗纳德·瑞尔·托尔金")
+    carpenter = Author(name="Humphrey Carpenter", name_cn="汉弗莱·卡彭特")
+    db.add_all([tolkien, carpenter])
+    db.commit()
+
+    works = []
+    for title in ("魔戒", "霍比特人", "精灵宝钻"):
+        book = _book(db, title)
+        book.authors.append(tolkien)
+        works.append(book)
+    biography = _book(db, "托尔金传")
+    biography.authors.append(carpenter)
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_candidates(db, "托尔金著的书有哪些", limit=40)
+
+    assert called == []
+    assert {c["title_cn"] for c in candidates} == {"魔戒", "霍比特人", "精灵宝钻"}
+    assert "托尔金传" not in {c["title_cn"] for c in candidates}
+
+
+def test_title_match_still_wins_for_a_biography(db, monkeypatch):
+    from models import Author
+
+    tolkien = Author(name="J.R.R. Tolkien", name_cn="约翰·罗纳德·瑞尔·托尔金")
+    carpenter = Author(name="Humphrey Carpenter", name_cn="汉弗莱·卡彭特")
+    db.add_all([tolkien, carpenter])
+    db.commit()
+    biography = _book(db, "托尔金传")
+    biography.authors.append(carpenter)
+    work = _book(db, "魔戒")
+    work.authors.append(tolkien)
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_candidates(db, "托尔金传", limit=40)
+
+    assert [c["title_cn"] for c in candidates] == ["托尔金传"]
+
+
+def test_short_author_name_matches_an_exact_author_query(db, monkeypatch):
+    from models import Author
+
+    sushi = Author(name="Su Shi", name_cn="苏轼")
+    other = Author(name="Someone", name_cn="他人")
+    db.add_all([sushi, other])
+    db.commit()
+    book = _book(db, "东坡志林")
+    book.authors.append(sushi)
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_candidates(db, "苏轼的书", limit=40)
+
+    assert [c["title_cn"] for c in candidates] == ["东坡志林"]
+
+
+def test_exact_author_name_beats_a_title_mentioning_it(db, monkeypatch):
+    from models import Author
+
+    sushi = Author(name="Su Shi", name_cn="苏轼")
+    db.add(sushi)
+    db.commit()
+    by_him = _book(db, "东坡志林")
+    by_him.authors.append(sushi)
+    _book(db, "苏轼")  # a book whose *title* is the author's name
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+
+    candidates = retrieve_candidates(db, "苏轼的书", limit=40)
+
+    assert [c["title_cn"] for c in candidates] == ["东坡志林"]
+
+
+def test_author_intent_resolves_a_paraphrase(db, monkeypatch):
+    from models import Author
+
+    tolkien = Author(name="J.R.R. Tolkien", name_cn="约翰·罗纳德·瑞尔·托尔金")
+    carpenter = Author(name="Humphrey Carpenter", name_cn="汉弗莱·卡彭特")
+    db.add_all([tolkien, carpenter])
+    db.commit()
+    work = _book(db, "魔戒")
+    work.authors.append(tolkien)
+    biography = _book(db, "托尔金传")
+    biography.authors.append(carpenter)
+    db.commit()
+    called = []
+    _no_search(monkeypatch, called)
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "托尔金"},
+    )
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"托尔金著有《魔戒》。[book_id={work.id}]")
+
+    result = answer_question(db, "托尔金写过哪些书")
+
+    assert [c["title_cn"] for c in result.candidates] == ["魔戒"]
+    assert called == []
+    assert result.intent["kind"] == "author"
+
+
+def test_unresolved_intent_falls_back_to_search(db, monkeypatch):
+    seen = []
+    monkeypatch.setattr(
+        answer_module, "search_fts", lambda *a, **k: seen.append("fts") or []
+    )
+    monkeypatch.setattr(answer_module, "search_vectors", lambda *a, **k: [])
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "查无此人"},
+    )
+
+    retrieve_candidates(db, "查无此人的书")
+
+    assert seen == ["fts"]
+
+
+def test_parse_intent_parses_the_model_json(monkeypatch):
+    from rag import intent as intent_module
+
+    monkeypatch.setattr(
+        intent_module,
+        "deepseek_chat",
+        lambda *a, **k: '{"kind": "author", "value": "托尔金"}',
+    )
+    assert REAL_PARSE_INTENT("托尔金写过哪些书") == {
+        "kind": "author",
+        "value": "托尔金",
+    }
+
+    monkeypatch.setattr(intent_module, "deepseek_chat", lambda *a, **k: "not json")
+    assert REAL_PARSE_INTENT("x") == {"kind": "topic", "value": ""}
+
+
+def test_prompt_includes_the_author_intent(db):
+    candidates = [
+        {
+            "book_id": 1,
+            "title": "魔戒",
+            "title_cn": "魔戒",
+            "summary": "s",
+            "introduction": "",
+            "authors": ["托尔金"],
+        }
+    ]
+
+    prompt = build_prompt(
+        "托尔金写过哪些书",
+        candidates,
+        intent={"kind": "author", "value": "托尔金"},
+    )
+
+    assert "用户意图" in prompt
+    assert "托尔金" in prompt
+    assert "不要把他人的传记" in prompt
+
+
+def test_focus_beats_a_more_like_question(db, monkeypatch):
+    book = _book(db, "史记")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"这本书是《史记》。[book_id={book.id}]")
+
+    result = answer_question(db, "还有其他版本吗？", focus_book_id=book.id)
+
+    assert [c["title_cn"] for c in result.candidates] == ["史记"]
+    assert [s["title_cn"] for s in result.sources] == ["史记"]
+
+
+def test_more_after_an_author_intent_keeps_the_intent(db, monkeypatch):
+    from models import Author
+
+    tolkien = Author(name="J.R.R. Tolkien", name_cn="约翰·罗纳德·瑞尔·托尔金")
+    other = Author(name="Humphrey Carpenter", name_cn="汉弗莱·卡彭特")
+    db.add_all([tolkien, other])
+    db.commit()
+    works = []
+    for title in ("魔戒", "霍比特人", "精灵宝钻"):
+        book = _book(db, title)
+        book.authors.append(tolkien)
+        works.append(book)
+    biography = _book(db, "托尔金传")
+    biography.authors.append(other)
+    db.commit()
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    called = []
+    monkeypatch.setattr(
+        answer_module, "search_fts", lambda *a, **k: called.append("fts") or []
+    )
+    monkeypatch.setattr(answer_module, "search_vectors", lambda *a, **k: [])
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "托尔金"},
+    )
+    history = [
+        {"role": "user", "content": "托尔金写过哪些书"},
+        {"role": "assistant", "content": "有《魔戒》《霍比特人》。"},
+    ]
+
+    result = answer_module.answer_question(
+        db, "还有么？", history=history, seen_book_ids=[works[0].id]
+    )
+
+    assert called == []
+    assert {book["title_cn"] for book in result.more} == {"霍比特人", "精灵宝钻"}
+
+
+def test_seen_book_ids_accepts_a_long_conversation():
+    from schemas.rag import RagAnswerRequest
+
+    request = RagAnswerRequest(query="x", seen_book_ids=list(range(250)))
+
+    assert len(request.seen_book_ids) == 250

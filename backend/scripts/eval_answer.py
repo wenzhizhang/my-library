@@ -41,7 +41,7 @@ from rag.answer import (  # noqa: E402
     _excerpt,
     answer_question,
     deepseek_chat,
-    retrieve_for_answer,
+    retrieve_candidates,
     title_matches,
 )
 
@@ -102,15 +102,27 @@ def parse_claims(raw: str) -> dict:
     }
 
 
-def judge_answer(query: str, candidates: list[dict], answer: str) -> dict:
+def judge_answer(
+    query: str,
+    candidates: list[dict],
+    answer: str,
+    total_candidates: int = 0,
+    total_titles: int = 0,
+) -> dict:
     """LLM-as-judge: is every claim in ``answer`` supported by the candidates?"""
     context = "\n".join(
         f"[book_id={c['book_id']}] {c['title_cn'] or c['title']}｜{_excerpt(c)}"
         for c in candidates
     )
+    scope = (
+        f"（回答只看到前 {len(candidates)} 本；书库中相关书籍共 "
+        f"{total_candidates} 本、{total_titles or total_candidates} 种）"
+        if total_candidates > len(candidates)
+        else ""
+    )
     prompt = (
         f"用户问题：{query}\n\n"
-        f"候选书籍摘要：\n{context}\n\n"
+        f"候选书籍摘要{scope}：\n{context}\n\n"
         f"被评估的回答：\n{answer}"
     )
     raw = deepseek_chat(
@@ -182,7 +194,7 @@ def evaluate(
                 row["invalid_citation"] = (
                     result.reason == REASON_INVALID_CITATION
                 )
-                candidates = result.candidates
+                candidates = result.more or result.candidates
                 source_titles = [
                     s.get("title_cn") or s.get("title") or ""
                     for s in result.sources
@@ -193,7 +205,13 @@ def evaluate(
                     else None
                 )
                 if judge and not result.no_answer:
-                    verdict = judge_answer(query, candidates, result.answer)
+                    verdict = judge_answer(
+                        query,
+                        candidates,
+                        result.answer,
+                        result.total_candidates,
+                        result.total_titles,
+                    )
                     row["claims_total"] = verdict["total"]
                     row["claims_supported"] = verdict["supported"]
                     row["claims_error"] = verdict["error"]
@@ -202,7 +220,7 @@ def evaluate(
                 row["error"] = str(exc)
                 candidates = []
         else:
-            candidates = retrieve_for_answer(db, query, top_k)
+            candidates = retrieve_candidates(db, query, limit=top_k)
 
         row["candidates"] = len(candidates)
         row["candidate_hit"] = (

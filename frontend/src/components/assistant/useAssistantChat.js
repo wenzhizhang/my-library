@@ -15,7 +15,7 @@ export default function useAssistantChat() {
   const [loading, setLoading] = useState(false);
 
   const send = useCallback(
-    async (question) => {
+    async (question, { focusBookId } = {}) => {
       const query = (question || '').trim();
       if (!query || loading) return;
 
@@ -26,13 +26,26 @@ export default function useAssistantChat() {
       for (const message of messages) {
         if (message.role === 'user') {
           history.push({ role: 'user', content: message.content });
-        } else if (!message.error && !message.noAnswer) {
+        } else if (
+          !message.error &&
+          !message.noAnswer &&
+          message.content
+        ) {
           history.push({ role: 'assistant', content: message.content });
         } else {
           history.pop();
         }
       }
       history.splice(0, Math.max(0, history.length - MAX_PAYLOAD_MESSAGES));
+
+      // Books already rendered, so "还有么" can continue after the last page.
+      const seenBookIds = Array.from(
+        new Set(
+          messages.flatMap((message) =>
+            (message.books || []).map((book) => book.book_id)
+          )
+        )
+      );
 
       setMessages((current) => [...current, { role: 'user', content: query }]);
       setLoading(true);
@@ -41,13 +54,23 @@ export default function useAssistantChat() {
           query,
           top_k: 5,
           history,
+          seen_book_ids: seenBookIds,
+          ...(focusBookId ? { focus_book_id: focusBookId } : {}),
         });
+        const isMore = Boolean(data.more?.length);
         setMessages((current) => [
           ...current,
           {
             role: 'assistant',
-            content: data.no_answer ? t('assistant.noAnswer') : data.answer,
-            sources: data.sources?.length ? data.sources : null,
+            content: data.no_answer
+              ? data.reason === 'no_more'
+                ? t('assistant.noMore')
+                : t('assistant.noAnswer')
+              : data.answer,
+            books: isMore ? data.more : data.sources,
+            isMore,
+            focused: Boolean(focusBookId),
+            hasMore: Boolean(data.has_more),
             noAnswer: Boolean(data.no_answer),
             rewritten: data.rewritten_query || '',
           },

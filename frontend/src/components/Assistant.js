@@ -17,6 +17,7 @@ export default function Assistant() {
   const { messages, loading, send, reset } = useAssistantChat();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [quotedBook, setQuotedBook] = useState(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
@@ -44,7 +45,13 @@ export default function Assistant() {
     const query = (question ?? input).trim();
     if (!query || loading) return;
     setInput('');
-    send(query);
+    send(query, quotedBook ? { focusBookId: quotedBook.book_id } : undefined);
+    setQuotedBook(null);
+  };
+
+  const quoteBook = (book) => {
+    setQuotedBook(book);
+    inputRef.current?.focus();
   };
 
   const fillExample = (example) => {
@@ -133,6 +140,8 @@ export default function Assistant() {
             listRef={listRef}
             onNavigate={() => setOpen(false)}
             onExample={fillExample}
+            onMore={() => submit(t('assistant.moreRequest'))}
+            onQuote={quoteBook}
           />
 
           <form
@@ -142,6 +151,25 @@ export default function Assistant() {
               submit();
             }}
           >
+            {quotedBook && (
+              <div className="assistant-quote" data-testid="assistant-quote">
+                <span className="assistant-quote-label">
+                  {t('assistant.quoted')}
+                </span>
+                <span className="assistant-quote-title">
+                  {quotedBook.title_cn || quotedBook.title}
+                </span>
+                <button
+                  type="button"
+                  className="assistant-quote-remove"
+                  onClick={() => setQuotedBook(null)}
+                  aria-label={t('assistant.removeQuote')}
+                  data-testid="assistant-quote-remove"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <textarea
               ref={inputRef}
               rows={2}

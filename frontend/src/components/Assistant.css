@@ -238,34 +238,188 @@
   padding-left: 2px;
 }
 
-.assistant-sources {
+.assistant-books {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  width: 100%;
 }
 
-.assistant-sources-label {
+.assistant-books-label {
+  font-size: 12px;
   color: #8a93a3;
 }
 
-.assistant-source {
+.assistant-books ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assistant-book-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.assistant-quote-button {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #e3e7ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #7b86a0;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.assistant-quote-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.assistant-quote-button:hover,
+.assistant-quote-button:focus-visible {
   color: #3f5bd9;
-  background: #eef1ff;
-  border-radius: 999px;
-  padding: 3px 9px;
-  text-decoration: none;
-  max-width: 220px;
+  border-color: #c9d3ea;
+  outline: none;
+}
+
+
+.assistant-quote {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid #dfe5ff;
+  border-radius: 8px;
+  background: #f4f6ff;
+  font-size: 12px;
+  color: #3f5bd9;
+}
+
+.assistant-quote-label {
+  color: #8a93a3;
+}
+
+.assistant-quote-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: background-color 0.15s ease;
+  font-weight: 500;
 }
 
-.assistant-source:hover {
-  background: #dfe5ff;
+.assistant-quote-remove {
+  border: none;
+  background: transparent;
+  color: #8a93a3;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.assistant-quote-remove:hover {
+  color: #3f5bd9;
+}
+
+.assistant-book {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #e8ebf1;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
   text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.assistant-book:hover,
+.assistant-book:focus-visible {
+  border-color: #c9d3ea;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  text-decoration: none;
+  outline: none;
+}
+
+.assistant-book-thumb {
+  width: 34px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #eef0f4;
+  object-fit: cover;
+}
+
+.assistant-book-thumb-empty {
+  display: block;
+}
+
+.assistant-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.assistant-book-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2430;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assistant-book-authors {
+  font-size: 11.5px;
+  color: #8a93a3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assistant-book-arrow {
+  flex-shrink: 0;
+  color: #b9c1d0;
+  font-size: 16px;
+}
+
+.assistant-message .assistant-books {
+  margin-top: 2px;
+}
+
+.assistant-more {
+  align-self: flex-start;
+  border: 1px dashed #c9d3ea;
+  border-radius: 999px;
+  background: #f8faff;
+  color: #3f5bd9;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.assistant-more:hover,
+.assistant-more:focus-visible {
+  background: #eef1ff;
+  outline: none;
 }
 
 .assistant-typing {
@@ -298,6 +452,7 @@
 
 .assistant-input {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px;
   padding: 10px 12px;
