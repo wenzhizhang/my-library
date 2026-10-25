@@ -246,7 +246,17 @@ Content-Type: application/json
 docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db
 # 加上真实回答质量（20 次 Flash 调用，约 30 秒）
 docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live
+
+# 把本次结果落盘（默认 /app/data/reports/answer-<时间>.json，数据卷内持久化）
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live --judge --json
+# 与上次报告对比，打印每个指标的 delta
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live --judge   --compare /app/data/reports/answer-<上次时间>.json
+# 检索侧同样支持
+docker compose exec backend python scripts/eval_rag.py --db /app/data/<uuid>.db --json
 ```
+
+报告包含 `kind / created_at / stats / rows / 参数`（db、golden、live、judge 等）；
+在宿主机直接跑时默认写到 `backend/scripts/reports/`（已 gitignore），可用 `EVAL_REPORT_DIR` 覆盖。
 
 ### 前端助手
 

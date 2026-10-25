@@ -313,6 +313,7 @@ OR book_fts.summary != _space_cjk(book.summary)
 - 多轮条目只跑 `--live`（改写需要模型调用）；对比条目用 `expect_all`，统计多书引用覆盖率。
 - `--judge` 追加 **LLM-as-judge 忠实度**：把回答拆成逐条 claim，判断每条是否被候选摘要支持，统计 claim 支持率与“含未支持 claim 的回答数”。
 - 当前基线：candidate recall 1.000、grounded 1.000、no_answer 1.000、invalid citations 0、multi-source 覆盖 4/4、claim 支持率 388/439 = 0.884（24 条回答含未支持 claim）、平均 2.04s（意图解析每次多一次 Flash 调用；judge 现在会按候选池总数核验“还有 N 本”这类计数 claim，逐次有波动）。
+- 报告落盘与对比（`scripts/eval_report.py`）：`--json [PATH]` 把 `{kind, created_at, stats, rows, 参数}` 写成 JSON，容器内默认 `/app/data/reports/`（数据卷持久化），宿主机默认 `backend/scripts/reports/`（gitignore）；`--compare PATH` 打印与上一份报告的逐指标 delta，方便回归监测。回答与检索两个脚本都支持。
 - 评测暴露过两个真实问题：① “今天股市行情怎么样” 曾被当成可回答问题（引用了投资书），已在 prompt 规则里加入“实时/外部信息 → NONE”；② 三条主题期望过窄（清朝/理财/魔兽），按书库实际书目修正。partial 的 1-2 条来自 320 字摘要截断与 judge 严格度，属可接受波动。
 
 ---

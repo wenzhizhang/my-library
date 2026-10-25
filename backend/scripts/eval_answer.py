@@ -36,6 +36,13 @@ from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from database import _load_vec_extension  # noqa: E402
+from scripts.eval_report import (
+    build_report,
+    compare_stats,
+    format_comparison,
+    load_report,
+    write_report,
+)
 from rag.answer import (  # noqa: E402
     REASON_INVALID_CITATION,
     _excerpt,
@@ -325,6 +332,18 @@ def main() -> None:
     )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--show", action="store_true", help="Print every row")
+    parser.add_argument(
+        "--json",
+        nargs="?",
+        const="auto",
+        metavar="PATH",
+        help="Save the report as JSON (default: scripts/reports/answer-<ts>.json)",
+    )
+    parser.add_argument(
+        "--compare",
+        metavar="PATH",
+        help="Print metric deltas against a previous JSON report",
+    )
     args = parser.parse_args()
 
     if args.judge:
@@ -408,6 +427,33 @@ def main() -> None:
                 f"  [{row['kind']:<12}] {row['query'][:24]:<26}"
                 f" cands={row['candidates']} {status}{verdict}"
             )
+
+
+    if args.json:
+        payload = build_report(
+            "answer",
+            stats,
+            report["rows"],
+            {
+                "db": args.db,
+                "golden": args.golden,
+                "live": args.live,
+                "judge": args.judge,
+                "top_k": args.top_k,
+                "limit": args.limit,
+            },
+        )
+        target = write_report(payload, args.json)
+        print(f"\nReport: {target}")
+
+    if args.compare:
+        previous = load_report(args.compare)
+        print()
+        print(
+            format_comparison(
+                compare_stats(stats, previous.get("stats", {})), args.compare
+            )
+        )
 
 
 if __name__ == "__main__":
