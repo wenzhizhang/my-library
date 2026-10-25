@@ -89,7 +89,13 @@ export default function MessageList({
     <div className="assistant-messages" ref={listRef}>
       {messages.length === 0 && (
         <div className="assistant-empty">
-          <p>{t('assistant.empty')}</p>
+          <p className="assistant-greeting" data-testid="assistant-greeting">
+            {t('assistant.greeting')}
+          </p>
+          <p className="assistant-intro" data-testid="assistant-intro">
+            {t('assistant.intro')}
+          </p>
+          <p className="assistant-empty-label">{t('assistant.empty')}</p>
           {[1, 2, 3].map((index) => {
             const example = t(`assistant.example${index}`);
             return (

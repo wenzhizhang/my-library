@@ -7,9 +7,11 @@ import MessageList from './assistant/MessageList';
 import useAssistantChat from './assistant/useAssistantChat';
 import './Assistant.css';
 
-// 320px version of the source artwork: the avatar renders at 60px, so this
-// stays sharp on 2x/3x screens without shipping the 1.6 MB original.
-const ASSISTANT_LOGO = '/images/logo/assistant-320.png';
+// Animated fox in three sizes. The trigger is the smallest element, the
+// dialog avatar is the largest, and every <img> gets a 2x source.
+const FOX_1X = '/images/logo/fox_180p.gif';
+const FOX_2X = '/images/logo/fox_360p.gif';
+const FOX_3X = '/images/logo/fox_720p.gif';
 
 export default function Assistant() {
   const { isAuthenticated } = useAuth();
@@ -87,7 +89,8 @@ export default function Assistant() {
       >
         <img
           className="assistant-trigger-img"
-          src={ASSISTANT_LOGO}
+          src={FOX_1X}
+          srcSet={`${FOX_1X} 1x, ${FOX_2X} 2x`}
           alt=""
           aria-hidden="true"
         />
@@ -102,7 +105,8 @@ export default function Assistant() {
       >
         <img
           className="assistant-avatar"
-          src={ASSISTANT_LOGO}
+          src={FOX_2X}
+          srcSet={`${FOX_2X} 1x, ${FOX_3X} 2x`}
           alt=""
           aria-hidden="true"
           data-testid="assistant-avatar"

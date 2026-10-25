@@ -18,8 +18,9 @@
 
 .assistant-trigger-img {
   display: block;
-  height: 96px;
+  height: 120px;
   width: auto;
+  image-rendering: auto;
 }
 
 .assistant-trigger:hover,
@@ -79,12 +80,13 @@
 
 .assistant-avatar {
   position: absolute;
-  top: -56px;
+  top: -70px;
   right: -6px;
   z-index: 2;
-  height: 76px;
+  height: 96px;
   width: auto;
   display: block;
+  image-rendering: auto;
   filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.28));
   pointer-events: none;
 }
@@ -95,7 +97,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 12px 14px;
-  padding-right: 64px;
+  padding-right: 104px;
   border-bottom: 1px solid #eef0f4;
   background: #fff;
 }
@@ -159,8 +161,24 @@
   padding-top: 8px;
 }
 
-.assistant-empty p {
-  margin: 0 0 2px;
+.assistant-greeting {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #1f2430;
+}
+
+.assistant-intro {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #6b7280;
+}
+
+.assistant-empty-label {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  color: #8a93a3;
 }
 
 .assistant-example {
@@ -519,7 +537,7 @@
   }
 
   .assistant-trigger-img {
-    height: 80px;
+    height: 100px;
   }
 
   .assistant-trigger:hover,
@@ -539,13 +557,13 @@
   }
 
   .assistant-avatar {
-    top: -46px;
+    top: -58px;
     right: 6px;
-    height: 64px;
+    height: 80px;
   }
 
   .assistant-header {
-    padding-right: 58px;
+    padding-right: 92px;
   }
 
   .assistant-panel.is-open {
@@ -555,8 +573,8 @@
 
 @media (max-height: 620px) {
   .assistant-avatar {
-    top: -44px;
-    height: 60px;
+    top: -56px;
+    height: 76px;
   }
 }
 

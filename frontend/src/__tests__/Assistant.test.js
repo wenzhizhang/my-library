@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import axios from 'axios';
 
-import '../i18n';
+import i18n from '../i18n';
 import Assistant from '../components/Assistant';
 
 // react-router-dom v7 ships a broken "main" field; map it to react-router.
@@ -99,6 +99,17 @@ test('renders nothing for an anonymous visitor', () => {
   expect(screen.queryByTestId('assistant-trigger')).toBeNull();
 });
 
+test('greets the user with a short capability intro', () => {
+  openAssistant();
+
+  expect(screen.getByTestId('assistant-greeting')).toHaveTextContent(
+    i18n.t('assistant.greeting')
+  );
+  expect(screen.getByTestId('assistant-intro')).toHaveTextContent(
+    i18n.t('assistant.intro')
+  );
+});
+
 test('opens the dialog from the floating trigger', () => {
   renderAssistant();
 
@@ -113,14 +124,12 @@ test('uses the mascot logo on the trigger and floating over the dialog', () => {
   openAssistant();
 
   const trigger = screen.getByTestId('assistant-trigger');
-  expect(trigger.querySelector('img')).toHaveAttribute(
-    'src',
-    '/images/logo/assistant-320.png'
-  );
-  expect(screen.getByTestId('assistant-avatar')).toHaveAttribute(
-    'src',
-    '/images/logo/assistant-320.png'
-  );
+  const triggerImg = trigger.querySelector('img');
+  expect(triggerImg).toHaveAttribute('src', '/images/logo/fox_180p.gif');
+  expect(triggerImg.getAttribute('srcset')).toContain('/images/logo/fox_360p.gif 2x');
+  const avatar = screen.getByTestId('assistant-avatar');
+  expect(avatar).toHaveAttribute('src', '/images/logo/fox_360p.gif');
+  expect(avatar.getAttribute('srcset')).toContain('/images/logo/fox_720p.gif 2x');
 });
 
 test('sends a question and renders the answer as a book row', async () => {
