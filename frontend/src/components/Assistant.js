@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { isAuthPath } from '../authRoutes';
 import MessageList from './assistant/MessageList';
 import useAssistantChat from './assistant/useAssistantChat';
+import useSleepingFox from '../hooks/useSleepingFox';
 import './Assistant.css';
 
 // Animated fox in three sizes. The trigger is the smallest element, the
@@ -14,12 +15,16 @@ import './Assistant.css';
 const FOX_1X = '/images/logo/fox_180p.gif';
 const FOX_2X = '/images/logo/fox_360p.gif';
 const FOX_3X = '/images/logo/fox_720p.gif';
+const FOX_SLEEP_1X = '/images/logo/fox_sleep_180x240_256.webp';
+const FOX_SLEEP_2X = '/images/logo/fox_sleep_360x480_256.webp';
+const FOX_SLEEP_3X = '/images/logo/fox_sleep_720x960_256.webp';
 
 export default function Assistant() {
   const { isAuthenticated, isGuest } = useAuth();
   const location = useLocation();
   const { t } = useTranslation();
   const { messages, loading, send, reset } = useAssistantChat();
+  const { sleeping, touch } = useSleepingFox();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [quotedBook, setQuotedBook] = useState(null);
@@ -50,22 +55,26 @@ export default function Assistant() {
   const submit = (question) => {
     const query = (question ?? input).trim();
     if (!query || loading) return;
+    touch();
     setInput('');
     send(query, quotedBook ? { focusBookId: quotedBook.book_id } : undefined);
     setQuotedBook(null);
   };
 
   const quoteBook = (book) => {
+    touch();
     setQuotedBook(book);
     inputRef.current?.focus();
   };
 
   const fillExample = (example) => {
+    touch();
     setInput(example);
     inputRef.current?.focus();
   };
 
   const newChat = () => {
+    touch();
     reset();
     setInput('');
     inputRef.current?.focus();
@@ -88,13 +97,20 @@ export default function Assistant() {
         className={`assistant-trigger${openClass}`}
         aria-label={t('assistant.open')}
         aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          touch();
+          setOpen(true);
+        }}
         data-testid="assistant-trigger"
       >
         <img
-          className="assistant-trigger-img"
-          src={FOX_1X}
-          srcSet={`${FOX_1X} 1x, ${FOX_2X} 2x`}
+          className={`assistant-trigger-img${sleeping ? ' is-sleeping' : ''}`}
+          src={sleeping ? FOX_SLEEP_1X : FOX_1X}
+          srcSet={
+            sleeping
+              ? `${FOX_SLEEP_1X} 1x, ${FOX_SLEEP_2X} 2x`
+              : `${FOX_1X} 1x, ${FOX_2X} 2x`
+          }
           alt=""
           aria-hidden="true"
         />
@@ -108,9 +124,13 @@ export default function Assistant() {
         data-testid="assistant-panel"
       >
         <img
-          className="assistant-avatar"
-          src={FOX_2X}
-          srcSet={`${FOX_2X} 1x, ${FOX_3X} 2x`}
+          className={`assistant-avatar${sleeping ? ' is-sleeping' : ''}`}
+          src={sleeping ? FOX_SLEEP_2X : FOX_2X}
+          srcSet={
+            sleeping
+              ? `${FOX_SLEEP_2X} 1x, ${FOX_SLEEP_3X} 2x`
+              : `${FOX_2X} 1x, ${FOX_3X} 2x`
+          }
           alt=""
           aria-hidden="true"
           data-testid="assistant-avatar"
@@ -182,7 +202,10 @@ export default function Assistant() {
               ref={inputRef}
               rows={2}
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                touch();
+                setInput(event.target.value);
+              }}
               onKeyDown={onKeyDown}
               placeholder={t('assistant.placeholder')}
               aria-label={t('assistant.placeholder')}

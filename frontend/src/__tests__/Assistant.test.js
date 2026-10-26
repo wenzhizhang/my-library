@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import axios from 'axios';
 
 import i18n from '../i18n';
@@ -124,6 +124,59 @@ test('wakes up after a guest login', () => {
   renderAssistant({ isAuthenticated: false, isGuest: true });
 
   expect(screen.getByTestId('assistant-trigger')).toBeInTheDocument();
+});
+
+test('sleeps after a minute idle and cycles', () => {
+  jest.useFakeTimers();
+  try {
+    renderAssistant();
+    const triggerImg = () =>
+      screen.getByTestId('assistant-trigger').querySelector('img');
+
+    expect(triggerImg()).toHaveAttribute('src', '/images/logo/fox_180p.gif');
+
+    act(() => jest.advanceTimersByTime(61_000));
+    expect(triggerImg()).toHaveAttribute(
+      'src',
+      '/images/logo/fox_sleep_180x240_256.webp'
+    );
+    expect(triggerImg()).toHaveClass('is-sleeping');
+
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(triggerImg()).toHaveAttribute('src', '/images/logo/fox_180p.gif');
+    expect(triggerImg()).not.toHaveClass('is-sleeping');
+
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(triggerImg()).toHaveAttribute(
+      'src',
+      '/images/logo/fox_sleep_180x240_256.webp'
+    );
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('typing wakes the sleeping avatar', () => {
+  jest.useFakeTimers();
+  try {
+    openAssistant();
+    act(() => jest.advanceTimersByTime(61_000));
+    expect(screen.getByTestId('assistant-avatar')).toHaveAttribute(
+      'src',
+      '/images/logo/fox_sleep_360x480_256.webp'
+    );
+
+    fireEvent.change(screen.getByTestId('assistant-input'), {
+      target: { value: '你好' },
+    });
+
+    expect(screen.getByTestId('assistant-avatar')).toHaveAttribute(
+      'src',
+      '/images/logo/fox_360p.gif'
+    );
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test('opens the dialog from the floating trigger', () => {
