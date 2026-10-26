@@ -87,6 +87,7 @@ class RagAnswerResponse(BaseModel):
     more: List[RagAnswerSource] = []
     has_more: bool = False
     reason: str = ""
+    scope: Optional[Literal["book", "author"]] = None
 
 
 class RagReindexResponse(BaseModel):

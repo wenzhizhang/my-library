@@ -1,4 +1,4 @@
-# Starter golden set. Add queries, then verify labels against your own library.
+# 61 条检索 golden：标题 17 / 主题 10 / 作者 9 / 版本 5 / 卷 5 / 系列 4 / 语义 4 / 实体 3 / 英文 3 / 对比 1。改检索逻辑后用 eval_rag.py 回归；新增条目的 relevant 必须是库内真实书名（按版本归一化后匹配）。
 {"query": "甘道夫出自哪本书？", "kind": "entity", "relevant": [{"title": "霍比特人"}, {"title": "魔戒"}]}
 {"query": "佛罗多出自哪本书？", "kind": "entity", "relevant": [{"title": "魔戒"}, {"title": "魔戒 第二部：双塔奇兵"}]}
 {"query": "托尔金的书", "kind": "author", "relevant": [{"title": "霍比特人"}, {"title": "魔戒"}, {"title": "精灵宝钻"}, {"title": "努门诺尔与中洲之未完的传说"}, {"title": "未完成的故事"}]}
@@ -24,3 +24,39 @@
 {"query": "如何学习书法", "kind": "semantic", "relevant": [{"title": "启功书法课"}, {"title": "中国书法通识课"}, {"title": "书法指要：沈尹默学书经验谈"}, {"title": "怎样临帖：外二种"}]}
 {"query": "The Hobbit", "kind": "english", "relevant": [{"title": "霍比特人"}]}
 {"query": "Foundation", "kind": "english", "relevant": [{"title": "银河帝国1：基地"}]}
+{"query": "贾宝玉出自哪本书", "kind": "entity", "relevant": [{"title": "红楼梦"}]}
+{"query": "三国演义", "kind": "title", "relevant": [{"title": "三国演义"}]}
+{"query": "西游记", "kind": "title", "relevant": [{"title": "西游记"}]}
+{"query": "水浒传", "kind": "title", "relevant": [{"title": "水浒传"}]}
+{"query": "史记", "kind": "title", "relevant": [{"title": "史记"}]}
+{"query": "资治通鉴", "kind": "title", "relevant": [{"title": "资治通鉴"}]}
+{"query": "月亮与六便士", "kind": "title", "relevant": [{"title": "月亮与六便士"}]}
+{"query": "老人与海", "kind": "title", "relevant": [{"title": "老人与海"}]}
+{"query": "魔戒 第二部：双塔奇兵", "kind": "volume", "relevant": [{"title": "魔戒 第二部：双塔奇兵"}]}
+{"query": "红楼梦 脂砚斋", "kind": "edition", "relevant": [{"title": "脂砚斋批评本·红楼梦"}]}
+{"query": "三国演义 毛宗岗", "kind": "edition", "relevant": [{"title": "毛宗岗批评本·三国演义"}]}
+{"query": "西游记 李卓吾", "kind": "edition", "relevant": [{"title": "李卓吾批评本·西游记"}]}
+{"query": "水浒传 金圣叹", "kind": "edition", "relevant": [{"title": "金圣叹批评本·水浒传"}]}
+{"query": "红楼梦 程乙本", "kind": "edition", "relevant": [{"title": "程乙本红楼梦"}]}
+{"query": "曹雪芹的书", "kind": "author", "relevant": [{"title": "红楼梦"}]}
+{"query": "刘慈欣的作品", "kind": "author", "relevant": [{"title": "三体"}, {"title": "流浪地球"}]}
+{"query": "阿西莫夫的小说", "kind": "author", "relevant": [{"title": "银河帝国1：基地"}, {"title": "银河帝国8：我，机器人"}]}
+{"query": "J.K.罗琳的书", "kind": "author", "relevant": [{"title": "哈利波特与魔法石"}, {"title": "哈利波特与密室"}]}
+{"query": "苏轼的书", "kind": "author", "relevant": [{"title": "东坡乐府笺"}, {"title": "苏轼词集"}]}
+{"query": "罗贯中的书", "kind": "author", "relevant": [{"title": "三国演义"}]}
+{"query": "吴承恩的书", "kind": "author", "relevant": [{"title": "西游记"}]}
+{"query": "汗青堂丛书有哪些", "kind": "series", "relevant": [{"title": "BBC世界史"}, {"title": "海洋与文明"}]}
+{"query": "甲骨文丛书有哪些", "kind": "series", "relevant": [{"title": "秦汉帝国：中国古代帝国之兴亡"}, {"title": "恺撒：巨人的一生"}]}
+{"query": "点校本二十四史修订本有哪些", "kind": "series", "relevant": [{"title": "点校本二十四史修订本：史记"}, {"title": "隋书"}]}
+{"query": "企鹅布纹经典有哪些", "kind": "series", "relevant": [{"title": "雾都孤儿"}, {"title": "双城记"}]}
+{"query": "讲唐朝历史的书", "kind": "topic", "relevant": [{"title": "剑桥中国隋唐史"}, {"title": "隋唐制度渊源略论稿   唐代政治史述论稿"}]}
+{"query": "讲宋朝历史的书", "kind": "topic", "relevant": [{"title": "简读宋朝史"}]}
+{"query": "心理学入门的书", "kind": "topic", "relevant": [{"title": "心理学"}, {"title": "行为心理学"}]}
+{"query": "书法入门的书", "kind": "topic", "relevant": [{"title": "毛笔书法入门：王羲之行书"}]}
+{"query": "讲天文观测的书", "kind": "topic", "relevant": [{"title": "天体写真 : 高清天文摄影之美"}, {"title": "天文之书"}]}
+{"query": "癌症科普的书", "kind": "topic", "relevant": [{"title": "癌症·真相 医生也在读"}]}
+{"query": "投资理财的书", "kind": "topic", "relevant": [{"title": "驾驭周期：自上而下的投资逻辑"}]}
+{"query": "魔兽世界的小说", "kind": "topic", "relevant": [{"title": "魔兽世界：黑暗之潮"}, {"title": "魔兽世界：氏族之王"}]}
+{"query": "讲庄子的书", "kind": "topic", "relevant": [{"title": "庄子全书"}, {"title": "庄子今注今译"}]}
+{"query": "Sapiens", "kind": "english", "relevant": [{"title": "人类简史：从动物到上帝"}]}
+{"query": "《老人与海》和《月亮与六便士》比较", "kind": "compare", "relevant": [{"title": "老人与海"}, {"title": "月亮与六便士"}]}

@@ -6,6 +6,16 @@ import { LIBRARY_PATH } from '../../config';
 import { MEDIA_BASE_URL } from '../Config';
 
 const QUOTE_ICON = '/images/icon/quote.gif';
+const AUTHOR_SCOPE = 'author';
+
+function showsBookList(message) {
+  // A quoted single-book answer is about one book: the list is redundant and
+  // hidden. A quoted author answer expanded to their works, so it stays.
+  return (
+    message.books?.length > 0 &&
+    (!message.focused || message.scope === AUTHOR_SCOPE)
+  );
+}
 
 function messageTestId(message) {
   if (message.error) return 'assistant-message-error';
@@ -89,7 +99,13 @@ export default function MessageList({
     <div className="assistant-messages" ref={listRef}>
       {messages.length === 0 && (
         <div className="assistant-empty">
-          <p>{t('assistant.empty')}</p>
+          <p className="assistant-greeting" data-testid="assistant-greeting">
+            {t('assistant.greeting')}
+          </p>
+          <p className="assistant-intro" data-testid="assistant-intro">
+            {t('assistant.intro')}
+          </p>
+          <p className="assistant-empty-label">{t('assistant.empty')}</p>
           {[1, 2, 3].map((index) => {
             const example = t(`assistant.example${index}`);
             return (
@@ -125,7 +141,7 @@ export default function MessageList({
             </p>
           )}
 
-          {message.books?.length > 0 && !message.focused && (
+          {showsBookList(message) && (
             <div className="assistant-books">
               <span className="assistant-books-label">
                 {message.isMore ? t('assistant.moreBooks') : t('assistant.books')}

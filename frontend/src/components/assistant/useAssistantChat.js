@@ -70,6 +70,7 @@ export default function useAssistantChat() {
             books: isMore ? data.more : data.sources,
             isMore,
             focused: Boolean(focusBookId),
+            scope: data.scope || '',
             hasMore: Boolean(data.has_more),
             noAnswer: Boolean(data.no_answer),
             rewritten: data.rewritten_query || '',

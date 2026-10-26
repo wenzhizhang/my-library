@@ -465,6 +465,8 @@
     "noMore": "No more books.",
     "quote": "Quote this book",
     "quoted": "Quoting",
-    "removeQuote": "Remove quote"
+    "removeQuote": "Remove quote",
+    "greeting": "Hi there! What can I help you with?",
+    "intro": "I can find books by title, author or series, summarise what they are about and share their publication details. Quote a book and I will answer follow-ups about it."
   }
 }

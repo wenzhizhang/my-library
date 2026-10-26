@@ -30,6 +30,13 @@ from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from database import _load_vec_extension  # noqa: E402
+from scripts.eval_report import (  # noqa: E402
+    build_report,
+    compare_stats,
+    format_comparison,
+    load_report,
+    write_report,
+)
 from routers.rag import _work_key, rag_search  # noqa: E402
 from schemas.rag import RagSearchRequest  # noqa: E402
 
@@ -127,6 +134,18 @@ def main() -> None:
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--min-score", type=float, default=0.0)
     parser.add_argument("--show-results", action="store_true")
+    parser.add_argument(
+        "--json",
+        nargs="?",
+        const="auto",
+        metavar="PATH",
+        help="Save the report as JSON (default: scripts/reports/retrieval-<ts>.json)",
+    )
+    parser.add_argument(
+        "--compare",
+        metavar="PATH",
+        help="Print metric deltas against a previous JSON report",
+    )
     args = parser.parse_args()
 
     db_path = args.db or _pick_db(os.environ.get("DATA_DIR", "/app/data"))
@@ -170,13 +189,52 @@ def main() -> None:
             print(f"  got: {got}")
 
     print()
+    stats = {
+        "queries": len(rows),
+        "top_k": args.top_k,
+        "alpha": args.alpha,
+        "min_score": args.min_score,
+        "recall": sum(r[2]["recall"] for r in rows) / len(rows),
+        "hit": sum(r[2]["hit"] for r in rows) / len(rows),
+        "mrr": sum(r[2]["mrr"] for r in rows) / len(rows),
+        "ndcg": sum(r[2]["ndcg"] for r in rows) / len(rows),
+    }
     print(
         f"{'Mean':<34} "
-        f"{sum(r[2]['recall'] for r in rows) / len(rows):>7.3f} "
-        f"{sum(r[2]['hit'] for r in rows) / len(rows):>5.3f} "
-        f"{sum(r[2]['mrr'] for r in rows) / len(rows):>6.3f} "
-        f"{sum(r[2]['ndcg'] for r in rows) / len(rows):>6.3f}"
+        f"{stats['recall']:>7.3f} "
+        f"{stats['hit']:>5.3f} "
+        f"{stats['mrr']:>6.3f} "
+        f"{stats['ndcg']:>6.3f}"
     )
+
+    if args.json:
+        report_rows = [
+            {
+                "query": item["query"],
+                "relevant": item["relevant"],
+                "got": [r.title_cn or r.title for r in response.results],
+                **score,
+            }
+            for item, response, score in rows
+        ]
+        payload = build_report(
+            "retrieval",
+            stats,
+            report_rows,
+            {"db": db_path, "golden": args.golden, "top_k": args.top_k,
+             "alpha": args.alpha, "min_score": args.min_score},
+        )
+        target = write_report(payload, args.json)
+        print(f"\nReport: {target}")
+
+    if args.compare:
+        previous = load_report(args.compare)
+        print()
+        print(
+            format_comparison(
+                compare_stats(stats, previous.get("stats", {})), args.compare
+            )
+        )
 
     misses = [(item, response, score) for item, response, score in rows if not score["ranks"]]
     if misses:

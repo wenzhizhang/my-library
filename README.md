@@ -239,25 +239,36 @@ Content-Type: application/json
 相比 `/api/rag/search`（面向列表、优先召回），这个接口面向回答、优先精确，
 一次调用约 1-2 秒。
 
-量化评估（70 条 golden，当前基线：候选召回 1.000、无答案判定 1.000、非法引用 0、引用覆盖 1.000、逐条 claim 支持率 0.883、平均 2.00s，其中约 0.7s 是意图解析的额外调用）：
+量化评估（70 条 golden，当前基线：候选召回 1.000、无答案判定 1.000、非法引用 0、引用覆盖 1.000、逐条 claim 支持率 0.884、平均 2.04s，其中约 0.7s 是意图解析的额外调用）：
 
 ```bash
 # 只跑确定性的门控评估，不花 API 调用
 docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db
 # 加上真实回答质量（20 次 Flash 调用，约 30 秒）
 docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live
+
+# 把本次结果落盘（默认 /app/data/reports/answer-<时间>.json，数据卷内持久化）
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live --judge --json
+# 与上次报告对比，打印每个指标的 delta
+docker compose exec backend python scripts/eval_answer.py --db /app/data/<uuid>.db --live --judge   --compare /app/data/reports/answer-<上次时间>.json
+# 检索侧同样支持
+docker compose exec backend python scripts/eval_rag.py --db /app/data/<uuid>.db --json
 ```
+
+报告包含 `kind / created_at / stats / rows / 参数`（db、golden、live、judge 等）；
+在宿主机直接跑时默认写到 `backend/scripts/reports/`（已 gitignore），可用 `EVAL_REPORT_DIR` 覆盖。
 
 ### 前端助手
 
-登录后页面右侧有一个悬浮按钮（问号/星光图标），点开即可向**自己的书库**提问：
+登录（或游客登录）后页面右侧有一个悬浮按钮（小狐狸图标），点开即可向**自己的书库**提问；登录/注册页不显示助手：
 
 - 回答下方以列表列出相关图书（封面缩略图 + 书名 + 作者），每本一行，点击跳到图书详情页；
 - 版本很多的书（如红楼梦）可以继续追问「还有么 / 还有更多么 / 再来几种」，助手会按候选池追加下一批，不重复已展示的书；
-- 每本书右侧的引用按钮可以把该书带进下一个问题（如「这本书是哪年出版的」），回答只基于这一本、并带上完整出版信息（出版日期、出版社、ISBN、页数、装帧等），不再重复展示图书列表；引用以标签形式显示在输入框上方，可随时取消；
+- 每本书右侧的引用按钮可以把该书带进下一个问题（如「这本书是哪年出版的」），回答基于这一本、并带上完整出版信息（出版日期、出版社、ISBN、页数、装帧等），不再重复展示图书列表；问「这本书的作者还有哪些作品」时会自动扩展为该作者的全部著作并列出图书条目，已展示过的书不会重复出现（问书本身或「这本书是谁写的」时则不重复列表）；引用以标签形式显示在输入框上方，可随时取消；
 - 支持追问：前端把对话历史随请求传给 `/api/rag/answer`，由后端取最近 8 轮改写成独立检索查询，响应里的 `rewritten_query` 会以小字提示；
 - 未找到时显示本地化提示；失败/未找到的轮次不会进入下一轮上下文；
 - 点击示例问题只填入输入框，不会直接发请求；
+- 闲置 1 分钟（对话框打开时指没有输入，关闭时指没有点击助手形象）会切换成睡觉的小狐狸，睡 1 分钟再醒来，如此循环；任何输入或点击都会立刻唤醒；
 - 「新对话」清空上下文；未配置模型的账户会看到明确的错误提示；
 - 移动端自动变成底部抽屉，`prefers-reduced-motion` 下关闭动画。
 
@@ -292,7 +303,7 @@ Authorization: Bearer <token>
 
 ### RAG 召回评测
 
-仓库自带一个可扩充的 golden set：`backend/scripts/rag_golden.jsonl`。
+仓库自带一个可扩充的 golden set：`backend/scripts/rag_golden.jsonl`（当前 61 条：标题/主题/作者/系列/版本/英文/对比等），当前基线 Recall@10 0.969、Hit@10 1.000、MRR 0.822、nDCG@10 0.822。
 每行一条 query，`relevant` 写期望命中的书名（可选 `author`）：
 
 ```json
@@ -309,8 +320,9 @@ docker compose exec backend python scripts/eval_rag.py \
 ```
 
 脚本输出每条 query 的 Recall@K、Hit@K、MRR、nDCG，以及整体均值。
-加 `--show-results` 可查看实际返回的书名。建议先人工确认/扩充到
-50-100 条，再把它作为改检索逻辑后的回归基线。
+加 `--show-results` 可查看实际返回的书名；`--json` 落盘、`--compare` 对比历史报告。
+`/search` 现在也会解析作者/系列实体（`book_authors` / `book_series`）并置顶，
+此前 4 条作者/系列未命中已全部回收；剩余 partial recall 来自多期望书目里个别排到 10 名外。
 
 ### 购买渠道
 

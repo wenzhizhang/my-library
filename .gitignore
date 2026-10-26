@@ -31,3 +31,7 @@ backend/config/nginx.conf
 
 # Local secrets — never commit
 .env
+
+# Local evaluation reports
+backend/scripts/reports/
+backend/data/reports/
