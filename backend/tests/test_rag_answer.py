@@ -1027,15 +1027,7 @@ def test_list_continuations_are_more_requests():
 def test_focus_author_question_expands_to_the_authors_works(db, monkeypatch):
     from models import Author
 
-    liu = Author(name="Liu Cixin", name_cn="刘慈欣")
-    db.add(liu)
-    db.commit()
-    works = []
-    for title in ("三体", "流浪地球", "带上她的眼睛"):
-        book = _book(db, title)
-        book.authors.append(liu)
-        works.append(book)
-    db.commit()
+    _, works = _author_with_works(db, "刘慈欣", ("三体", "流浪地球", "带上她的眼睛"))
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     _model_says(monkeypatch, f"刘慈欣还写过《流浪地球》。[book_id={works[1].id}]")
 
@@ -1049,15 +1041,9 @@ def test_focus_author_question_expands_to_the_authors_works(db, monkeypatch):
 def test_more_after_an_author_answer_keeps_the_author_intent(db, monkeypatch):
     from models import Author
 
-    liu = Author(name="Liu Cixin", name_cn="刘慈欣")
-    db.add(liu)
-    db.commit()
-    works = []
-    for title in ("三体", "流浪地球", "带上她的眼睛", "球状闪电"):
-        book = _book(db, title)
-        book.authors.append(liu)
-        works.append(book)
-    db.commit()
+    _, works = _author_with_works(
+        db, "刘慈欣", ("三体", "流浪地球", "带上她的眼睛", "球状闪电")
+    )
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     monkeypatch.setattr(
         answer_module,
@@ -1111,3 +1097,130 @@ def test_resolve_entity_books_for_author_and_series(db):
     }
 
     assert resolve_entity_books(db, "关于人工智能的书", 10) == []
+
+
+def _author_with_works(db, name, titles):
+    """Author plus their books, the fixture almost every author test needs."""
+    from models import Author
+
+    author = Author(name=name, name_cn=name)
+    db.add(author)
+    db.commit()
+    books = []
+    for title in titles:
+        book = _book(db, title)
+        book.authors.append(author)
+        books.append(book)
+    db.commit()
+    return author, books
+
+
+def _stub_llm(monkeypatch, *, rewrite: str, intent: dict):
+    """Exercise the real rewriter/intent parser with a deterministic model."""
+    import json as _json
+
+    from rag import intent as intent_module
+
+    def fake(prompt, *, system="", **kwargs):
+        if "改写" in system:
+            return rewrite
+        if "意图" in system:
+            return _json.dumps(intent, ensure_ascii=False)
+        return "答案"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+    monkeypatch.setattr(intent_module, "deepseek_chat", fake)
+
+
+def test_subjectless_author_continuation_is_a_more_request():
+    assert answer_module._is_more_request(
+        "他还有哪些书", [{"role": "user", "content": "红楼识小录是谁写的？"}]
+    )
+
+
+def test_author_paraphrase_pages_the_authors_other_works(db, monkeypatch):
+    from models import Author
+
+    _, works = _author_with_works(
+        db, "邓云乡", ("红楼识小录", "红楼风俗谭", "红楼梦忆")
+    )
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(answer_module, "parse_intent", REAL_PARSE_INTENT)
+    _stub_llm(
+        monkeypatch,
+        rewrite="邓云乡还有哪些书",
+        intent={"kind": "author", "value": "邓云乡"},
+    )
+
+    result = answer_question(
+        db,
+        "他还有哪些书",
+        history=[
+            {"role": "user", "content": "红楼识小录是谁写的？"},
+            {"role": "assistant", "content": "《红楼识小录》的作者是邓云乡。"},
+        ],
+        seen_book_ids=[works[0].id],
+    )
+
+    assert {book["title_cn"] for book in result.more} == {
+        "红楼风俗谭",
+        "红楼梦忆",
+    }
+
+
+def test_series_continuation_pages_unlisted_volumes(db, monkeypatch):
+    from models import BookSeries
+
+    series = BookSeries(name="尚古一读")
+    db.add(series)
+    db.commit()
+    books = []
+    for title in ("喻世明言", "警世通言", "醒世恒言"):
+        book = _book(db, title)
+        book.book_series_id = series.id
+        books.append(book)
+    db.commit()
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    monkeypatch.setattr(answer_module, "parse_intent", REAL_PARSE_INTENT)
+    _stub_llm(
+        monkeypatch,
+        rewrite="尚古一读系列有哪些书",
+        intent={"kind": "series", "value": "尚古一读"},
+    )
+
+    result = answer_question(
+        db,
+        "这个系列还有什么作品",
+        history=[
+            {"role": "user", "content": "尚古一读有哪些书"},
+            {"role": "assistant", "content": "有《喻世明言》《警世通言》。"},
+        ],
+        seen_book_ids=[books[0].id],
+    )
+
+    assert {book["title_cn"] for book in result.more} == {
+        "警世通言",
+        "醒世恒言",
+    }
+
+
+def test_focus_scope_marks_author_expansion(db, monkeypatch):
+    from models import Author
+
+    _, works = _author_with_works(db, "邓云乡", ("红楼识小录", "红楼风俗谭"))
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _model_says(monkeypatch, f"答案。[book_id={works[0].id}]")
+
+    author_scope = answer_question(
+        db, "该作者还有哪些书", focus_book_id=works[0].id
+    )
+    book_scope = answer_question(
+        db, "这本书讲了什么", focus_book_id=works[0].id
+    )
+    author_identity = answer_question(
+        db, "这本书是谁写的", focus_book_id=works[0].id
+    )
+
+    assert author_scope.scope == "author"
+    assert book_scope.scope == "book"
+    assert author_identity.scope == "book"

@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
 const TOKEN_KEY = 'my_library_token';
+const GUEST_KEY = 'my_library_guest';
 
 axios.interceptors.request.use(
   (config) => {
@@ -16,9 +17,17 @@ axios.interceptors.request.use(
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem(GUEST_KEY) === '1');
+
+  const exitGuest = useCallback(() => {
+    localStorage.removeItem(GUEST_KEY);
+    setIsGuest(false);
+  }, []);
 
   useEffect(() => {
     if (token) {
+      // An account session always wins over an earlier guest session.
+      exitGuest();
       localStorage.setItem(TOKEN_KEY, token);
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
@@ -30,20 +39,37 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(TOKEN_KEY);
       setUser(null);
     }
-  }, [token]);
+  }, [token, exitGuest]);
 
   const login = (accessToken, userData) => {
+    exitGuest();
     setToken(accessToken);
     setUser(userData);
   };
 
+  const enterGuest = () => {
+    localStorage.setItem(GUEST_KEY, '1');
+    setIsGuest(true);
+  };
+
   const logout = () => {
+    exitGuest();
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        login,
+        logout,
+        enterGuest,
+        isGuest,
+        isAuthenticated: !!token,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 
+import { isAuthPath } from '../authRoutes';
 import MessageList from './assistant/MessageList';
 import useAssistantChat from './assistant/useAssistantChat';
 import './Assistant.css';
@@ -14,7 +16,8 @@ const FOX_2X = '/images/logo/fox_360p.gif';
 const FOX_3X = '/images/logo/fox_720p.gif';
 
 export default function Assistant() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isGuest } = useAuth();
+  const location = useLocation();
   const { t } = useTranslation();
   const { messages, loading, send, reset } = useAssistantChat();
   const [open, setOpen] = useState(false);
@@ -41,7 +44,8 @@ export default function Assistant() {
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages, loading]);
 
-  if (!isAuthenticated) return null;
+  const onAuthPage = isAuthPath(location.pathname);
+  if (onAuthPage || (!isAuthenticated && !isGuest)) return null;
 
   const submit = (question) => {
     const query = (question ?? input).trim();

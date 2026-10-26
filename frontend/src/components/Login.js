@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import useGuestLogin from '../hooks/useGuestLogin';
 import { LIBRARY_PATH } from '../config';
 import { useTranslation } from 'react-i18next';
 import './Auth.css';
@@ -11,6 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const guestLogin = useGuestLogin();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -34,9 +36,6 @@ const Login = () => {
     setLoading(false);
   };
 
-  const handleGuest = () => {
-    navigate(`${LIBRARY_PATH}/books`);
-  };
 
   return (
     <div className="auth-page">
@@ -54,7 +53,7 @@ const Login = () => {
         <button className="auth-btn" disabled={loading}>
           {loading ? t('common.loading') : t('nav.login')}
         </button>
-        <button type="button" className="auth-btn auth-btn-guest" onClick={handleGuest}>
+        <button type="button" className="auth-btn auth-btn-guest" onClick={guestLogin}>
           {t('auth.guest')}
         </button>
         <p className="auth-footer">

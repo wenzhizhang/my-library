@@ -789,6 +789,11 @@ components:
         reason:
           type: string
           description: Why the answer was empty (no_candidates, model_none, no_more, ...)
+        scope:
+          type: string
+          nullable: true
+          enum: [book, author]
+          description: Focused single-book answer (book) or author-expanded answer (author); null otherwise
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]

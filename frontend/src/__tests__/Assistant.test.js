@@ -61,12 +61,16 @@ const morePage = {
   reason: '',
 };
 
-function renderAssistant({ isAuthenticated = true } = {}) {
+function renderAssistant({
+  isAuthenticated = true,
+  isGuest = false,
+  path = '/my-library/books',
+} = {}) {
   jest
     .spyOn(require('../AuthContext'), 'useAuth')
-    .mockReturnValue({ isAuthenticated });
+    .mockReturnValue({ isAuthenticated, isGuest });
   return render(
-    <MemoryRouter initialEntries={['/my-library/books']}>
+    <MemoryRouter initialEntries={[path]}>
       <Assistant />
     </MemoryRouter>
   );
@@ -108,6 +112,18 @@ test('greets the user with a short capability intro', () => {
   expect(screen.getByTestId('assistant-intro')).toHaveTextContent(
     i18n.t('assistant.intro')
   );
+});
+
+test('stays hidden on the login page even with a session', () => {
+  renderAssistant({ isAuthenticated: true, path: '/my-library/login' });
+
+  expect(screen.queryByTestId('assistant-trigger')).toBeNull();
+});
+
+test('wakes up after a guest login', () => {
+  renderAssistant({ isAuthenticated: false, isGuest: true });
+
+  expect(screen.getByTestId('assistant-trigger')).toBeInTheDocument();
 });
 
 test('opens the dialog from the floating trigger', () => {
@@ -261,6 +277,39 @@ test('quoting a book focuses the next question on it', async () => {
   const focused = assistants.at(-1);
   expect(focused.querySelector('[data-testid="assistant-book"]')).toBeNull();
   expect(screen.getAllByTestId('assistant-book')).toHaveLength(1);
+});
+
+test('a quoted author question still lists the works', async () => {
+  axios.post
+    .mockResolvedValueOnce({ data: answer })
+    .mockResolvedValueOnce({
+      data: {
+        ...answer,
+        scope: 'author',
+        answer: '邓云乡还写过《红楼风俗谭》。',
+        sources: [
+          {
+            book_id: 2301,
+            title: '红楼风俗谭',
+            title_cn: '红楼风俗谭',
+            authors: ['邓云乡'],
+            thumb_image: '',
+          },
+        ],
+      },
+    });
+  openAssistant();
+
+  await ask('沙陀往事讲了什么');
+  await screen.findByText('它讲沙陀人的历史。');
+  fireEvent.click(screen.getByTestId('assistant-quote-book'));
+  await ask('该作者还有哪些书');
+
+  await waitFor(() =>
+    expect(screen.getAllByTestId('assistant-message-assistant')).toHaveLength(2)
+  );
+  const focused = screen.getAllByTestId('assistant-message-assistant').at(-1);
+  expect(focused.querySelector('[data-testid="assistant-book"]')).not.toBeNull();
 });
 
 test('a quote can be removed before sending', async () => {

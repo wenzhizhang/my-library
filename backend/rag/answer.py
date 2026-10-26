@@ -64,7 +64,15 @@ _TITLE_CONTAINMENT_MIN = 4
 # "沙丘系列有哪些" is a series question, not the single book "沙丘".
 _SERIES_HINTS = ("系列", "套装", "全集", "合集", "丛书", "续集", "后续")
 # "这本书的作者还有哪些作品" is about the author, not just the quoted book.
-_AUTHOR_SCOPE_HINTS = ("作者", "作品", "著作", "写过", "写的", "所著")
+# Phrases that ask for *other works by the author*, e.g. "该作者还有哪些书".
+# Bare "写的"/"作者" are deliberately absent: "这本书是谁写的" is a question
+# about the quoted book and must keep the single-book scope.
+_AUTHOR_EXPANSION_HINTS = (
+    "作者还有", "作者的其他", "作者其他", "该作者还", "其他作品", "其他著作",
+    "还有哪些作品", "还有哪些书", "写过哪些", "写过什么", "还写过",
+)
+# Subjectless continuations that need the conversation to say who/what.
+_PRONOUN_HINTS = ("这", "那", "该", "他", "她", "它")
 # A comparison ("《沙丘》和《三体》") may fast-path two-character titles; a plain
 # long question that happens to contain one must not.
 _CONJUNCTIONS = ("和", "与", "、", "及", "跟")
@@ -168,6 +176,7 @@ class AnswerResult:
     total_candidates: int = 0
     total_titles: int = 0
     intent: dict = field(default_factory=dict)
+    scope: str = ""
 
 
 def _title_match_ids(
@@ -681,9 +690,11 @@ def _answer_more(
 ) -> AnswerResult:
     """Page through the candidate pool for "还有么"/"more" follow-ups."""
     context = _more_context(query, turns)
-    if len(_strip_more_cues(query)) < 4:
-        # "列出来" carries no topic; rewrite it against the conversation so the
-        # intent (the author the previous answer named) is not lost.
+    remainder = _strip_more_cues(query)
+    if len(remainder) < 6 or any(hint in remainder for hint in _PRONOUN_HINTS):
+        # "还有么" / "他还有哪些书" / "这个系列还有什么" carry no subject of
+        # their own; rewrite against the conversation so the author/series the
+        # previous answer named is not lost.
         rewritten = resolve_followup_query(query, turns)
         if len(_strip_more_cues(rewritten)) >= 4:
             context = rewritten
@@ -740,13 +751,15 @@ def answer_question(
 
     turns = _normalise_turns(history)
     intent: dict = {}
+    scope = ""
     if focus_book_id is not None:
         # The user quoted a book: answer from it, before any "more" handling —
         # the quote must never be silently dropped.
         pool = _load_candidates(db, [int(focus_book_id)])
         if not pool:
             raise BookNotFound(f"book {focus_book_id} not found")
-        if any(hint in query for hint in _AUTHOR_SCOPE_HINTS):
+        scope = "book"
+        if any(hint in query for hint in _AUTHOR_EXPANSION_HINTS):
             # "这本书的作者还有哪些作品" needs the author's other books, not
             # the quoted book alone.
             author_ids = _author_ids_for_book(db, int(focus_book_id))
@@ -755,6 +768,7 @@ def answer_question(
             )
             if expanded:
                 pool = expanded
+                scope = "author"
         effective_query = query
         rewritten = ""
         candidates = pool[: max(1, min(int(top_k), MAX_CANDIDATES))]
@@ -846,4 +860,5 @@ def answer_question(
             {_work_key(c["title_cn"] or c["title"]) for c in pool}
         ),
         intent=intent,
+        scope=scope,
     )
