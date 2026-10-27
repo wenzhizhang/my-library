@@ -396,7 +396,10 @@
     "no": "No",
     "moveToLibrary": "Move to Library",
     "archive": "Archive",
-    "archived": "Archived"
+    "archived": "Archived",
+    "edit": "Edit",
+    "unarchive": "Unarchive",
+    "archiveFailed": "Archive failed"
   },
   "archived": {
     "title": "Archived Books",

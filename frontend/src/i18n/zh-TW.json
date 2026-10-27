@@ -396,7 +396,10 @@
     "no": "否",
     "moveToLibrary": "存入圖書館",
     "archive": "歸檔",
-    "archived": "已歸檔"
+    "archived": "已歸檔",
+    "edit": "編輯",
+    "unarchive": "取消歸檔",
+    "archiveFailed": "歸檔失敗"
   },
   "archived": {
     "title": "已歸檔圖書",

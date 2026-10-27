@@ -22,6 +22,7 @@ SECURED_WRITES = [
     ("put", "/api/books/1"),
     ("delete", "/api/books/1"),
     ("put", "/api/books/1/archive"),
+    ("put", "/api/books/1/unarchive"),
     ("post", "/api/book-collections/"),
     ("put", "/api/book-collections/1"),
     ("delete", "/api/book-collections/1"),

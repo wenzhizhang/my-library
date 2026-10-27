@@ -268,6 +268,17 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.put("/{book_id}/unarchive")
+def unarchive_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    book.archived = False
+    db.commit()
+    recompute_weights(db)
+    return {"message": "Book unarchived"}
+
+
 @router.put("/{book_id}/archive")
 def archive_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     book = db.query(Book).filter(Book.id == book_id).first()

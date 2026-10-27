@@ -378,7 +378,10 @@
     "no": "否",
     "moveToLibrary": "存入图书馆",
     "archive": "归档",
-    "archived": "已归档"
+    "archived": "已归档",
+    "edit": "编辑",
+    "unarchive": "取消归档",
+    "archiveFailed": "归档失败"
   },
   "archived": {
     "title": "已归档图书",

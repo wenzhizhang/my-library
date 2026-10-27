@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 import './Books.css';
+import HoldToConfirm from './HoldToConfirm';
 import './BookDetails.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
@@ -103,8 +104,8 @@ const BookDetails = () => {
   const [similarBooks, setSimilarBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [archiving, setArchiving] = useState(false);
-  const [archiveError, setArchiveError] = useState(false);
+  const [unarchiving, setUnarchiving] = useState(false);
+  const [unarchiveError, setUnarchiveError] = useState(false);
   const [movingToLibrary, setMovingToLibrary] = useState(false);
   const [moveError, setMoveError] = useState(false);
 
@@ -160,16 +161,28 @@ const BookDetails = () => {
   };
 
   const handleArchive = async () => {
-    setArchiving(true);
-    setArchiveError(false);
     try {
       await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}/archive`);
-      setBook(prev => ({ ...prev, archived: true }));
+      // Keep the button's "已归档" success state visible briefly before the
+      // toolbar switches to the unarchive action.
+      setTimeout(() => setBook(prev => ({ ...prev, archived: true })), 1400);
     } catch (err) {
       console.error('Error archiving book:', err);
-      setArchiveError(true);
+      throw err;
     }
-    setArchiving(false);
+  };
+
+  const handleUnarchive = async () => {
+    setUnarchiving(true);
+    setUnarchiveError(false);
+    try {
+      await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}/unarchive`);
+      setBook(prev => ({ ...prev, archived: false }));
+    } catch (err) {
+      console.error('Error unarchiving book:', err);
+      setUnarchiveError(true);
+    }
+    setUnarchiving(false);
   };
 
   /* ---- Loading Skeleton ---- */
@@ -226,29 +239,45 @@ const BookDetails = () => {
       <div className="bd-container">
 
         {/* Header toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <h1 className="bd-title">{title}</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <button
               className="btn-pill-link"
               onClick={() => navigate(`${LIBRARY_PATH}/books`)}
             >
               {t('books.backToList')}
             </button>
-            {isAuthenticated && !book.archived && (
+            {isAuthenticated && book.archived && (
               <>
                 <button
                   className="btn-pill-link"
-                  onClick={handleArchive}
-                  disabled={archiving}
+                  onClick={handleUnarchive}
+                  disabled={unarchiving}
                 >
-                  {archiving ? '…' : t('bookDetails.archive')}
+                  {unarchiving ? '…' : t('bookDetails.unarchive')}
                 </button>
-                {archiveError && (
+                {unarchiveError && (
                   <span style={{ fontSize: 13, color: '#ff3b30' }}>
                     {t('common.error')}
                   </span>
                 )}
+              </>
+            )}
+            {isAuthenticated && !book.archived && (
+              <>
+                <button
+                  className="btn-pill-link"
+                  onClick={() => navigate(`${LIBRARY_PATH}/books/edit/${id}`)}
+                >
+                  {t('bookDetails.edit')}
+                </button>
+                <HoldToConfirm
+                  label={t('bookDetails.archive')}
+                  successLabel={t('bookDetails.archived')}
+                  errorLabel={t('bookDetails.archiveFailed')}
+                  onConfirm={handleArchive}
+                />
               </>
             )}
           </div>
