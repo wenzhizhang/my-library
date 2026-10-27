@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IsbnLookupResponse(BaseModel):
@@ -44,3 +44,19 @@ class IsbnLookupResponse(BaseModel):
     printed_number: Optional[int] = None
     category_id: Optional[int] = None
     category_path: Optional[str] = None
+
+
+class IsbnLookupRequest(BaseModel):
+    isbn: Optional[str] = None
+    title: Optional[str] = None
+    author: Optional[str] = None
+    publisher: Optional[str] = None
+    publish_date: Optional[str] = None
+
+
+class IsbnLookupResult(BaseModel):
+    fields: dict = Field(default_factory=dict)
+    sources: dict = Field(default_factory=dict)
+    missing: list[str] = Field(default_factory=list)
+    conflicts: dict = Field(default_factory=dict)
+    candidates: list[dict] = Field(default_factory=list)

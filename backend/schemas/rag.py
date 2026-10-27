@@ -47,6 +47,12 @@ class RagTurn(BaseModel):
     content: str = Field("", max_length=4000)
 
 
+class PageContext(BaseModel):
+    """The detail page the user is looking at when they ask a question."""
+    kind: Literal["book", "author", "publisher", "series", "brand"]
+    id: int = Field(..., ge=1)
+
+
 class RagAnswerRequest(BaseModel):
     """Answer generation request."""
     query: str = Field(..., min_length=1, description="Natural-language question")
@@ -65,6 +71,10 @@ class RagAnswerRequest(BaseModel):
         None,
         ge=1,
         description="Answer from this book only (the user quoted it)",
+    )
+    page_context: Optional[PageContext] = Field(
+        None,
+        description="Detail page context (book/author/publisher/series/brand)",
     )
 
 

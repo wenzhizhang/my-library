@@ -1224,3 +1224,187 @@ def test_focus_scope_marks_author_expansion(db, monkeypatch):
     assert author_scope.scope == "author"
     assert book_scope.scope == "book"
     assert author_identity.scope == "book"
+
+
+def test_page_context_author_uses_profile_and_books(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Liu Cixin", name_cn="刘慈欣", intro="中国科幻作家。", nation="中国")
+    db.add(author)
+    db.commit()
+    works = []
+    for title in ("三体", "流浪地球"):
+        book = _book(db, title)
+        book.authors.append(author)
+        works.append(book)
+    db.commit()
+
+    prompts = []
+
+    def fake(prompt, **kwargs):
+        prompts.append(prompt)
+        return f"刘慈欣是中国科幻作家。[book_id={works[0].id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个作者",
+        page_context={"kind": "author", "id": author.id},
+    )
+
+    assert result.answer.startswith("刘慈欣")
+    assert "中国科幻作家" in prompts[0]
+    assert "刘慈欣" in prompts[0]
+    assert {source["title_cn"] for source in result.sources} == {"三体"}
+
+
+def test_page_context_book_focuses_the_viewed_book(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    viewed = _book(db, "沙陀往事", summary="沙陀人的历史。")
+    _book(db, "无关的书")
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"它讲沙陀人的历史。[book_id={viewed.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这本书",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert result.scope == "book"
+    assert [source["book_id"] for source in result.sources] == [viewed.id]
+    assert "沙陀往事" in captured["prompt"]
+
+
+def test_page_context_book_author_question_resolves_the_author(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Liu Cixin", name_cn="刘慈欣", intro="中国科幻作家。")
+    db.add(author)
+    db.commit()
+    viewed = _book(db, "三体")
+    viewed.authors.append(author)
+    other = _book(db, "流浪地球")
+    other.authors.append(author)
+    db.commit()
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"刘慈欣是中国科幻作家。[book_id={viewed.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个作者",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert "中国科幻作家" in captured["prompt"]
+    assert result.scope == ""
+
+
+def test_page_context_publisher_uses_profile(db, monkeypatch):
+    from models import Publisher
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    publisher = Publisher(name="人民文学出版社", intro="国家级文学出版社。")
+    db.add(publisher)
+    db.commit()
+    book = _book(db, "红楼梦")
+    book.publisher = publisher
+    db.commit()
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"人民文学出版社出版《红楼梦》。[book_id={book.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个出版社",
+        page_context={"kind": "publisher", "id": publisher.id},
+    )
+
+    assert "国家级文学出版社" in captured["prompt"]
+    assert result.sources[0]["book_id"] == book.id
+
+
+def test_page_context_ignores_an_explicitly_named_other_work(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    viewed = _book(db, "无关的当前书")
+    author = Author(name="Cao", name_cn="曹雪芹")
+    db.add(author)
+    db.commit()
+    hong = _book(db, "红楼梦")
+    hong.authors.append(author)
+    db.commit()
+    prompts = []
+
+    def fake(prompt, **kwargs):
+        prompts.append(prompt)
+        return f"红楼梦的作者是曹雪芹。[book_id={hong.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "红楼梦的作者是谁？",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert result.scope != "book"
+    assert result.sources[0]["book_id"] == hong.id
+    assert "无关的当前书" not in prompts[0]
+
+
+def test_author_followup_without_page_context_uses_history(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Cao", name_cn="曹雪芹")
+    db.add(author)
+    db.commit()
+    hong = _book(db, "红楼梦")
+    hong.authors.append(author)
+    db.commit()
+
+    monkeypatch.setattr(
+        answer_module,
+        "resolve_followup_query",
+        lambda query, turns: "介绍一下红楼梦的作者曹雪芹",
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "曹雪芹"},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda prompt, **kwargs: f"曹雪芹是《红楼梦》的作者。[book_id={hong.id}]",
+    )
+
+    result = answer_question(
+        db,
+        "介绍一下作者",
+        history=[
+            {"role": "user", "content": "红楼梦的作者是谁？"},
+            {"role": "assistant", "content": "红楼梦的作者是曹雪芹。"},
+        ],
+    )
+
+    assert [source["book_id"] for source in result.sources] == [hong.id]

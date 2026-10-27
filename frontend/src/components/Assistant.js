@@ -1,12 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 
 import { isAuthPath } from '../authRoutes';
+import { LIBRARY_PATH } from '../config';
 import MessageList from './assistant/MessageList';
+import CandidateList from './assistant/CandidateList';
+import DraftCard from './assistant/DraftCard';
 import useAssistantChat from './assistant/useAssistantChat';
+import usePageContext from '../hooks/usePageContext';
 import useSleepingFox from '../hooks/useSleepingFox';
 import './Assistant.css';
 
@@ -21,9 +25,33 @@ const FOX_SLEEP_3X = '/images/logo/fox_sleep_720x960_256.webp';
 
 export default function Assistant() {
   const { isAuthenticated, isGuest } = useAuth();
+  const navigate = useNavigate();
+  const pageContext = usePageContext();
+  const [pageContextPending, setPageContextPending] = useState(true);
+
+  useEffect(() => {
+    // A new detail page starts a fresh page-context window.
+    setPageContextPending(true);
+  }, [pageContext?.kind, pageContext?.id]);
+
+  const chatContext = pageContextPending ? pageContext : null;
+  const consumePageContext = useCallback(() => setPageContextPending(false), []);
   const location = useLocation();
   const { t } = useTranslation();
-  const { messages, loading, send, reset } = useAssistantChat();
+  const {
+    messages,
+    loading,
+    draft,
+    candidates,
+    committing,
+    send,
+    commitDraft,
+    cancelDraft,
+    updateDraftField,
+    chooseCandidate,
+    fillMissing,
+    reset,
+  } = useAssistantChat(chatContext, consumePageContext);
   const { sleeping, touch } = useSleepingFox();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -75,6 +103,7 @@ export default function Assistant() {
 
   const newChat = () => {
     touch();
+    setPageContextPending(true);
     reset();
     setInput('');
     inputRef.current?.focus();
@@ -162,6 +191,19 @@ export default function Assistant() {
             </div>
           </header>
 
+          {pageContext && (
+            <div className="assistant-context" data-testid="assistant-context">
+              <span aria-hidden="true">◎</span>
+              {pageContextPending
+                ? t('assistant.pageAware', {
+                    type: t(`assistant.page_${pageContext.kind}`),
+                  })
+                : t('assistant.pageAwareUsed', {
+                    type: t(`assistant.page_${pageContext.kind}`),
+                  })}
+            </div>
+          )}
+
           <MessageList
             messages={messages}
             loading={loading}
@@ -171,6 +213,25 @@ export default function Assistant() {
             onMore={() => submit(t('assistant.moreRequest'))}
             onQuote={quoteBook}
           />
+
+          {draft ? (
+            <DraftCard
+              draft={draft}
+              candidates={candidates}
+              committing={committing}
+              onChange={updateDraftField}
+              onCommit={commitDraft}
+              onCancel={cancelDraft}
+              onChooseCandidate={chooseCandidate}
+              onFillMissing={fillMissing}
+              onManual={() => {
+                setOpen(false);
+                navigate(`${LIBRARY_PATH}/books/create?isbn=${encodeURIComponent(draft.isbn)}`);
+              }}
+            />
+          ) : candidates.length > 0 ? (
+            <CandidateList candidates={candidates} onSelect={chooseCandidate} />
+          ) : null}
 
           <form
             className="assistant-input"

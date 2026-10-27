@@ -10,12 +10,11 @@ from typing import List, Dict, Tuple
 
 from database import get_db, get_root_db, root_engine
 from models import Author, Publisher, Book, Category, Brand
-from schemas.isbn import IsbnLookupResponse
-from services.isbn_lookup import (
-    IsbnNotFoundError,
-    fetch_publisher_intro,
-    lookup_isbn,
-)
+from schemas.isbn import IsbnLookupRequest, IsbnLookupResponse, IsbnLookupResult
+from services.isbn_lookup import IsbnNotFoundError, fetch_publisher_intro
+from services.metadata import lookup_book_info
+from services.metadata import lookup_isbn_metadata, search_metadata
+from services.metadata.fields import CANONICAL_FIELDS
 from services.sync_to_root import sync_author, sync_publisher, sync_brand
 
 
@@ -315,7 +314,7 @@ async def get_isbn_info(
 
     # ── Not found locally, hit external APIs ──
     try:
-        info = await lookup_isbn(isbn)
+        info = await lookup_book_info(isbn)
     except IsbnNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
@@ -512,4 +511,51 @@ async def get_isbn_info(
         category_path=category_path,
         book_series_id=getattr(info, "book_series_id", None),
         book_series_name=getattr(info, "book_series_name", None) or "",
+    )
+
+
+@router.post("/lookup", response_model=IsbnLookupResult)
+async def lookup_metadata(payload: IsbnLookupRequest):
+    """Metadata for the manual form and the assistant.
+
+    ISBN is looked up first; when it is missing or comes back thin, the
+    title/author combination is searched on the fallback platform.
+    """
+    fields: dict = {}
+    sources: dict = {}
+    missing: list[str] = []
+    conflicts: dict = {}
+    candidates: list[dict] = []
+
+    if payload.isbn:
+        try:
+            merged = await lookup_isbn_metadata(payload.isbn)
+        except IsbnNotFoundError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        fields = dict(merged.fields)
+        sources = dict(merged.sources)
+        missing = list(merged.missing)
+        conflicts = dict(merged.conflicts)
+
+    if not fields.get("title_cn"):
+        candidates = await search_metadata(
+            payload.title or "",
+            payload.author or "",
+            payload.publisher or "",
+            payload.publish_date or "",
+        )
+        if candidates:
+            best = candidates[0]
+            runner_up = candidates[1]["score"] if len(candidates) > 1 else 0.0
+            if best["score"] >= 0.8 and best["score"] - runner_up >= 0.1:
+                fields = dict(best["fields"])
+                sources = dict(best["sources"])
+                missing = [name for name in CANONICAL_FIELDS if name not in fields]
+
+    return IsbnLookupResult(
+        fields=fields,
+        sources=sources,
+        missing=missing,
+        conflicts=conflicts,
+        candidates=candidates,
     )

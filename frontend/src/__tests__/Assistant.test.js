@@ -179,6 +179,257 @@ test('typing wakes the sleeping avatar', () => {
   }
 });
 
+test('creates a book draft and commits it', async () => {
+  const draft = {
+    action: 'create_book',
+    book_id: null,
+    isbn: '9787020002207',
+    fields: {
+      isbn: '9787020002207',
+      title_cn: '红楼梦',
+      title: '红楼梦',
+      author_names: ['曹雪芹'],
+      publisher_name: '人民文学出版社',
+      publish_date: '1982-03-01',
+      pages: 771,
+      price: 59.7,
+      thumb_image: '',
+    },
+    sources: { title_cn: 'douban', price: 'dangdang' },
+    missing: ['translator'],
+    conflicts: {},
+    existing: null,
+    updated_at: null,
+    current: {},
+    message: '',
+  };
+  axios.post.mockImplementation((url) => {
+    if (String(url).endsWith('/assistant/actions')) {
+      return Promise.resolve({
+        data: { intent: 'create_book', draft, candidates: [], message: '' },
+      });
+    }
+    if (String(url).endsWith('/assistant/commit')) {
+      return Promise.resolve({ data: { status: 'created', book_id: 42 } });
+    }
+    return Promise.resolve({ data: answer });
+  });
+
+  openAssistant();
+  await ask('录入 9787020002207');
+
+  expect(await screen.findByTestId('assistant-draft')).toBeInTheDocument();
+  fireEvent.change(screen.getByTestId('draft-field-publisher_name'), {
+    target: { value: '中华书局' },
+  });
+  fireEvent.click(screen.getByTestId('draft-confirm'));
+
+  await waitFor(() =>
+    expect(
+      axios.post.mock.calls.some(([url]) =>
+        String(url).endsWith('/assistant/commit')
+      )
+    ).toBe(true)
+  );
+  const commit = axios.post.mock.calls.find(([url]) =>
+    String(url).endsWith('/assistant/commit')
+  );
+  expect(commit[1].draft.fields.publisher_name).toBe('中华书局');
+  expect(
+    await screen.findByText(i18n.t('assistant.bookCreated', { title: '红楼梦' }))
+  ).toBeInTheDocument();
+});
+
+test('treats “加入书库” plus an ISBN as an action', async () => {
+  const draft = {
+    action: 'create_book',
+    book_id: null,
+    isbn: '9787020002207',
+    fields: {
+      isbn: '9787020002207',
+      title_cn: '红楼梦',
+      title: '红楼梦',
+    },
+    sources: {},
+    missing: [],
+    conflicts: {},
+    existing: null,
+    updated_at: null,
+    current: {},
+    message: '',
+  };
+  axios.post.mockImplementation((url) => {
+    if (String(url).endsWith('/assistant/actions')) {
+      return Promise.resolve({
+        data: { intent: 'create_book', draft, candidates: [], message: '' },
+      });
+    }
+    return Promise.resolve({ data: answer });
+  });
+
+  openAssistant();
+  await ask('把这本书加入书库：9787020002207');
+
+  await waitFor(() =>
+    expect(
+      axios.post.mock.calls.some(([url]) =>
+        String(url).endsWith('/assistant/actions')
+      )
+    ).toBe(true)
+  );
+  expect(await screen.findByTestId('assistant-draft')).toBeInTheDocument();
+});
+
+test('rebuilds a stale edit draft after a 409', async () => {
+  const updateDraft = {
+    action: 'update_book',
+    book_id: 7,
+    isbn: '9787020002207',
+    fields: { publisher_name: '中华书局' },
+    sources: { publisher_name: 'user' },
+    missing: [],
+    conflicts: {},
+    existing: null,
+    updated_at: '2026-01-01T00:00:00',
+    current: { title_cn: '三体', title: '三体' },
+    diff: [{ field: 'publisher_name', current: '旧社', value: '中华书局' }],
+    message: '',
+  };
+  const refreshed = {
+    ...updateDraft,
+    updated_at: '2026-02-02T00:00:00',
+    current: { title_cn: '三体（新版）', title: '三体（新版）' },
+  };
+  axios.post.mockImplementation((url, body) => {
+    if (String(url).endsWith('/assistant/actions')) {
+      if (body?.action === 'refresh_draft') {
+        return Promise.resolve({
+          data: { intent: 'update_book', draft: refreshed, candidates: [] },
+        });
+      }
+      return Promise.resolve({
+        data: { intent: 'update_book', draft: updateDraft, candidates: [] },
+      });
+    }
+    if (String(url).endsWith('/assistant/commit')) {
+      return Promise.reject({
+        response: { status: 409, data: { detail: 'Book changed' } },
+      });
+    }
+    return Promise.resolve({ data: answer });
+  });
+
+  openAssistant();
+  await ask('修改《三体》的出版社');
+  await screen.findByTestId('draft-confirm');
+  fireEvent.click(screen.getByTestId('draft-confirm'));
+
+  await waitFor(() =>
+    expect(
+      axios.post.mock.calls.some(
+        ([url, body]) =>
+          String(url).endsWith('/assistant/actions') &&
+          body?.action === 'refresh_draft'
+      )
+    ).toBe(true)
+  );
+  expect(
+    await screen.findByText(i18n.t('assistant.draftRefreshed'))
+  ).toBeInTheDocument();
+  expect(await screen.findByDisplayValue('三体（新版）')).toBeInTheDocument();
+});
+
+test('fills an update draft from metadata', async () => {
+  const updateDraft = {
+    action: 'update_book',
+    book_id: 7,
+    isbn: '9787020002207',
+    fields: { publisher_name: '中华书局' },
+    sources: { publisher_name: 'user' },
+    missing: [],
+    conflicts: {},
+    existing: null,
+    updated_at: '2026-01-01T00:00:00',
+    current: {
+      title_cn: '三体',
+      title: '三体',
+      publisher_name: '人民文学出版社',
+    },
+    diff: [
+      {
+        field: 'publisher_name',
+        current: '人民文学出版社',
+        value: '中华书局',
+      },
+    ],
+    message: '',
+  };
+  const filledDraft = {
+    ...updateDraft,
+    fields: { price: 59.0 },
+    sources: { price: 'dangdang' },
+    diff: [{ field: 'price', current: '', value: 59.0 }],
+    message: '将补全 1 个字段，确认后写入。',
+  };
+  axios.post.mockImplementation((url, body) => {
+    if (String(url).endsWith('/assistant/actions')) {
+      if (body?.action === 'fill_missing') {
+        return Promise.resolve({
+          data: { intent: 'update_book', draft: filledDraft, candidates: [] },
+        });
+      }
+      return Promise.resolve({
+        data: { intent: 'update_book', draft: updateDraft, candidates: [] },
+      });
+    }
+    return Promise.resolve({ data: answer });
+  });
+
+  openAssistant();
+  await ask('修改《三体》的出版社');
+  await screen.findByTestId('assistant-draft');
+  fireEvent.click(screen.getByTestId('draft-fill'));
+
+  await waitFor(() =>
+    expect(
+      axios.post.mock.calls.some(
+        ([url, body]) =>
+          String(url).endsWith('/assistant/actions') &&
+          body?.action === 'fill_missing'
+      )
+    ).toBe(true)
+  );
+  expect(await screen.findByTestId('draft-field-price')).toHaveValue(59);
+});
+
+test('knows which detail page the user is on', async () => {
+  openAssistant({ path: '/my-library/authors/7' });
+
+  expect(screen.getByTestId('assistant-context')).toHaveTextContent(
+    i18n.t('assistant.page_author')
+  );
+
+  await ask('介绍一下这个作者');
+
+  await waitFor(() =>
+    expect(lastPayload().page_context).toEqual({ kind: 'author', id: 7 })
+  );
+
+  // After the first turn the conversation, not the page, drives answers.
+  await ask('红楼梦的作者是谁？');
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(2));
+  expect(lastPayload().page_context).toBeUndefined();
+  expect(screen.getByTestId('assistant-context')).toHaveTextContent(
+    i18n.t('assistant.pageAwareUsed', { type: i18n.t('assistant.page_author') })
+  );
+
+  // A new chat gives the page context another first turn.
+  fireEvent.click(screen.getByTestId('assistant-new'));
+  await ask('介绍一下这个作者');
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(3));
+  expect(lastPayload().page_context).toEqual({ kind: 'author', id: 7 });
+});
+
 test('opens the dialog from the floating trigger', () => {
   renderAssistant();
 
