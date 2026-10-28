@@ -27,13 +27,13 @@ def mock_publisher_intro():
 
 def _mock_lookup(return_value: BookInfo):
     """Return a patcher that makes lookup_isbn return *return_value*."""
-    return patch("routers.isbn.lookup_isbn", AsyncMock(return_value=return_value))
+    return patch("routers.isbn.lookup_book_info", AsyncMock(return_value=return_value))
 
 
 def _mock_lookup_error():
     """Return a patcher that makes lookup_isbn raise IsbnNotFoundError."""
     return patch(
-        "routers.isbn.lookup_isbn",
+        "routers.isbn.lookup_book_info",
         AsyncMock(side_effect=IsbnNotFoundError("No book info found")),
     )
 

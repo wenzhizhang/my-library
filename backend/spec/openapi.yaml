@@ -732,6 +732,15 @@ components:
         content:
           type: string
           description: May be blank for a "more books" reply; blank turns are dropped
+    PageContext:
+      type: object
+      required: [kind, id]
+      properties:
+        kind:
+          type: string
+          enum: [book, author, publisher, series, brand]
+        id: { type: integer, minimum: 1 }
+
     RagAnswerRequest:
       type: object
       required: [query]
@@ -752,6 +761,8 @@ components:
           type: integer
           minimum: 1
           description: Answer from this book only (the user quoted it)
+        page_context:
+          $ref: "#/components/schemas/PageContext"
     RagAnswerSource:
       type: object
       required: [book_id]
@@ -794,6 +805,10 @@ components:
           nullable: true
           enum: [book, author]
           description: Focused single-book answer (book) or author-expanded answer (author); null otherwise
+        stats:
+          type: object
+          nullable: true
+          description: Stats answer payload (answer, table with columns/rows, parsed query)
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]
@@ -2971,3 +2986,108 @@ paths:
                 type: object
                 properties:
                   dynasties: { type: array, items: { type: string } }
+
+  /api/isbn/lookup:
+    post:
+      tags: [ISBN]
+      summary: Look up metadata by ISBN and/or title + author
+      description: |
+        Merges Douban, Dangdang and foreign sources. Candidates are returned
+        when the title/author search is ambiguous.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isbn: { type: string }
+                title: { type: string }
+                author: { type: string }
+                publisher: { type: string }
+                publish_date: { type: string }
+      responses:
+        "200":
+          description: Merged metadata, missing fields, conflicts and candidates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fields: { type: object }
+                  sources: { type: object }
+                  missing: { type: array, items: { type: string } }
+                  conflicts: { type: object }
+                  candidates: { type: array, items: { type: object } }
+
+  /api/assistant/actions:
+    post:
+      tags: [Assistant]
+      security:
+        - BearerAuth: []
+      summary: Build a book draft, revise it, or find an edit target
+      description: |
+        Does not write to the library. `action` may be `edit_book`,
+        `refresh_draft` or `fill_missing`; otherwise `message` + `draft` are
+        classified as create/edit/revise.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+                draft: { type: object, nullable: true }
+                focus_book_id: { type: integer, nullable: true }
+                action:
+                  type: string
+                  nullable: true
+                  enum: [edit_book, refresh_draft, fill_missing]
+                page_context:
+                  $ref: "#/components/schemas/PageContext"
+      responses:
+        "200":
+          description: Draft, candidates or intent dialog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  intent:
+                    type: string
+                    enum: [create_book, update_book, revise_draft, none]
+                  draft: { type: object, nullable: true }
+                  candidates: { type: array, items: { type: object } }
+                  message: { type: string }
+
+  /api/assistant/commit:
+    post:
+      tags: [Assistant]
+      security:
+        - BearerAuth: []
+      summary: Create or update a book after the user confirms the draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draft]
+              properties:
+                draft: { type: object }
+                duplicate_choice:
+                  type: string
+                  nullable: true
+                  enum: [update, add, abandon]
+      responses:
+        "200":
+          description: Created/updated/abandoned book
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [created, updated, abandoned] }
+                  book_id: { type: integer, nullable: true }
+                  book: { type: object, nullable: true }

@@ -932,6 +932,16 @@ def test_parse_intent_parses_the_model_json(monkeypatch):
         "value": "托尔金",
     }
 
+    monkeypatch.setattr(
+        intent_module,
+        "deepseek_chat",
+        lambda *a, **k: '{"kind": "stats", "value": {"metric": "spend_month", "year": 2026, "month": 10}}',
+    )
+    assert REAL_PARSE_INTENT("这个月买了多少书") == {
+        "kind": "stats",
+        "value": {"metric": "spend_month", "year": 2026, "month": 10},
+    }
+
     monkeypatch.setattr(intent_module, "deepseek_chat", lambda *a, **k: "not json")
     assert REAL_PARSE_INTENT("x") == {"kind": "topic", "value": ""}
 
@@ -1224,3 +1234,487 @@ def test_focus_scope_marks_author_expansion(db, monkeypatch):
     assert author_scope.scope == "author"
     assert book_scope.scope == "book"
     assert author_identity.scope == "book"
+
+
+def test_page_context_author_uses_profile_and_books(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Liu Cixin", name_cn="刘慈欣", intro="中国科幻作家。", nation="中国")
+    db.add(author)
+    db.commit()
+    works = []
+    for title in ("三体", "流浪地球"):
+        book = _book(db, title)
+        book.authors.append(author)
+        works.append(book)
+    db.commit()
+
+    prompts = []
+
+    def fake(prompt, **kwargs):
+        prompts.append(prompt)
+        return f"刘慈欣是中国科幻作家。[book_id={works[0].id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个作者",
+        page_context={"kind": "author", "id": author.id},
+    )
+
+    assert result.answer.startswith("刘慈欣")
+    assert "中国科幻作家" in prompts[0]
+    assert "刘慈欣" in prompts[0]
+    assert {source["title_cn"] for source in result.sources} == {"三体"}
+
+
+def test_page_context_book_focuses_the_viewed_book(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    viewed = _book(db, "沙陀往事", summary="沙陀人的历史。")
+    _book(db, "无关的书")
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"它讲沙陀人的历史。[book_id={viewed.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这本书",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert result.scope == "book"
+    assert [source["book_id"] for source in result.sources] == [viewed.id]
+    assert "沙陀往事" in captured["prompt"]
+
+
+def test_page_context_book_author_question_resolves_the_author(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Liu Cixin", name_cn="刘慈欣", intro="中国科幻作家。")
+    db.add(author)
+    db.commit()
+    viewed = _book(db, "三体")
+    viewed.authors.append(author)
+    other = _book(db, "流浪地球")
+    other.authors.append(author)
+    db.commit()
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"刘慈欣是中国科幻作家。[book_id={viewed.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个作者",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert "中国科幻作家" in captured["prompt"]
+    assert result.scope == ""
+
+
+def test_page_context_publisher_uses_profile(db, monkeypatch):
+    from models import Publisher
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    publisher = Publisher(name="人民文学出版社", intro="国家级文学出版社。")
+    db.add(publisher)
+    db.commit()
+    book = _book(db, "红楼梦")
+    book.publisher = publisher
+    db.commit()
+    captured = {}
+
+    def fake(prompt, **kwargs):
+        captured["prompt"] = prompt
+        return f"人民文学出版社出版《红楼梦》。[book_id={book.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "介绍一下这个出版社",
+        page_context={"kind": "publisher", "id": publisher.id},
+    )
+
+    assert "国家级文学出版社" in captured["prompt"]
+    assert result.sources[0]["book_id"] == book.id
+
+
+def test_page_context_ignores_an_explicitly_named_other_work(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    viewed = _book(db, "无关的当前书")
+    author = Author(name="Cao", name_cn="曹雪芹")
+    db.add(author)
+    db.commit()
+    hong = _book(db, "红楼梦")
+    hong.authors.append(author)
+    db.commit()
+    prompts = []
+
+    def fake(prompt, **kwargs):
+        prompts.append(prompt)
+        return f"红楼梦的作者是曹雪芹。[book_id={hong.id}]"
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", fake)
+
+    result = answer_question(
+        db,
+        "红楼梦的作者是谁？",
+        page_context={"kind": "book", "id": viewed.id},
+    )
+
+    assert result.scope != "book"
+    assert result.sources[0]["book_id"] == hong.id
+    assert "无关的当前书" not in prompts[0]
+
+
+def test_author_followup_without_page_context_uses_history(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Cao", name_cn="曹雪芹")
+    db.add(author)
+    db.commit()
+    hong = _book(db, "红楼梦")
+    hong.authors.append(author)
+    db.commit()
+
+    monkeypatch.setattr(
+        answer_module,
+        "resolve_followup_query",
+        lambda query, turns: "介绍一下红楼梦的作者曹雪芹",
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author", "value": "曹雪芹"},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda prompt, **kwargs: f"曹雪芹是《红楼梦》的作者。[book_id={hong.id}]",
+    )
+
+    result = answer_question(
+        db,
+        "介绍一下作者",
+        history=[
+            {"role": "user", "content": "红楼梦的作者是谁？"},
+            {"role": "assistant", "content": "红楼梦的作者是曹雪芹。"},
+        ],
+    )
+
+    assert [source["book_id"] for source in result.sources] == [hong.id]
+
+
+def test_stats_intent_answers_from_the_aggregate(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _book(db, "三体")
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "stats", "value": {"metric": "overview"}},
+    )
+
+    def no_model(*args, **kwargs):
+        raise AssertionError("stats answers must not call the answer model")
+
+    monkeypatch.setattr(answer_module, "deepseek_chat", no_model)
+
+    result = answer_question(db, "书库一共有多少本书")
+
+    assert "本书" in result.answer
+    assert result.no_answer is False
+    assert result.stats["table"]["columns"] == ["项目", "数值"]
+    assert result.sources == []
+
+
+def test_more_phrase_with_stats_intent_does_not_crash(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _book(db, "三体")
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "stats", "value": {"metric": "overview"}},
+    )
+    monkeypatch.setattr(
+        answer_module, "resolve_followup_query", lambda query, turns: query
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("stats must not call the answer model")
+        ),
+    )
+
+    result = answer_question(
+        db,
+        "上个月买的书列出来",
+        history=[
+            {"role": "user", "content": "上个月买了些什么书"},
+            {"role": "assistant", "content": "上个月买了 3 本书。"},
+        ],
+    )
+
+    assert result.stats["table"]["columns"] == ["项目", "数值"]
+
+
+def test_author_filter_lists_song_authors(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    su = Author(name="Su Shi", name_cn="苏轼", dynasty="宋", nation="中国")
+    wang = Author(name="Wang Anshi", name_cn="王安石", dynasty="宋", nation="中国")
+    db.add_all([su, wang])
+    db.commit()
+    for title, author in (("苏轼诗集", su), ("王安石文集", wang)):
+        book = _book(db, title)
+        book.authors.append(author)
+    db.commit()
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author_filter", "value": {"dynasty": "宋", "nation": "中国"}},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(db, "宋代的作者有哪些？")
+
+    assert "苏轼" in result.answer
+    assert "王安石" in result.answer
+    assert result.sources == []
+
+
+def test_dynasty_author_question_overrides_stats_intent(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    su = Author(name="Su Shi", name_cn="苏轼", dynasty="宋")
+    db.add(su)
+    db.commit()
+    book = _book(db, "苏轼诗集")
+    book.authors.append(su)
+    db.commit()
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "stats", "value": {"metric": "top", "group_by": "author"}},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(db, "宋代的作者有哪些？")
+
+    assert "苏轼" in result.answer
+    assert "作者排行" not in result.answer
+
+
+def test_long_history_is_truncated_at_the_boundary():
+    turns = answer_module._normalise_turns(
+        [{"role": "assistant", "content": "x" * 6000}]
+    )
+    assert len(turns[0]["content"]) == 4000
+
+
+def test_author_page_does_not_hijack_dynasty_queries(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    page_author = Author(name="Tolkien", name_cn="托尔金", nation="英国")
+    song_author = Author(name="Su Shi", name_cn="苏轼", dynasty="宋", nation="中国")
+    db.add_all([page_author, song_author])
+    db.commit()
+    page_book = _book(db, "霍比特人")
+    page_book.authors.append(page_author)
+    song_book = _book(db, "苏轼诗集")
+    song_book.authors.append(song_author)
+    db.commit()
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "author_filter", "value": {"dynasty": "宋"}},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(
+        db,
+        "宋代的作者有哪些？",
+        page_context={"kind": "author", "id": page_author.id},
+    )
+
+    assert "苏轼" in result.answer
+    assert "托尔金" not in result.answer
+    assert result.sources == []
+
+
+def test_author_page_does_not_hijack_month_stats(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    page_author = Author(name="Tolkien", name_cn="托尔金")
+    db.add(page_author)
+    db.commit()
+    page_book = _book(db, "霍比特人")
+    page_book.authors.append(page_author)
+    db.commit()
+    from datetime import date
+
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {
+            "kind": "stats",
+            "value": {
+                "metric": "spend_month",
+                "year": date.today().year,
+                "month": date.today().month,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(
+        db,
+        "这个月买了多少书",
+        page_context={"kind": "author", "id": page_author.id},
+    )
+
+    assert result.stats
+    assert "霍比特人" not in result.answer
+    assert result.sources == []
+
+
+def test_history_accepts_twenty_turns():
+    from pydantic import ValidationError
+    from schemas.rag import RagAnswerRequest
+
+    turns = [
+        {"role": "user" if index % 2 == 0 else "assistant", "content": "x"}
+        for index in range(40)
+    ]
+    assert len(RagAnswerRequest(query="q", history=turns).history) == 40
+    with pytest.raises(ValidationError):
+        RagAnswerRequest(query="q", history=turns + [{"role": "user", "content": "x"}])
+
+
+def test_author_ranking_is_not_overridden_by_extreme_hint(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    author = Author(name="Su", name_cn="苏轼", dynasty="宋")
+    db.add(author)
+    db.commit()
+    from models import Book
+
+    book = Book(title="苏轼诗集", title_cn="苏轼诗集", douban_score=9.0)
+    book.authors.append(author)
+    db.add(book)
+    db.commit()
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "stats", "value": {"metric": "top", "group_by": "author"}},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(db, "评分最高的作者是谁")
+
+    assert "苏轼" in result.answer
+    assert "最贵" not in result.answer
+    assert result.stats == {}
+
+
+def test_more_listing_rewrites_the_context(db, monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    _book(db, "三体")
+    monkeypatch.setattr(
+        answer_module,
+        "resolve_followup_query",
+        lambda query, turns: "上个月买了哪些书",
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "parse_intent",
+        lambda query: {"kind": "stats", "value": {"metric": "purchase_list"}},
+    )
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(
+        db,
+        "列出来",
+        history=[
+            {"role": "user", "content": "上个月买了些什么书"},
+            {"role": "assistant", "content": "上个月买了 2 本书。"},
+        ],
+    )
+
+    assert result.stats["query"]["metric"] == "purchase_list"
+
+
+def test_author_rating_question_is_not_a_book_extreme(db, monkeypatch):
+    from models import Author
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    high = Author(name="High", name_cn="高分作者")
+    low = Author(name="Low", name_cn="低分作者")
+    db.add_all([high, low])
+    db.commit()
+    high_book = _book(db, "高分书")
+    high_book.douban_score = 9.5
+    high_book.authors.append(high)
+    low_book = _book(db, "低分书")
+    low_book.douban_score = 7.0
+    low_book.authors.append(low)
+    db.commit()
+    monkeypatch.setattr(
+        answer_module,
+        "deepseek_chat",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no model")),
+    )
+
+    result = answer_question(
+        db,
+        "评分最高的作者是谁",
+        page_context={"kind": "author", "id": low.id},
+    )
+
+    assert "高分作者" in result.answer
+    assert "作者排行" not in result.answer
+    assert result.sources == []

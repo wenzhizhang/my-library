@@ -1,0 +1,24 @@
+.assistant-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.assistant-candidates p {
+  width: 100%;
+  margin: 0;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.assistant-candidates button {
+  padding: 4px 10px;
+  border-radius: 980px;
+  border: 1px solid #0066cc;
+  background: transparent;
+  color: #0066cc;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}

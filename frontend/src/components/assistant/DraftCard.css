@@ -1,0 +1,259 @@
+.assistant-draft {
+  margin: 0 16px 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  max-height: 46vh;
+  overflow-y: auto;
+  font-size: 13px;
+  color: #1d1d1f;
+}
+
+.assistant-draft-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.assistant-draft-header strong {
+  font-size: 14px;
+}
+
+.assistant-draft-isbn {
+  margin-left: 8px;
+  color: #86868b;
+  font-size: 12px;
+}
+
+.assistant-draft-close {
+  border: 0;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: #86868b;
+  cursor: pointer;
+}
+
+.assistant-draft-body {
+  display: flex;
+  gap: 12px;
+}
+
+.assistant-draft-cover {
+  position: relative;
+  flex: 0 0 76px;
+  height: 108px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assistant-draft-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.assistant-draft-cover-empty {
+  font-size: 26px;
+}
+
+.assistant-draft-cover-source {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.assistant-draft-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+
+.assistant-draft-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assistant-draft-label {
+  color: #6e6e73;
+  font-size: 11px;
+}
+
+.assistant-draft-required {
+  color: #ff3b30;
+  font-style: normal;
+}
+
+.assistant-draft-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  background: #fff;
+}
+
+.assistant-draft-source {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #eef4ff;
+  color: #0066cc;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.assistant-draft-source.is-user {
+  background: #f2f2f7;
+  color: #6e6e73;
+}
+
+.assistant-draft-summary {
+  margin: 10px 0 0;
+  color: #6e6e73;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.assistant-draft-missing,
+.assistant-draft-conflict,
+.assistant-draft-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b25000;
+}
+
+.assistant-draft-hint {
+  color: #0066cc;
+}
+
+.assistant-draft-existing {
+  margin-top: 10px;
+}
+
+.assistant-draft-existing p {
+  margin: 0 0 6px;
+}
+
+.assistant-draft-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.assistant-draft-actions button {
+  padding: 6px 12px;
+  border-radius: 980px;
+  border: 1px solid #0066cc;
+  background: transparent;
+  color: #0066cc;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.assistant-draft-actions button.is-primary {
+  background: #0071e3;
+  border-color: #0071e3;
+  color: #fff;
+}
+
+.assistant-draft-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .assistant-draft-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.assistant-draft-field input.is-changed {
+  border-color: #0071e3;
+  background: #f5faff;
+}
+
+.assistant-draft-diff {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f5f5f7;
+}
+
+.assistant-draft-diff p {
+  margin: 0 0 4px;
+  color: #6e6e73;
+  font-size: 11px;
+}
+
+.assistant-draft-diff ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assistant-draft-diff li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.assistant-draft-diff li span {
+  flex: 0 0 64px;
+  color: #6e6e73;
+}
+
+.assistant-draft-diff li s {
+  color: #86868b;
+}
+
+.assistant-draft-diff li b {
+  color: #0071e3;
+  font-weight: 600;
+}
+
+.assistant-draft-link {
+  margin-left: 8px;
+  color: #0066cc;
+  font-size: 12px;
+}
+
+.assistant-draft-more {
+  margin-top: 10px;
+}
+
+.assistant-draft-more summary {
+  cursor: pointer;
+  color: #0066cc;
+  font-size: 12px;
+}
+
+.assistant-draft-more .assistant-draft-fields {
+  margin-top: 8px;
+}

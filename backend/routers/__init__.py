@@ -15,6 +15,7 @@ from .config_router import router as config_router
 from .background import router as background_router
 from .export import router as export_router
 from .media import router as media_router
+from .assistant import router as assistant_router
 
 __all__ = [
     "author_router",
@@ -35,4 +36,5 @@ __all__ = [
     "isbn_router",
     "export_router",
     "media_router",
+    "assistant_router",
 ]

@@ -62,6 +62,12 @@ def test_wishlist_and_archived_books_do_not_count(client, db):
     assert resp.status_code == 200, resp.text
     assert client.get(f"/api/authors/{author.id}").json()["weight"] == 0
 
+    resp = client.put(f"/api/books/{book.id}/unarchive")
+    assert resp.status_code == 200, resp.text
+    assert client.get(f"/api/authors/{author.id}").json()["weight"] == 1
+    db.refresh(book)
+    assert book.archived is False
+
 
 def test_collection_add_remove_recomputes_weight(client, db):
     collection = BookCollection(name="Col")

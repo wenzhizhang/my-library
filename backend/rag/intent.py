@@ -2,6 +2,7 @@
 
 import json
 import re
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import text
@@ -12,16 +13,32 @@ from .text import title_key
 from .vector_store import normalize_query
 
 
-_INTENT_SYSTEM = """判断用户问题的检索意图，只输出 JSON：
-{"kind": "author" | "series" | "title" | "topic", "value": "实体名"}
+_INTENT_SYSTEM = """判断用户问题的意图，只输出 JSON：
+{"kind": "author" | "series" | "title" | "topic" | "stats" | "author_filter", "value": "实体名、统计参数或作者筛选条件"}
 规则：
 - 问某位作者写了/著有/有哪些作品/都写过什么 → kind=author，value=作者名
 - 问某个系列包含哪些书/一套书都有什么 → kind=series，value=系列名
 - 问某一本具体的书的内容/版本/作者 → kind=title，value=书名
-- 其他（主题、推荐、比较、常识） → kind=topic，value=核心主题词
+- 问某一朝代/国家/时代的作者群体（“宋代的作者有哪些”“中国宋代作者”“唐代诗人有哪些”）
+  → kind=author_filter，value={"dynasty": "宋", "nation": "中国"}；
+  这是作者列表，不是 stats 排行，也不是书名/主题检索。
+- 问藏书统计（总量、阅读状态、分类/作者/出版社/装帧/语言/评分分布或排行、
+  每月/每年入库、购书花费、均价、某月购书多少） → kind=stats，value 是 JSON 对象：
+  {"metric": "overview|read_state|average|spend|spend_month|purchase_list|extreme|top|breakdown|timeline|timeline_month|purchase_timeline",
+   "group_by": "category|author|publisher|binding|language|score",
+   "field": "price|purchase_price|pages|douban_score|book_count", "order": "max|min",
+   "period": "month|year", "year": 2024, "month": 10, "limit": 5}
+  例：用户说“这个月买了多少书”→ {"metric":"spend_month","year":2026,"month":10}；
+      “作者排行前10”→ {"metric":"top","group_by":"author","limit":10}；
+      “每个月新增多少本”→ {"metric":"timeline","period":"month"}；
+      “上个月买了哪些书/列出来”→ {"metric":"purchase_list","year":2026,"month":9}；
+      “最贵的书是哪套”→ {"metric":"extreme","field":"price","order":"max"}；
+      “评分最高的书”→ {"metric":"extreme","field":"douban_score","order":"max"}。
+  只填与问题有关的字段；不是统计问题不要用 stats。
+- 其他（主题、推荐、比较、常识、书的内容/页数） → kind=topic，value=核心主题词
 value 只填实体名，不要带“的书”“的作品”等后缀。"""
 
-_INTENT_KINDS = ("author", "series", "title", "topic")
+_INTENT_KINDS = ("author", "series", "title", "topic", "stats", "author_filter")
 
 
 def _json_object(raw: Optional[str]) -> Optional[dict]:
@@ -47,13 +64,19 @@ def parse_intent(query: str) -> dict:
     """
     raw = deepseek_chat(
         f"用户问题：{query}",
-        system=_INTENT_SYSTEM,
-        max_tokens=60,
+        system=_INTENT_SYSTEM + f"\n今天是 {date.today().isoformat()}。",
+        max_tokens=160,
         temperature=0.0,
     )
     payload = _json_object(raw)
     if not payload or payload.get("kind") not in _INTENT_KINDS:
         return {"kind": "topic", "value": ""}
+    if payload["kind"] in ("stats", "author_filter"):
+        value = payload.get("value")
+        return {
+            "kind": payload["kind"],
+            "value": value if isinstance(value, dict) else {},
+        }
     value = str(payload.get("value") or "").strip()
     return {"kind": payload["kind"], "value": value}
 

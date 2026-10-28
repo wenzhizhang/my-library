@@ -580,6 +580,13 @@ function BookFormPage() {
     in_wish: false,
   });
 
+  useEffect(() => {
+    const isbnParam = searchParams.get('isbn');
+    if (isbnParam && !bookId) {
+      setFormData((prev) => (prev.isbn ? prev : { ...prev, isbn: isbnParam }));
+    }
+  }, [searchParams, bookId]);
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);

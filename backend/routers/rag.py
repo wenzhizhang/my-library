@@ -144,6 +144,7 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
             [turn.model_dump() for turn in req.history],
             req.seen_book_ids,
             req.focus_book_id,
+            req.page_context.model_dump() if req.page_context else None,
         )
     except BookNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -160,6 +161,7 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
         has_more=result.has_more,
         reason=result.reason,
         scope=result.scope or None,
+        stats=result.stats or None,
     )
 
 

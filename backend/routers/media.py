@@ -27,6 +27,7 @@ FETCH_TIMEOUT = 15.0
 
 CACHE_ENABLED = os.environ.get("MEDIA_CACHE_ENABLED", "false").lower() == "true"
 CACHE_DIR = Path(__file__).resolve().parent.parent / "data" / "media-cache"
+LOCAL_MEDIA_DIR = Path(os.environ.get("DATA_DIR", "/app/data")) / "media"
 
 if CACHE_ENABLED:
     logger.info("Media cache ENABLED — directory: %s", CACHE_DIR)
@@ -40,6 +41,11 @@ async def serve_media(path: str):
     if ".." in path:
         raise HTTPException(status_code=400, detail="Invalid path")
     path = path.lstrip("/")
+
+    # Local covers downloaded by the metadata service win over the CDN.
+    local = LOCAL_MEDIA_DIR / path
+    if local.is_file():
+        return FileResponse(local)
 
     # ---- cached path ----
     if CACHE_ENABLED:
