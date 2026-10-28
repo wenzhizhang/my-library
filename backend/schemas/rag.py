@@ -1,4 +1,8 @@
 from pydantic import BaseModel, Field
+
+RAG_HISTORY_MAX_MESSAGES = 40
+RAG_TURN_CONTENT_MAX = 20000
+RAG_TURN_CONTENT_LIMIT = 4000
 from typing import List, Literal, Optional
 
 
@@ -44,7 +48,7 @@ class RagTurn(BaseModel):
     empty string. The backend drops blank turns before using them.
     """
     role: Literal["user", "assistant"]
-    content: str = Field("", max_length=4000)
+    content: str = Field("", max_length=RAG_TURN_CONTENT_MAX)
 
 
 class PageContext(BaseModel):
@@ -59,8 +63,8 @@ class RagAnswerRequest(BaseModel):
     top_k: int = Field(5, ge=1, le=5, description="Max candidate books")
     history: List[RagTurn] = Field(
         default_factory=list,
-        max_length=20,
-        description="Earlier turns; follow-ups are rewritten against them",
+        max_length=RAG_HISTORY_MAX_MESSAGES,
+        description="Earlier turns (up to 40 messages); follow-ups are rewritten against them",
     )
     seen_book_ids: List[int] = Field(
         default_factory=list,
@@ -98,6 +102,7 @@ class RagAnswerResponse(BaseModel):
     has_more: bool = False
     reason: str = ""
     scope: Optional[Literal["book", "author"]] = None
+    stats: Optional[dict] = None
 
 
 class RagReindexResponse(BaseModel):

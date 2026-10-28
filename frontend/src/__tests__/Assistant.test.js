@@ -402,6 +402,89 @@ test('fills an update draft from metadata', async () => {
   expect(await screen.findByTestId('draft-field-price')).toHaveValue(59);
 });
 
+test('leaves page-scoped count questions to the page context', async () => {
+  openAssistant({ path: '/my-library/authors/7' });
+
+  await ask('这个作者有多少本书');
+
+  await waitFor(() => expect(axios.post).toHaveBeenCalled());
+  expect(
+    axios.post.mock.calls.some(([url]) => String(url).endsWith('/rag/answer'))
+  ).toBe(true);
+});
+
+test('answers a statistics intent with a table', async () => {
+  axios.post.mockResolvedValue({
+    data: {
+      ...answer,
+      answer: '书库共 3 本书。',
+      sources: [],
+      stats: {
+        table: {
+          columns: ['项目', '数值'],
+          rows: [['藏书', 3]],
+        },
+      },
+    },
+  });
+
+  openAssistant();
+  await ask('我的藏书有多少本');
+
+  expect(await screen.findByText('书库共 3 本书。')).toBeInTheDocument();
+  expect(screen.getByText('藏书')).toBeInTheDocument();
+  expect(screen.getByText('3')).toBeInTheDocument();
+  expect(
+    axios.post.mock.calls.some(([url]) => String(url).endsWith('/rag/answer'))
+  ).toBe(true);
+});
+
+test('lists statistics books with the normal quote actions', async () => {
+  axios.post.mockResolvedValue({
+    data: {
+      ...answer,
+      answer: '2010-09 买了 1 本书。',
+      sources: [
+        {
+          book_id: 2300,
+          title: '沙陀往事',
+          title_cn: '沙陀往事',
+          authors: ['樊文礼'],
+          thumb_image: '/images/books/1.webp',
+        },
+      ],
+      stats: { table: { columns: [], rows: [] } },
+    },
+  });
+
+  openAssistant();
+  await ask('上个月买了什么书');
+
+  expect(await screen.findByTestId('assistant-book')).toBeInTheDocument();
+  expect(screen.getByTestId('assistant-quote-book')).toBeInTheDocument();
+});
+
+test('truncates long turns so history stays within the API limit', async () => {
+  const longAnswer = 'x'.repeat(5000);
+  let call = 0;
+  axios.post.mockImplementation(() => {
+    call += 1;
+    return Promise.resolve({
+      data: call === 1 ? { ...answer, answer: longAnswer } : answer,
+    });
+  });
+
+  openAssistant();
+  await ask('第一个问题');
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(1));
+  await ask('第二个问题');
+  await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(2));
+
+  const history = axios.post.mock.calls[1][1].history;
+  const assistant = history.find((turn) => turn.role === 'assistant');
+  expect(assistant.content.length).toBe(4000);
+});
+
 test('knows which detail page the user is on', async () => {
   openAssistant({ path: '/my-library/authors/7' });
 

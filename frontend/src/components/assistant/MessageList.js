@@ -141,6 +141,29 @@ export default function MessageList({
             </p>
           )}
 
+          {message.statsTable?.rows?.length > 0 && (
+            <div className="assistant-stats">
+              <table>
+                <thead>
+                  <tr>
+                    {message.statsTable.columns.map((column) => (
+                      <th key={column}>{column}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {message.statsTable.rows.map((row, index) => (
+                    <tr key={index}>
+                      {row.map((value, cell) => (
+                        <td key={cell}>{value}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {showsBookList(message) && (
             <div className="assistant-books">
               <span className="assistant-books-label">

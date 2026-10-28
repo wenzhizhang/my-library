@@ -161,6 +161,7 @@ def rag_answer(req: RagAnswerRequest, db: Session = Depends(get_db)):
         has_more=result.has_more,
         reason=result.reason,
         scope=result.scope or None,
+        stats=result.stats or None,
     )
 
 

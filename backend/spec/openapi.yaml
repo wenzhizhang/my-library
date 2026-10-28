@@ -805,6 +805,10 @@ components:
           nullable: true
           enum: [book, author]
           description: Focused single-book answer (book) or author-expanded answer (author); null otherwise
+        stats:
+          type: object
+          nullable: true
+          description: Stats answer payload (answer, table with columns/rows, parsed query)
     RagSummarizeResponse:
       type: object
       required: [book_id, summary, source, updated]

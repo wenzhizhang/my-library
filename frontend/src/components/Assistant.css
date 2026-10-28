@@ -617,3 +617,27 @@
     scroll-behavior: auto;
   }
 }
+
+.assistant-stats {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.assistant-stats table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.assistant-stats th,
+.assistant-stats td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.assistant-stats th {
+  color: #6e6e73;
+  font-weight: 600;
+}

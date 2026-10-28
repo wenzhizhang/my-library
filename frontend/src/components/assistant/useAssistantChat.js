@@ -8,6 +8,8 @@ import { API_BASE_URL } from '../Config';
 // boundary, not the server's rewrite window — the backend decides how many
 // turns it actually feeds the rewriter.
 const MAX_PAYLOAD_MESSAGES = 40;
+// Mirrors backend RAG_TURN_CONTENT_LIMIT.
+const MAX_TURN_CHARS = 4000;
 
 // Keep in sync with backend/services/assistant_actions.py.
 const ACTION_WORDS = /(录入|新增|添加|加入|收录|入库|建档|修改|更正|更新|编辑|补全|完善)/;
@@ -95,9 +97,15 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
       for (const message of messages) {
         if (message.action) continue;
         if (message.role === 'user') {
-          history.push({ role: 'user', content: message.content });
+          history.push({
+            role: 'user',
+            content: (message.content || '').slice(0, MAX_TURN_CHARS),
+          });
         } else if (!message.error && !message.noAnswer && message.content) {
-          history.push({ role: 'assistant', content: message.content });
+          history.push({
+            role: 'assistant',
+            content: message.content.slice(0, MAX_TURN_CHARS),
+          });
         } else {
           history.pop();
         }
@@ -139,6 +147,7 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
           hasMore: Boolean(data.has_more),
           noAnswer: Boolean(data.no_answer),
           rewritten: data.rewritten_query || '',
+          statsTable: data.stats?.table || null,
         });
       } catch (error) {
         const status = error?.response?.status;

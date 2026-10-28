@@ -28,10 +28,20 @@ import logging
 import os
 import re
 from dataclasses import asdict, dataclass, field, replace
-from typing import Optional
+from typing import Any, Optional
 
+from schemas.rag import RAG_TURN_CONTENT_LIMIT
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from services.author_profiles import (
+    author_filter_from_query,
+    authors_by_dynasty,
+    authors_by_rating,
+    is_author_rating_query,
+    is_dynasty_author_query,
+    normalize_dynasty,
+)
 
 from .intent import (
     _INTENT_NOTES,
@@ -178,6 +188,7 @@ class AnswerResult:
     total_titles: int = 0
     intent: dict = field(default_factory=dict)
     scope: str = ""
+    stats: dict = field(default_factory=dict)
 
 
 def _title_match_ids(
@@ -405,6 +416,8 @@ def retrieve_candidates(
 
     # The parsed intent names an entity ("托尔金写过哪些书"): resolve it
     # directly before any literal matching.
+    if intent and intent.get("kind") == "stats":
+        intent = None
     if intent:
         kind, value = intent.get("kind"), (intent.get("value") or "").strip()
         resolver = _INTENT_RESOLVERS.get(kind)
@@ -494,7 +507,7 @@ def _normalise_turns(history: Optional[list[dict]]) -> list[dict]:
             role, content = turn.get("role"), turn.get("content", "")
         else:
             role, content = getattr(turn, "role", ""), getattr(turn, "content", "")
-        content = re.sub(r"\s+", " ", str(content or "")).strip()
+        content = re.sub(r"\s+", " ", str(content or "")).strip()[:RAG_TURN_CONTENT_LIMIT]
         if content:
             turns.append(
                 {"role": "user" if role == "user" else "assistant", "content": content}
@@ -587,8 +600,64 @@ def _deictic_kind(query: str) -> Optional[str]:
     return None
 
 
+def _author_rating_answer(db: Session, query: str) -> AnswerResult:
+    authors = authors_by_rating(db)
+    if not authors:
+        return AnswerResult(
+            query=query,
+            answer="藏书库里还没有带评分的作者数据。",
+            sources=[],
+            no_answer=False,
+            rewritten_query="",
+        )
+    listing = "、".join(
+        f"{author['name']} {author['score']} 分（{author['books']} 本）"
+        for author in authors
+    )
+    return AnswerResult(
+        query=query,
+        answer=f"藏书库里豆瓣均分最高的作者：{listing}。",
+        sources=[],
+        no_answer=False,
+        rewritten_query="",
+    )
+
+
+def _author_filter_answer(db: Session, value: dict, query: str) -> AnswerResult:
+    dynasty = normalize_dynasty(str(value.get("dynasty") or ""))
+    authors = authors_by_dynasty(db, dynasty, str(value.get("nation") or ""))
+    if dynasty in ("魏晋", "南北朝", "民国"):
+        dynasty_label = dynasty
+    else:
+        dynasty_label = f"{dynasty}代" if dynasty else ""
+    scope = f"{value.get('nation') or ''}{dynasty_label}" or "该朝代"
+    if not authors:
+        return AnswerResult(
+            query=query,
+            answer=f"藏书库里没有找到{scope}的作者。",
+            sources=[],
+            no_answer=False,
+            rewritten_query="",
+        )
+    listing = "、".join(f"{author['name']}（{author['books']} 本）" for author in authors)
+    answer = f"藏书库里属于{scope}的作者有：{listing}。"
+    if len(authors) >= 30:
+        answer += " 只列出藏书数量最多的 30 位。"
+    return AnswerResult(
+        query=query,
+        answer=answer,
+        sources=[],
+        no_answer=False,
+        rewritten_query="",
+    )
+
+
 def _uses_page_context(query: str) -> bool:
     """Only let the page bias questions that point at it."""
+    if is_dynasty_author_query(query) or is_author_rating_query(query):
+        return False
+    if any(word in query for word in ("这个月", "本月", "上个月", "上上个月")):
+        return False
     if any(token in query for token in ("这个", "该", "这位", "这家", "这套", "他", "她", "它", "介绍")):
         return True
     return any(label in query for label in ("作者", "出版社", "系列", "品牌"))
@@ -872,6 +941,12 @@ def _no_answer(
     )
 
 
+def _stats_answer(db: Session, value: Any, query: str) -> Optional[dict[str, Any]]:
+    from services.assistant_stats import answer_stats_query
+
+    return answer_stats_query(db, value, query)
+
+
 def answer_question(
     db: Session,
     query: str,
@@ -926,6 +1001,7 @@ def answer_question(
         page_context = None
     if page_context and not _uses_page_context(query):
         page_context = None
+        page_entity = None
     if page_context and page_entity is None and page_context.get("kind") != "book":
         page_entity = _entity_page(db, page_context)
     if focus_book_id is not None:
@@ -965,11 +1041,56 @@ def answer_question(
         rewritten = ""
         candidates = pool[: max(1, min(int(top_k), MAX_CANDIDATES))]
     elif turns and _is_more_request(query, turns):
+        more_context = resolve_followup_query(query, turns) or query
+        stats_intent = parse_intent(more_context)
+        if stats_intent.get("kind") == "stats":
+            stats = _stats_answer(db, stats_intent.get("value"), more_context)
+            if stats is not None:
+                return AnswerResult(
+                    query=query,
+                    answer=stats["answer"],
+                    sources=stats.get("books", []),
+                    no_answer=False,
+                    intent=stats_intent,
+                    stats={
+                        "table": stats["table"],
+                        "books": stats["books"],
+                        "query": stats["query"],
+                    },
+                )
         return _answer_more(db, query, turns, seen_book_ids or [], top_k)
     else:
         effective_query = resolve_followup_query(query, turns) if turns else query
         rewritten = effective_query if effective_query != query else ""
+        if is_author_rating_query(effective_query):
+            return _author_rating_answer(db, query)
         intent = parse_intent(effective_query)
+        if intent.get("kind") == "author_filter":
+            return _author_filter_answer(db, intent.get("value") or {}, query)
+        author_filter = author_filter_from_query(effective_query)
+        if (
+            author_filter
+            and intent.get("kind") in ("stats", "topic")
+            and any(word in effective_query for word in ("哪些", "有什么", "有谁", "列表", "列举"))
+        ):
+            return _author_filter_answer(db, author_filter, query)
+        if intent.get("kind") == "stats":
+            stats = _stats_answer(db, intent.get("value"), effective_query)
+            if stats is not None:
+                return AnswerResult(
+                    query=query,
+                    answer=stats["answer"],
+                    sources=stats.get("books", []),
+                    no_answer=False,
+                    rewritten_query=rewritten,
+                    intent=intent,
+                    stats={
+                        "table": stats["table"],
+                        "books": stats["books"],
+                        "query": stats["query"],
+                    },
+                )
+            intent = {"kind": "topic", "value": ""}
         pool = retrieve_candidates(
             db, effective_query, limit=max(_POOL_LIMIT, top_k), intent=intent
         )

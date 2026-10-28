@@ -101,6 +101,14 @@ Assistant 对话框
   而不是一直回到托尔金。
 - 前端在面板顶部显示"正在浏览：…"提示条，第一轮后改为"后续回答优先结合对话上下文"。
 
+## 4.2 统计问答
+
+- 统计复用 `/api/stats/books` 的聚合结果（抽到 `services/library_stats.py`）；
+  朝代/国家作者列表单独走 `services/author_profiles.py`，按 `authors.dynasty/nation` 查询；
+- 语义优先：`parse_intent` 的 LLM 直接识别统计意图并抽取 metric/group_by/year/month/period，
+  `/api/rag/answer` 命中统计意图时直接查聚合表返回 `stats`，不再依赖关键词；
+- 回答返回 `answer` + `table`，聊天气泡内渲染简单表格。
+
 ## 5. 接口
 
 ### `POST /api/assistant/actions`（登录）
