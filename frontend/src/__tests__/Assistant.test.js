@@ -97,10 +97,10 @@ beforeEach(() => {
   axios.post.mockResolvedValue({ data: answer });
 });
 
-test('renders nothing for an anonymous visitor', () => {
+test('shows for anonymous visitors on public pages', () => {
   renderAssistant({ isAuthenticated: false });
 
-  expect(screen.queryByTestId('assistant-trigger')).toBeNull();
+  expect(screen.getByTestId('assistant-trigger')).toBeInTheDocument();
 });
 
 test('greets the user with a short capability intro', () => {
@@ -411,6 +411,17 @@ test('leaves page-scoped count questions to the page context', async () => {
   expect(
     axios.post.mock.calls.some(([url]) => String(url).endsWith('/rag/answer'))
   ).toBe(true);
+});
+
+test('explains that anonymous users cannot write', async () => {
+  openAssistant({ isAuthenticated: false });
+
+  await ask('录入 9787020002207');
+
+  expect(
+    await screen.findByText(i18n.t('assistant.actionLoginRequired'))
+  ).toBeInTheDocument();
+  expect(axios.post).not.toHaveBeenCalled();
 });
 
 test('answers a statistics intent with a table', async () => {

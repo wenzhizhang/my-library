@@ -27,7 +27,11 @@ function looksLikeAction(query, focusBookId) {
   return /(修改|更正|更新|编辑)/.test(query) || /这本书|该书/.test(query);
 }
 
-export default function useAssistantChat(pageContext = null, onContextUsed = null) {
+export default function useAssistantChat(
+  pageContext = null,
+  onContextUsed = null,
+  canWrite = true
+) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,11 +48,21 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
       const query = (question || '').trim();
       if (!query || loading) return;
 
+      const actionLike = Boolean(draft) || looksLikeAction(query, focusBookId);
+      if (actionLike && !canWrite) {
+        append({ role: 'user', content: query, action: true });
+        append({
+          role: 'assistant',
+          content: t('assistant.actionLoginRequired'),
+          action: true,
+        });
+        return;
+      }
+
       // Page context is a first-turn nudge only: once the conversation starts,
       // history takes over. The parent clears it after this call.
       onContextUsed?.();
 
-      const actionLike = Boolean(draft) || looksLikeAction(query, focusBookId);
       if (actionLike) {
         setLoading(true);
         try {
@@ -80,8 +94,11 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
         } catch (error) {
           append({
             role: 'assistant',
-            content: t('assistant.draftFailed'),
-            error: true,
+            content:
+              error?.response?.status === 401
+                ? t('assistant.actionLoginRequired')
+                : t('assistant.draftFailed'),
+            error: error?.response?.status !== 401,
             action: true,
           });
           return;
@@ -163,7 +180,7 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
         setLoading(false);
       }
     },
-    [append, draft, loading, messages, onContextUsed, pageContext, t]
+    [append, canWrite, draft, loading, messages, onContextUsed, pageContext, t]
   );
 
   const updateDraftField = useCallback((field, value) => {
@@ -250,6 +267,14 @@ export default function useAssistantChat(pageContext = null, onContextUsed = nul
           } catch (refreshError) {
             // Fall through to the normal error message.
           }
+        }
+        if (error?.response?.status === 401) {
+          append({
+            role: 'assistant',
+            content: t('assistant.actionLoginRequired'),
+            action: true,
+          });
+          return;
         }
         const detail = error?.response?.data?.detail;
         const text =

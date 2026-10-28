@@ -505,6 +505,7 @@
     "page_series": "系列",
     "page_brand": "品牌",
     "pageAwareUsed": "正在瀏覽{{type}}詳情；後續回答優先結合對話上下文",
-    "draftRefreshed": "書已被修改，已按最新內容重新產生草稿，請再確認。"
+    "draftRefreshed": "書已被修改，已按最新內容重新產生草稿，請再確認。",
+    "actionLoginRequired": "未登入使用者不能執行該動作，請先登入帳號後再試。"
   }
 }

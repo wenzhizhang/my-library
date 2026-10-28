@@ -487,6 +487,7 @@
     "page_series": "系列",
     "page_brand": "品牌",
     "pageAwareUsed": "正在浏览{{type}}详情；后续回答优先结合对话上下文",
-    "draftRefreshed": "书已被修改，已按最新内容重新生成草稿，请再确认。"
+    "draftRefreshed": "书已被修改，已按最新内容重新生成草稿，请再确认。",
+    "actionLoginRequired": "未登录用户不能执行该动作，请先登录账号后再试。"
   }
 }
