@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
+
+import { useAuth } from '../AuthContext';
 
 import { isAuthPath } from '../authRoutes';
 import { LIBRARY_PATH } from '../config';
@@ -24,7 +25,6 @@ const FOX_SLEEP_2X = '/images/logo/fox_sleep_360x480_256.webp';
 const FOX_SLEEP_3X = '/images/logo/fox_sleep_720x960_256.webp';
 
 export default function Assistant() {
-  const { isAuthenticated, isGuest } = useAuth();
   const navigate = useNavigate();
   const pageContext = usePageContext();
   const [pageContextPending, setPageContextPending] = useState(true);
@@ -38,6 +38,7 @@ export default function Assistant() {
   const consumePageContext = useCallback(() => setPageContextPending(false), []);
   const location = useLocation();
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const {
     messages,
     loading,
@@ -51,7 +52,7 @@ export default function Assistant() {
     chooseCandidate,
     fillMissing,
     reset,
-  } = useAssistantChat(chatContext, consumePageContext);
+  } = useAssistantChat(chatContext, consumePageContext, isAuthenticated);
   const { sleeping, touch } = useSleepingFox();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -78,7 +79,7 @@ export default function Assistant() {
   }, [messages, loading]);
 
   const onAuthPage = isAuthPath(location.pathname);
-  if (onAuthPage || (!isAuthenticated && !isGuest)) return null;
+  if (onAuthPage) return null;
 
   const submit = (question) => {
     const query = (question ?? input).trim();
