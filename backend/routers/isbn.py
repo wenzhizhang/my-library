@@ -4,18 +4,30 @@ Lookup chain: user's own DB → root.db → Douban → other APIs.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 from typing import List, Dict, Tuple
 
 from database import get_db, get_root_db, root_engine
 from models import Author, Publisher, Book, Category, Brand
 from schemas.isbn import IsbnLookupRequest, IsbnLookupResponse, IsbnLookupResult
+from services.author_parser import (
+    parse_author_list,
+    resolved_author,
+)
+from services.author_resolver import (
+    backfill_intro,
+    compatible_author,
+    copy_author_from_candidate,
+    fill_author_metadata,
+    find_existing_author,
+    find_or_create_author,
+)
 from services.isbn_lookup import IsbnNotFoundError, fetch_publisher_intro
 from services.metadata import lookup_book_info
 from services.metadata import lookup_isbn_metadata, search_metadata
 from services.metadata.fields import CANONICAL_FIELDS
-from services.sync_to_root import sync_author, sync_publisher, sync_brand
+from services.sync_to_root import sync_publisher, sync_brand
 
 
 router = APIRouter(prefix="/api/isbn", tags=["isbn"])
@@ -122,19 +134,23 @@ def retrieve_or_create_authors(db: Session, author_dict_list: List[Dict]):
     author_ids = []
     author_names = []
     for author in author_dict_list:
-        name = author.get("name") or author.get("name_cn")
-        if not name:
+        refs = parse_author_list([author])
+        if not refs:
             continue
-        existing = db.query(Author).filter(
-            (Author.name == name) | (Author.name_cn == name)
-        ).first()
+        ref = refs[0]
+        existing = find_existing_author(db, ref)
         if existing:
+            fill_author_metadata(existing, ref)
+            db.commit()
             author_ids.append(existing.id)
             author_names.append(existing.name_cn or existing.name)
         else:
+            resolved = resolved_author(ref)
             new_author = Author(
-                name=author["name"], name_cn=author.get("name_cn"),
-                nation=author.get("nation") or "无", dynasty=author.get("dynasty"),
+                name=resolved.original_name or author.get("name") or ref.name,
+                name_cn=author.get("name_cn") or resolved.name,
+                nation=resolved.nation,
+                dynasty=resolved.dynasty or None,
                 intro=author.get("intro"), photo=author.get("photo"),
             )
             db.add(new_author)
@@ -320,50 +336,34 @@ async def get_isbn_info(
 
     # Resolve / create authors   (user DB → root.db → create)
     author_ids = []
-    for name in info.author_names:
-        if not name:
-            continue
-        # 1. user's own DB
-        existing = (
-            db.query(Author)
-            .filter((Author.name == name) | (Author.name_cn == name))
-            .first()
-        )
-        # 2. root.db — copy to user DB if found here
-        if not existing:
-            root_author = (
+    author_names = []
+    for ref in parse_author_list(info.author_names):
+        existing = find_existing_author(db, ref)
+        if existing is None:
+            root_candidates = (
                 root_db.query(Author)
-                .filter((Author.name == name) | (Author.name_cn == name))
-                .first()
+                .filter(or_(Author.name == ref.name, Author.name_cn == ref.name))
+                .all()
             )
-            if root_author:
-                existing = Author(
-                    name=root_author.name,
-                    name_cn=getattr(root_author, "name_cn", None),
-                    nation=getattr(root_author, "nation", "无"),
-                    dynasty=getattr(root_author, "dynasty", None),
-                    intro=getattr(root_author, "intro", None),
-                    photo=getattr(root_author, "photo", None),
-                )
-                db.add(existing)
+            for candidate in root_candidates:
+                if not compatible_author(candidate, ref):
+                    continue
+                existing = copy_author_from_candidate(db, candidate, ref)
                 db.commit()
                 db.refresh(existing)
-        if existing:
-            author_ids.append(existing.id)
-        else:
-            # 3. create new
-            new_author = Author(
-                name=name,
-                name_cn=name,
-                nation="无",
-                dynasty=None,
-                intro=info.author_intro or None,
-            )
-            db.add(new_author)
+                break
+        if existing is not None:
+            fill_author_metadata(existing, ref)
+            backfill_intro(existing, info.author_intro)
             db.commit()
-            db.refresh(new_author)
+            author_ids.append(existing.id)
+            author_names.append(existing.name_cn or existing.name)
+        else:
+            new_author = find_or_create_author(db, ref, sync=True)
+            backfill_intro(new_author, info.author_intro)
+            db.commit()
             author_ids.append(new_author.id)
-            sync_author(new_author)
+            author_names.append(new_author.name_cn or new_author.name)
 
     # Resolve / create publisher  (user DB → root.db → create)
     publisher_id = None
@@ -485,8 +485,8 @@ async def get_isbn_info(
         publish_date=info.publish_date or "",
         pages=info.pages,
         price=info.price,
-        summary=info.summary or "",
-        introduction=info.introduction or "",
+        summary="",
+        introduction=info.introduction or info.summary or "",
         translator=info.translator or "",
         language=info.language or "",
         binding_type=info.binding_type or "",
@@ -503,7 +503,7 @@ async def get_isbn_info(
         link=info.link or "",
         tag_names=info.tag_names or [],
         author_intro=info.author_intro or "",
-        author_names=info.author_names or [],
+        author_names=author_names or [],
         author_ids=author_ids or [],
         brand_id=brand_id,
         brand_name=brand_name,

@@ -94,7 +94,7 @@ def parse_search(content: bytes, isbn: str = "") -> list[SourceResult]:
         if detail_el is not None:
             detail = clean_text(detail_el.get_text(" ", strip=True))
             if detail:
-                fields["summary"] = detail[:4000]
+                fields["introduction"] = detail[:4000]
 
         results.append(SourceResult(source=SOURCE, fields=fields, link=href))
     return results

@@ -15,6 +15,7 @@ from .fields import (
     clean_text,
     is_empty,
     merge_results,
+    promote_summary,
 )
 
 CACHE_TTL = 30 * 24 * 3600
@@ -75,7 +76,7 @@ async def lookup_isbn_metadata(raw_isbn: str, *, use_cache: bool = True) -> Merg
     if use_cache:
         cached = cache.get(key)
         if cached:
-            return MergedMetadata(
+            merged = MergedMetadata(
                 fields=cached.get("fields", {}),
                 sources=cached.get("sources", {}),
                 missing=cached.get("missing", []),
@@ -84,6 +85,8 @@ async def lookup_isbn_metadata(raw_isbn: str, *, use_cache: bool = True) -> Merg
                 link=cached.get("link", ""),
                 extra=cached.get("extra", {}),
             )
+            promote_summary(merged.fields, merged.sources)
+            return merged
 
     results: list[SourceResult] = []
     douban_result = await douban.fetch(isbn)
@@ -102,6 +105,8 @@ async def lookup_isbn_metadata(raw_isbn: str, *, use_cache: bool = True) -> Merg
         if foreign_result is not None:
             results.append(foreign_result)
             merged = merge_results(results)
+
+    promote_summary(merged.fields, merged.sources)
 
     if merged.fields:
         await _download_cover(merged.fields, merged.sources, merged.link)
@@ -128,7 +133,7 @@ def to_book_info(merged: MergedMetadata, isbn: str = "") -> BookInfo:
         publish_date=clean_text(fields.get("publish_date")),
         pages=fields.get("pages"),
         price=fields.get("price"),
-        summary=clean_text(fields.get("summary") or fields.get("introduction")),
+        summary="",
         introduction=clean_text(fields.get("introduction") or fields.get("summary")),
         thumb_image=clean_text(fields.get("thumb_image")),
         binding_type=clean_text(fields.get("binding_type")),
@@ -163,10 +168,13 @@ async def search_metadata(
         score = _candidate_score(candidate, title, author, publisher, publish_date)
         if score <= 0:
             continue
+        fields = dict(candidate.fields)
+        sources = {key: candidate.source for key in fields}
+        promote_summary(fields, sources)
         scored.append(
             {
-                "fields": candidate.fields,
-                "sources": {key: candidate.source for key in candidate.fields},
+                "fields": fields,
+                "sources": sources,
                 "link": candidate.link,
                 "score": score,
             }

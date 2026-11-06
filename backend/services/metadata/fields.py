@@ -208,3 +208,22 @@ def merge_results(results: list[SourceResult]) -> MergedMetadata:
                 merged.link = result.link
                 break
     return merged
+
+
+def promote_summary(fields: dict, sources: dict | None = None) -> None:
+    """Treat a source ``summary`` as the book introduction.
+
+    ``Book.summary`` is reserved for the RAG-generated summary; source
+    descriptions must never land there.
+    """
+    summary = clean_text(fields.get("summary"))
+    if not summary:
+        fields.pop("summary", None)
+        return
+    if not clean_text(fields.get("introduction")):
+        fields["introduction"] = summary
+    fields.pop("summary", None)
+    if sources is not None:
+        if "summary" in sources and "introduction" not in sources:
+            sources["introduction"] = sources["summary"]
+        sources.pop("summary", None)

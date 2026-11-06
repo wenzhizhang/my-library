@@ -397,3 +397,20 @@ class TestIsbn13PubdateNormalization:
 
         assert resp.status_code == 200
         assert resp.json()["publish_date"] == ""
+
+
+class TestIsbnSummaryMapping:
+    def test_source_summary_is_an_introduction_not_a_summary(self, client, db):
+        info = BookInfo(
+            isbn="9787544270874",
+            title="挪威的森林",
+            summary="来源提供的内容简介",
+        )
+
+        with _mock_lookup(info):
+            resp = client.get("/api/isbn/9787544270874")
+
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["introduction"] == "来源提供的内容简介"
+        assert data["summary"] == ""
