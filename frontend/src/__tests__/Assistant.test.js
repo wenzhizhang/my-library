@@ -280,6 +280,62 @@ test('treats “加入书库” plus an ISBN as an action', async () => {
   expect(await screen.findByTestId('assistant-draft')).toBeInTheDocument();
 });
 
+test('queues multiple ISBN drafts', async () => {
+  const makeDraft = (isbn, title) => ({
+    action: 'create_book',
+    book_id: null,
+    isbn,
+    fields: { isbn, title_cn: title, title },
+    sources: {},
+    missing: [],
+    conflicts: {},
+    existing: null,
+    updated_at: null,
+    current: {},
+    message: '',
+  });
+  const first = makeDraft('9787020002207', '第一本');
+  const second = makeDraft('9787536692930', '第二本');
+  axios.post.mockImplementation((url) => {
+    if (String(url).endsWith('/assistant/actions')) {
+      return Promise.resolve({
+        data: {
+          intent: 'create_book',
+          draft: first,
+          drafts: [first, second],
+          candidates: [],
+          message: '',
+        },
+      });
+    }
+    if (String(url).endsWith('/assistant/commit')) {
+      return Promise.resolve({ data: { status: 'created', book_id: 42 } });
+    }
+    return Promise.resolve({ data: answer });
+  });
+
+  openAssistant();
+  await ask('录入 9787020002207 9787536692930');
+
+  expect(await screen.findByDisplayValue('第一本')).toBeInTheDocument();
+  expect(
+    await screen.findByText(i18n.t('assistant.batchDrafts', { count: 2 }))
+  ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByTestId('draft-confirm'));
+  expect(await screen.findByDisplayValue('第二本')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByTestId('draft-confirm'));
+  await waitFor(() =>
+    expect(screen.queryByTestId('assistant-draft')).not.toBeInTheDocument()
+  );
+  expect(
+    axios.post.mock.calls.filter(([url]) =>
+      String(url).endsWith('/assistant/commit')
+    )
+  ).toHaveLength(2);
+});
+
 test('rebuilds a stale edit draft after a 409', async () => {
   const updateDraft = {
     action: 'update_book',

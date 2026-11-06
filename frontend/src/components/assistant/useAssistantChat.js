@@ -36,6 +36,7 @@ export default function useAssistantChat(
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState(null);
+  const [draftQueue, setDraftQueue] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [committing, setCommitting] = useState(false);
 
@@ -80,14 +81,28 @@ export default function useAssistantChat(
                 content: t('assistant.draftUpdated'),
                 action: true,
               });
-            } else if (data.message) {
+            } else if (data.message && !Array.isArray(data.drafts)) {
               append({
                 role: 'assistant',
                 content: data.message,
                 action: true,
               });
             }
-            setDraft(data.draft || null);
+            if (Array.isArray(data.drafts)) {
+              setDraft(data.drafts[0] || null);
+              setDraftQueue(data.drafts.slice(1));
+              if (data.drafts.length > 1) {
+                append({
+                  role: 'assistant',
+                  content: t('assistant.batchDrafts', {
+                    count: data.drafts.length,
+                  }),
+                  action: true,
+                });
+              }
+            } else {
+              setDraft(data.draft || null);
+            }
             setCandidates(data.candidates || []);
             return;
           }
@@ -231,7 +246,14 @@ export default function useAssistantChat(
           draft,
           duplicate_choice: duplicateChoice || null,
         });
-        setDraft(null);
+        const remaining = draftQueue;
+        if (remaining.length) {
+          setDraft(remaining[0]);
+          setDraftQueue(remaining.slice(1));
+        } else {
+          setDraft(null);
+          setDraftQueue([]);
+        }
         setCandidates([]);
         if (data.status === 'abandoned') {
           append({ role: 'assistant', content: t('assistant.draftAbandoned') });
@@ -244,6 +266,16 @@ export default function useAssistantChat(
                 : 'assistant.bookCreated',
               { title }
             ),
+          });
+        }
+        if (remaining.length) {
+          append({
+            role: 'assistant',
+            content: t('assistant.batchProgress', {
+              title,
+              count: remaining.length,
+            }),
+            action: true,
           });
         }
       } catch (error) {
@@ -286,7 +318,7 @@ export default function useAssistantChat(
         setCommitting(false);
       }
     },
-    [append, committing, draft, t]
+    [append, committing, draft, draftQueue, t]
   );
 
   const fillMissing = useCallback(async () => {
@@ -320,6 +352,7 @@ export default function useAssistantChat(
 
   const cancelDraft = useCallback(() => {
     setDraft(null);
+    setDraftQueue([]);
     setCandidates([]);
   }, []);
 
@@ -356,6 +389,7 @@ export default function useAssistantChat(
   const reset = useCallback(() => {
     setMessages([]);
     setDraft(null);
+    setDraftQueue([]);
     setCandidates([]);
   }, []);
 

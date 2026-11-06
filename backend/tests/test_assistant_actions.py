@@ -492,3 +492,125 @@ def test_update_book_without_isbn_does_not_require_one(client, db):
     db.refresh(book)
     assert book.publisher.name == "中华书局"
     assert book.isbn is None
+
+
+def test_commit_parses_dynasty_author_and_translator(client, db, monkeypatch):
+    async def fake_lookup(raw):
+        return MergedMetadata(
+            fields={
+                "isbn": ISBN,
+                "title_cn": "世说新语",
+                "title": "世说新语",
+                "author_names": ["（南朝宋）刘义庆 著；张撝之 译注"],
+            },
+            sources={"title_cn": "douban", "author_names": "douban"},
+            source="douban",
+        )
+
+    monkeypatch.setattr(assistant_actions, "lookup_isbn_metadata", fake_lookup)
+    draft = client.post(
+        "/api/assistant/actions", json={"message": f"录入 {ISBN}"}
+    ).json()["draft"]
+
+    assert draft["fields"]["author_names"] == ["刘义庆", "张撝之"]
+    response = client.post("/api/assistant/commit", json={"draft": draft})
+
+    assert response.status_code == 200, response.text
+    book = db.query(Book).filter(Book.isbn == ISBN).one()
+    authors = {author.name_cn: author for author in book.authors}
+    assert set(authors) == {"刘义庆", "张撝之"}
+    assert authors["刘义庆"].dynasty == "南朝宋"
+    assert authors["刘义庆"].nation == "中国"
+    assert authors["张撝之"].nation == "中国"
+    assert authors["张撝之"].dynasty == "当代"
+
+
+def test_extracts_every_isbn():
+    assert assistant_actions._find_isbns(
+        "录入 9787020002207、9787536692930"
+    ) == ["9787020002207", "9787536692930"]
+
+
+def test_multiple_isbns_return_multiple_drafts(client, db, monkeypatch):
+    async def fake_lookup(raw):
+        merged = _merged(raw)
+        merged.fields["isbn"] = raw
+        merged.fields["title_cn"] = f"书 {raw}"
+        merged.fields["title"] = f"书 {raw}"
+        return merged
+
+    monkeypatch.setattr(assistant_actions, "lookup_isbn_metadata", fake_lookup)
+    response = client.post(
+        "/api/assistant/actions",
+        json={"message": "录入 9787020002207 9787536692930"},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert len(body["drafts"]) == 2
+    assert body["draft"]["fields"]["isbn"] == "9787020002207"
+    assert body["drafts"][1]["fields"]["isbn"] == "9787536692930"
+    assert db.query(Book).count() == 0
+
+
+def test_commit_parses_foreign_author_forms(client, db, monkeypatch):
+    async def fake_lookup(raw):
+        return MergedMetadata(
+            fields={
+                "isbn": ISBN,
+                "title_cn": "数学名著",
+                "title": "数学名著",
+                "author_names": [
+                    "(美) 约翰·P.丹吉洛， [美]罗伯特·布利策，"
+                    "[英] 贝拉・博洛巴斯（Béla Bollobás）"
+                ],
+            },
+            sources={"title_cn": "douban", "author_names": "douban"},
+            source="douban",
+        )
+
+    monkeypatch.setattr(assistant_actions, "lookup_isbn_metadata", fake_lookup)
+    draft = client.post(
+        "/api/assistant/actions", json={"message": f"录入 {ISBN}"}
+    ).json()["draft"]
+    assert draft["fields"]["author_names"] == [
+        "约翰·P.丹吉洛",
+        "罗伯特·布利策",
+        "贝拉・博洛巴斯",
+    ]
+
+    response = client.post("/api/assistant/commit", json={"draft": draft})
+    assert response.status_code == 200, response.text
+    book = db.query(Book).filter(Book.isbn == ISBN).one()
+    authors = {author.name_cn: author for author in book.authors}
+    assert authors["约翰·P.丹吉洛"].nation == "美国"
+    assert authors["罗伯特·布利策"].nation == "美国"
+    assert authors["贝拉・博洛巴斯"].name == "Béla Bollobás"
+    assert authors["贝拉・博洛巴斯"].nation == "英国"
+    assert all(author.dynasty is None for author in authors.values())
+    assert "无" not in {author.nation for author in authors.values()}
+
+
+def test_create_draft_moves_source_summary_to_introduction(client, db, monkeypatch):
+    async def fake_lookup(raw):
+        return MergedMetadata(
+            fields={
+                "isbn": ISBN,
+                "title_cn": "红楼梦",
+                "title": "红楼梦",
+                "author_names": ["曹雪芹"],
+                "summary": "这是来源提供的内容简介。",
+            },
+            sources={"summary": "douban"},
+            source="douban",
+        )
+
+    monkeypatch.setattr(assistant_actions, "lookup_isbn_metadata", fake_lookup)
+    response = client.post(
+        "/api/assistant/actions", json={"message": f"录入 {ISBN}"}
+    )
+
+    assert response.status_code == 200, response.text
+    fields = response.json()["draft"]["fields"]
+    assert fields["introduction"] == "这是来源提供的内容简介。"
+    assert "summary" not in fields

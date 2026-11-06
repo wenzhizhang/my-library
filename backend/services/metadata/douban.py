@@ -109,7 +109,7 @@ def parse(html: str, isbn: str = "", link: str = "") -> Optional[SourceResult]:
     if summary_el is not None:
         summary = clean_text(summary_el.get_text(" ", strip=True))
         if summary:
-            fields["summary"] = summary[:4000]
+            fields["introduction"] = summary[:4000]
 
     score_el = soup.select_one("strong.rating_num") or soup.select_one(
         'strong[property="v:average"]'

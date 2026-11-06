@@ -506,6 +506,8 @@
     "page_brand": "brand",
     "pageAwareUsed": "Viewing {{type}} details; follow-ups use the conversation",
     "draftRefreshed": "The book changed; the draft was rebuilt from the latest data. Please confirm again.",
-    "actionLoginRequired": "You need to sign in before adding or editing books."
+    "actionLoginRequired": "You need to sign in before adding or editing books.",
+    "batchDrafts": "Found {{count}} ISBNs; confirm them one by one.",
+    "batchProgress": "Saved “{{title}}”; {{count}} left."
   }
 }

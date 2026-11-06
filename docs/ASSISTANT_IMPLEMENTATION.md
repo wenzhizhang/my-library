@@ -363,6 +363,7 @@ flowchart LR
 ### 8.2 合并规则
 
 - 规范字段：`isbn, title, title_cn, author_names, publisher_name, publish_date, pages, price, binding_type, translator, language, summary, introduction, catalog, thumb_image, douban_score, tags`；
+- 来源字段 `summary` 一律映射到书籍的**简介**（`introduction`）；书籍 `summary` 只由 RAG 对过长简介生成，不接受元数据写入；
 - 字段权威：价格优先当当，其余优先豆瓣；缺失才回退；
 - 冲突不静默覆盖：`conflicts` 记录各源值（截断展示），默认取权威值；
 - `missing` 列出缺失字段；
@@ -398,7 +399,17 @@ stateDiagram-v2
 ### 9.2 创建
 
 - ISBN 规范化（ISBN-10 → 13，去连字符）；
+- 一次可输入多条 ISBN：逐条生成草稿，前端按顺序逐本确认；
 - 元数据查询 → 草稿；
+- 作者字段统一交给 `services/author_parser.py`（纯解析），落库交给 `services/author_resolver.py`：
+  - `（南朝宋）` / `[宋]` / `【日】` 等前导括号识别为朝代或国籍；
+  - `;` / `；` / `，` 分隔多位作者；
+  - 去掉 `著/注/译/译注/整理/校/编/点校/校注/绘` 等贡献词；
+  - 去掉外国译名后的原名括号，如 `贝拉・博洛巴斯（Béla Bollobás）` → `贝拉・博洛巴斯`，原名保留；
+  - 创建作者时中文名写入 `name_cn`，原名写入 `name`；没有原名时两个字段都用中文名；
+  - 朝代作者默认国籍为中国；直接解析无法确定国籍/朝代时，新建作者默认中国/当代；
+  - 只有中国作者保留朝代，其他国籍朝代一律留空；
+- 落库前按“姓名 + 国籍/朝代”查作者：匹配则复用并补齐缺失元数据；不匹配或不存在才创建；
 - 同 ISBN 已存在：更新/新增/放弃；
 - 确认后作者/出版社精确匹配或创建，品牌/系列/分类/书架只匹配已有项；
 - 事务写入，审计日志 `DATA_DIR/assistant_actions.jsonl`。
@@ -457,8 +468,8 @@ cd frontend && CI=true npx react-scripts test --watchAll=false
 
 当前结果：
 
-- 后端 **376 passed**；
-- 前端 **92 passed**（4 个 `Books.test`/`App.test` 既有失败，与助手无关）。
+- 后端 **396 passed**；
+- 前端 **94 passed**（4 个 `Books.test`/`App.test` 既有失败，与助手无关）。
 
 关键覆盖：
 
@@ -497,6 +508,8 @@ backend/
   services/
     assistant_actions.py
     author_profiles.py
+    author_parser.py
+    author_resolver.py
     assistant_stats.py
     library_stats.py
     isbn_lookup.py

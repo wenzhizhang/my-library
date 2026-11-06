@@ -18,9 +18,18 @@ from typing import Any, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models import Author, Book, Bookshelf, Brand, BookSeries, Category, Publisher
+from models import Book, Bookshelf, Brand, BookSeries, Category, Publisher
 from rag.llm import deepseek_chat
+from schemas.author import DYNASTIES, NATIONS
 from schemas.book import BookCreation, BookUpdate
+from services.author_parser import (
+    NATION_ALIASES,
+    AuthorRef,
+    parse_author_list,
+    refs_to_names,
+    resolved_author,
+)
+from services.author_resolver import resolve_author_ids
 from services.metadata import lookup_isbn_metadata, search_metadata
 from services.metadata.fields import MergedMetadata
 from services.metadata.fields import (
@@ -29,8 +38,11 @@ from services.metadata.fields import (
     parse_int,
     parse_price,
     parse_publish_date,
+    promote_summary,
 )
-from services.sync_to_root import sync_author, sync_publisher
+from services.sync_to_root import sync_publisher
+
+ALLOWED_DRAFT_NATIONS = set(NATIONS) | set(NATION_ALIASES.values())
 
 FIELD_ALIASES = {
     "书名": "title_cn",
@@ -102,7 +114,7 @@ EXTRA_EDIT_FIELDS = (
     "in_wish",
     "link",
 )
-DRAFT_FIELDS = tuple(dict.fromkeys((*CANONICAL_FIELDS, *EXTRA_EDIT_FIELDS)))
+DRAFT_FIELDS = tuple(dict.fromkeys((*CANONICAL_FIELDS, *EXTRA_EDIT_FIELDS, "author_refs")))
 SCALAR_BOOK_FIELDS = (
     "isbn",
     "title_cn",
@@ -180,15 +192,40 @@ _MAX_LEN = {
 }
 
 
-def _find_isbn(message: str) -> str:
+_ISBN13_RE = re.compile(r"97[89](?:[\s-]?\d){10}")
+_ISBN10_RE = re.compile(r"(?<!\d)\d(?:[\s-]?\d){8}[\dXx](?!\d)")
+
+
+def _find_isbns(message: str) -> list[str]:
+    """Extract every valid ISBN from a message, preserving input order."""
     from services.isbn_lookup import IsbnNotFoundError, normalize_isbn
 
-    for raw in re.findall(r"[0-9Xx][0-9Xx\s-]{8,16}[0-9Xx]", message or ""):
+    text = message or ""
+    spans = []
+    found: list[str] = []
+    for match in _ISBN13_RE.finditer(text):
+        spans.append(match.span())
         try:
-            return normalize_isbn(raw)
+            value = normalize_isbn(match.group(0))
         except (IsbnNotFoundError, ValueError):
             continue
-    return ""
+        if value not in found:
+            found.append(value)
+    for match in _ISBN10_RE.finditer(text):
+        if any(start <= match.start() < end for start, end in spans):
+            continue
+        try:
+            value = normalize_isbn(match.group(0))
+        except (IsbnNotFoundError, ValueError):
+            continue
+        if value not in found:
+            found.append(value)
+    return found
+
+
+def _find_isbn(message: str) -> str:
+    isbns = _find_isbns(message)
+    return isbns[0] if isbns else ""
 
 
 def _has_any(message: str, words: tuple[str, ...]) -> bool:
@@ -231,6 +268,27 @@ def clean_fields(raw: dict[str, Any]) -> dict[str, Any]:
     fields: dict[str, Any] = {}
     for key, value in (raw or {}).items():
         if key not in DRAFT_FIELDS:
+            continue
+        if key == "author_refs":
+            if isinstance(value, list):
+                refs = []
+                for item in value:
+                    if not isinstance(item, dict) or not item.get("name"):
+                        continue
+                    nation = item.get("nation") if item.get("nation") in ALLOWED_DRAFT_NATIONS else ""
+                    dynasty = item.get("dynasty") if item.get("dynasty") in DYNASTIES else ""
+                    refs.append(
+                        resolved_author(
+                            AuthorRef(
+                                name=str(item["name"]),
+                                nation=str(nation or ""),
+                                dynasty=str(dynasty or ""),
+                                original_name=str(item.get("original_name") or ""),
+                            )
+                        ).as_dict()
+                    )
+                if refs:
+                    fields[key] = refs[:20]
             continue
         if key in LIST_FIELDS:
             items = value if isinstance(value, (list, tuple)) else [value]
@@ -305,7 +363,13 @@ def _draft(
 async def build_create_draft(db: Session, raw_isbn: str) -> dict[str, Any]:
     merged = await lookup_isbn_metadata(raw_isbn)
     isbn = clean_text(merged.fields.get("isbn")) or raw_isbn
-    fields = clean_fields(merged.fields)
+    raw_fields = dict(merged.fields)
+    promote_summary(raw_fields)
+    fields = clean_fields(raw_fields)
+    refs = parse_author_list(fields.get("author_names") or [])
+    if refs:
+        fields["author_names"] = refs_to_names(refs)
+        fields["author_refs"] = [ref.as_dict() for ref in refs]
     fields["isbn"] = isbn
     existing = db.query(Book).filter(Book.isbn == isbn).first()
     missing = [name for name in CANONICAL_FIELDS if name not in fields]
@@ -327,7 +391,7 @@ def _coerce_change(field: str, value: Any) -> Any:
     if not text:
         return None
     if field in LIST_FIELDS:
-        separator = r"[、,，/和]" if field == "author_names" else r"[、,，/\s]+"
+        separator = r"[、,，/和;；]" if field == "author_names" else r"[、,，/\s]+"
         items = [part.strip() for part in re.split(separator, text) if part.strip()]
         return items or None
     if field in NUMERIC_FIELDS:
@@ -383,6 +447,8 @@ def _apply_change(draft: dict[str, Any], field: str, value: Any) -> dict[str, An
     fields = draft.setdefault("fields", {})
     old_title = fields.get("title_cn")
     fields[field] = value
+    if field == "author_names":
+        fields.pop("author_refs", None)
     _sync_title(fields, old_title)
     draft.setdefault("sources", {})[field] = "user"
     draft["missing"] = [name for name in draft.get("missing", []) if name != field]
@@ -489,6 +555,8 @@ async def build_fill_draft(db: Session, book: Book) -> dict[str, Any]:
                 sources=dict(best["sources"]),
                 source="dangdang",
             )
+    if merged is not None:
+        promote_summary(merged.fields, merged.sources)
     current = _book_current(book)
     if merged is None:
         return _draft(
@@ -542,27 +610,6 @@ def find_books(db: Session, query: str) -> list[dict[str, Any]]:
         .all()
     )
     return [_book_summary(book) for book in books]
-
-
-def _author_ids(db: Session, names: list[str]) -> list[int]:
-    ids: list[int] = []
-    for name in names:
-        author = (
-            db.query(Author)
-            .filter((Author.name == name) | (Author.name_cn == name))
-            .first()
-        )
-        if author is None:
-            author = Author(name=name, name_cn=name, nation="无")
-            db.add(author)
-            db.flush()
-            db.refresh(author)
-            try:
-                sync_author(author)
-            except Exception:
-                pass
-        ids.append(author.id)
-    return ids
 
 
 def _publisher_id(db: Session, name: str) -> Optional[int]:
@@ -629,10 +676,12 @@ def _book_payload(
                 payload[key] = datetime.combine(parsed, datetime.min.time())
     if fields.get("tags"):
         payload["tags"] = fields["tags"]
-    if for_create:
-        payload["author_ids"] = _author_ids(db, fields.get("author_names") or [])
-    elif fields.get("author_names"):
-        payload["author_ids"] = _author_ids(db, fields["author_names"])
+    author_names = fields.get("author_names") or []
+    author_refs = fields.get("author_refs") or []
+    if author_refs and [ref.get("name") for ref in author_refs] == author_names:
+        payload["author_ids"] = resolve_author_ids(db, author_refs, sync=True)
+    elif author_names:
+        payload["author_ids"] = resolve_author_ids(db, author_names, sync=True)
     if fields.get("publisher_name"):
         publisher_id = _publisher_id(db, fields["publisher_name"])
         if publisher_id is not None:
@@ -830,7 +879,8 @@ async def handle_action(
             "message": "",
         }
 
-    isbn = _find_isbn(message)
+    isbns = _find_isbns(message)
+    isbn = isbns[0] if isbns else ""
     edit_requested = _has_any(message, _EDIT_WORDS)
     fill_requested = _has_any(message, ("补全", "完善"))
     create_requested = _has_any(message, _ACTION_WORDS)
@@ -874,12 +924,30 @@ async def handle_action(
             "message": "",
         }
 
-    if isbn and create_requested:
+    if isbns and create_requested:
+        drafts = []
+        for value in isbns[:20]:
+            try:
+                drafts.append(await build_create_draft(db, value))
+            except Exception:
+                continue
+        if not drafts:
+            return {
+                "intent": "none",
+                "draft": None,
+                "candidates": [],
+                "message": "没有查到这些 ISBN 的元数据。",
+            }
         return {
             "intent": "create_book",
-            "draft": await build_create_draft(db, isbn),
+            "draft": drafts[0],
+            "drafts": drafts,
             "candidates": [],
-            "message": "",
+            "message": (
+                f"找到 {len(drafts)} 个 ISBN，将逐本确认。"
+                if len(drafts) > 1
+                else ""
+            ),
         }
 
     return {"intent": "none", "draft": None, "candidates": [], "message": ""}

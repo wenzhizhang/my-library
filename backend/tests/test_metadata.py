@@ -26,7 +26,7 @@ def test_douban_parse_extracts_fields():
     assert result.fields["binding_type"] == "平装"
     assert result.fields["douban_score"] == 9.6
     assert result.fields["thumb_image"] == "https://img.example/douban-cover.jpg"
-    assert result.fields["summary"].startswith("《红楼梦》")
+    assert result.fields["introduction"].startswith("《红楼梦》")
     assert result.fields["tags"] == ["古典文学", "小说"]
 
 
@@ -222,6 +222,7 @@ def test_to_book_info_falls_back_to_summary_for_introduction():
     )
     info = service.to_book_info(merged)
     assert info.introduction == "内容简介"
+    assert info.summary == ""
 
 
 def test_isbn_lookup_does_not_adopt_a_weak_candidate(client, monkeypatch):
