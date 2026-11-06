@@ -7,6 +7,7 @@ import { useAuth } from '../AuthContext';
 
 import { isAuthPath } from '../authRoutes';
 import { LIBRARY_PATH } from '../config';
+import { openLastBookListPage } from './bookListNavigation';
 import MessageList from './assistant/MessageList';
 import CandidateList from './assistant/CandidateList';
 import DraftCard from './assistant/DraftCard';
@@ -39,6 +40,12 @@ export default function Assistant() {
   const location = useLocation();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+
+  const handleBookCreated = useCallback(
+    (book) => openLastBookListPage(navigate, book),
+    [navigate]
+  );
+
   const {
     messages,
     loading,
@@ -52,7 +59,12 @@ export default function Assistant() {
     chooseCandidate,
     fillMissing,
     reset,
-  } = useAssistantChat(chatContext, consumePageContext, isAuthenticated);
+  } = useAssistantChat(
+    chatContext,
+    consumePageContext,
+    isAuthenticated,
+    handleBookCreated
+  );
   const { sleeping, touch } = useSleepingFox();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');

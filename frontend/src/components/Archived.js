@@ -35,7 +35,7 @@ const Archived = () => {
       console.error('Error fetching archived books:', err);
     }
     setLoading(false);
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, searchParams]);
 
   useEffect(() => { fetchArchived(); }, [fetchArchived]);
 

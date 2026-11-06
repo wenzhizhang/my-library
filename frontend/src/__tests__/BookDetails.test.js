@@ -44,6 +44,7 @@ function renderBook(overrides = {}) {
     return Promise.resolve({ data: { ...baseBook, ...overrides } });
   });
   axios.put.mockResolvedValue({ data: {} });
+  axios.post.mockResolvedValue({ data: { id: 99 } });
   return render(
     <MemoryRouter initialEntries={['/my-library/books/1']}>
       <Routes>
@@ -63,17 +64,36 @@ test('lists back, edit and archive in that order for a normal book', async () =>
   const back = await screen.findByText(i18n.t('books.backToList'));
   const edit = screen.getByText(i18n.t('bookDetails.edit'));
   const archive = screen.getByText(i18n.t('bookDetails.archive'));
+  const clone = screen.getByText(i18n.t('bookDetails.clone'));
 
   expect(back).toBeInTheDocument();
   expect(edit).toBeInTheDocument();
   expect(archive).toBeInTheDocument();
+  expect(clone).toBeInTheDocument();
   expect(screen.queryByText(i18n.t('bookDetails.unarchive'))).toBeNull();
 
   expect(back.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(edit.compareDocumentPosition(archive) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(archive.compareDocumentPosition(clone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
   fireEvent.click(edit);
   expect(mockNavigate).toHaveBeenCalledWith('/my-library/books/edit/1');
+});
+
+test('clones the book and opens the new copy', async () => {
+  renderBook();
+  await screen.findByText(i18n.t('books.backToList'));
+
+  fireEvent.click(screen.getByText(i18n.t('bookDetails.clone')));
+
+  await waitFor(() =>
+    expect(axios.post).toHaveBeenCalledWith(
+      expect.stringContaining('/api/books/1/clone')
+    )
+  );
+  await waitFor(() =>
+    expect(mockNavigate).toHaveBeenCalledWith('/my-library/books/99')
+  );
 });
 
 test('holding the archive button writes the archive and confirms', async () => {
@@ -116,7 +136,10 @@ test('archived book offers unarchive and restores the book', async () => {
 
   expect(screen.queryByText(i18n.t('bookDetails.edit'))).toBeNull();
   expect(screen.queryByText(i18n.t('bookDetails.archive'))).toBeNull();
+  const clone = screen.getByText(i18n.t('bookDetails.clone'));
+  expect(clone).toBeInTheDocument();
   expect(back.compareDocumentPosition(unarchive) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(unarchive.compareDocumentPosition(clone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
   fireEvent.click(unarchive);
 

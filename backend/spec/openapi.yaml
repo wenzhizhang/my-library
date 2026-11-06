@@ -1182,6 +1182,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPError"
 
+  /api/books/{book_id}/clone:
+    post:
+      tags: [Books]
+      summary: Clone a book into a new entry
+      description: Copies all scalar fields, authors, tags, related IDs, and book-collection/reading-plan memberships; archived and in_wish are preserved.
+      security:
+        - BearerAuth: []
+      parameters:
+        - { name: book_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: The newly created book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookResponse"
+        "404":
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPError"
+
   /api/books/{book_id}/similar:
     get:
       tags: [Books]

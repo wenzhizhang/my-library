@@ -37,7 +37,7 @@ const Wishlist = () => {
       console.error('Error fetching wishlist:', error);
     }
     setLoading(false);
-  }, [page, limit, sortBy]);
+  }, [page, limit, sortBy, searchParams]);
 
   useEffect(() => { fetchBooks(); }, [fetchBooks]);
 

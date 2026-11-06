@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext';
 import { useTranslation } from 'react-i18next';
 import './Books.css';
 import HoldToConfirm from './HoldToConfirm';
+import useAsyncAction from '../hooks/useAsyncAction';
 import './BookDetails.css';
 import { API_BASE_URL, MEDIA_BASE_URL } from './Config';
 import { LIBRARY_PATH } from '../config';
@@ -104,10 +105,10 @@ const BookDetails = () => {
   const [similarBooks, setSimilarBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [unarchiving, setUnarchiving] = useState(false);
-  const [unarchiveError, setUnarchiveError] = useState(false);
-  const [movingToLibrary, setMovingToLibrary] = useState(false);
-  const [moveError, setMoveError] = useState(false);
+  const archiveAction = useAsyncAction();
+  const unarchiveAction = useAsyncAction();
+  const moveAction = useAsyncAction();
+  const cloneAction = useAsyncAction();
 
   useEffect(() => {
     let cancelled = false;
@@ -147,43 +148,35 @@ const BookDetails = () => {
     return () => { cancelled = true; };
   }, [id]);
 
-  const handleMoveToLibrary = async () => {
-    setMovingToLibrary(true);
-    setMoveError(false);
-    try {
-      await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}`, { in_wish: false });
+  const handleMoveToLibrary = () =>
+    moveAction.run(async () => {
+      await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}`, {
+        in_wish: false,
+      });
       setBook(prev => ({ ...prev, in_wish: false }));
-    } catch (err) {
-      console.error('Error moving book to library:', err);
-      setMoveError(true);
-    }
-    setMovingToLibrary(false);
-  };
+    });
 
-  const handleArchive = async () => {
-    try {
+  const handleArchive = () =>
+    archiveAction.run(async () => {
       await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}/archive`);
       // Keep the button's "已归档" success state visible briefly before the
       // toolbar switches to the unarchive action.
       setTimeout(() => setBook(prev => ({ ...prev, archived: true })), 1400);
-    } catch (err) {
-      console.error('Error archiving book:', err);
-      throw err;
-    }
-  };
+    }, { rethrow: true });
 
-  const handleUnarchive = async () => {
-    setUnarchiving(true);
-    setUnarchiveError(false);
-    try {
+  const handleClone = () =>
+    cloneAction.run(async () => {
+      const { data } = await axios.post(
+        `${window.location.origin}${API_BASE_URL}/books/${id}/clone`
+      );
+      navigate(`${LIBRARY_PATH}/books/${data.id}`);
+    });
+
+  const handleUnarchive = () =>
+    unarchiveAction.run(async () => {
       await axios.put(`${window.location.origin}${API_BASE_URL}/books/${id}/unarchive`);
       setBook(prev => ({ ...prev, archived: false }));
-    } catch (err) {
-      console.error('Error unarchiving book:', err);
-      setUnarchiveError(true);
-    }
-    setUnarchiving(false);
-  };
+    });
 
   /* ---- Loading Skeleton ---- */
   if (loading) {
@@ -253,11 +246,11 @@ const BookDetails = () => {
                 <button
                   className="btn-pill-link"
                   onClick={handleUnarchive}
-                  disabled={unarchiving}
+                  disabled={unarchiveAction.busy}
                 >
-                  {unarchiving ? '…' : t('bookDetails.unarchive')}
+                  {unarchiveAction.busy ? '…' : t('bookDetails.unarchive')}
                 </button>
-                {unarchiveError && (
+                {unarchiveAction.error && (
                   <span style={{ fontSize: 13, color: '#ff3b30' }}>
                     {t('common.error')}
                   </span>
@@ -278,6 +271,22 @@ const BookDetails = () => {
                   errorLabel={t('bookDetails.archiveFailed')}
                   onConfirm={handleArchive}
                 />
+              </>
+            )}
+            {isAuthenticated && (
+              <>
+                <button
+                  className="btn-pill-link"
+                  onClick={handleClone}
+                  disabled={cloneAction.busy}
+                >
+                  {cloneAction.busy ? '…' : t('bookDetails.clone')}
+                </button>
+                {cloneAction.error && (
+                  <span style={{ fontSize: 13, color: '#ff3b30' }}>
+                    {t('bookDetails.cloneFailed')}
+                  </span>
+                )}
               </>
             )}
           </div>
@@ -308,11 +317,11 @@ const BookDetails = () => {
               <button
                 className="btn-primary-blue"
                 onClick={handleMoveToLibrary}
-                disabled={movingToLibrary}
+                disabled={moveAction.busy}
               >
-                {movingToLibrary ? '…' : t('bookDetails.moveToLibrary')}
+                {moveAction.busy ? '…' : t('bookDetails.moveToLibrary')}
               </button>
-              {moveError && (
+              {moveAction.error && (
                 <span style={{ marginLeft: 12, fontSize: 14, color: '#ff3b30', verticalAlign: 'middle' }}>
                   {t('common.error')}
                 </span>

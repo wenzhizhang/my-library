@@ -15,6 +15,19 @@ from auth import require_user_id
 
 router = APIRouter(prefix="/api/books", tags=["books"])
 
+CLONE_EXCLUDED_FIELDS = {"id", "created_at", "updated_at"}
+
+
+def _sync_after_write(
+    db: Session, book: Book, *, sync_authors: bool = False
+) -> None:
+    sync_book_to_root(book)
+    if sync_authors:
+        for author in book.authors:
+            sync_book_author_to_root(book.id, author.id)
+    recompute_weights(db)
+    sync_book(db, book.id)
+
 
 @router.get("/search", response_model=List[BookResponse])
 def search_books(filter_params: FilterParams = Depends(), db: Session = Depends(get_db)):
@@ -43,11 +56,7 @@ def create_book(book: BookCreation, db: Session = Depends(get_db), user_id: int 
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
-    sync_book_to_root(db_book)
-    for author in authors:
-        sync_book_author_to_root(db_book.id, author.id)
-    recompute_weights(db)
-    sync_book(db, db_book.id)
+    _sync_after_write(db, db_book, sync_authors=True)
     return {
         "id": db_book.id,
         "isbn": db_book.isbn,
@@ -83,6 +92,8 @@ def create_book(book: BookCreation, db: Session = Depends(get_db), user_id: int 
         "douban_score": db_book.douban_score,
         "purchase_store": db_book.purchase_store,
         "tags": db_book.tags or [],
+        "in_wish": db_book.in_wish,
+        "archived": db_book.archived,
     }
 
 @router.get("/")
@@ -279,6 +290,45 @@ def unarchive_book(book_id: int, db: Session = Depends(get_db), user_id: int = D
     return {"message": "Book unarchived"}
 
 
+@router.post("/{book_id}/clone", response_model=BookResponse)
+def clone_book(
+    book_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(require_user_id),
+):
+    """Duplicate a book with all fields, authors and list memberships."""
+    source = (
+        db.query(Book)
+        .options(
+            selectinload(Book.authors),
+            selectinload(Book.collections),
+            selectinload(Book.reading_plans),
+        )
+        .filter(Book.id == book_id)
+        .one_or_none()
+    )
+    if source is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    copied_fields = {
+        column.name: getattr(source, column.name)
+        for column in Book.__table__.columns
+        if column.name not in CLONE_EXCLUDED_FIELDS
+    }
+    if source.tags is not None:
+        copied_fields["tags"] = list(source.tags)
+    clone = Book(**copied_fields)
+    clone.authors = list(source.authors)
+    clone.collections = list(source.collections)
+    clone.reading_plans = list(source.reading_plans)
+    db.add(clone)
+    db.commit()
+    db.refresh(clone)
+
+    _sync_after_write(db, clone, sync_authors=True)
+    return read_book(clone.id, db)
+
+
 @router.put("/{book_id}/archive")
 def archive_book(book_id: int, db: Session = Depends(get_db), user_id: int = Depends(require_user_id)):
     book = db.query(Book).filter(Book.id == book_id).first()
@@ -305,13 +355,8 @@ def update_book(book_id: int, book_update: BookUpdate, db: Session = Depends(get
     for key, value in update_data.items():
         setattr(book, key, value)
     db.commit()
-    sync_book_to_root(book)
-    if has_author_update:
-        for author in book.authors:
-            sync_book_author_to_root(book.id, author.id)
-    recompute_weights(db)
+    _sync_after_write(db, book, sync_authors=has_author_update)
     db.refresh(book)
-    sync_book(db, book.id)
     return {
         "id": book.id,
         "isbn": book.isbn,

@@ -238,6 +238,12 @@ test('creates a book draft and commits it', async () => {
   expect(
     await screen.findByText(i18n.t('assistant.bookCreated', { title: '红楼梦' }))
   ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringContaining('/books/'),
+      { params: { page: 1, limit: 20, sort_by: 'id' } }
+    )
+  );
 });
 
 test('treats “加入书库” plus an ISBN as an action', async () => {
@@ -324,6 +330,7 @@ test('queues multiple ISBN drafts', async () => {
 
   fireEvent.click(screen.getByTestId('draft-confirm'));
   expect(await screen.findByDisplayValue('第二本')).toBeInTheDocument();
+  expect(axios.get).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByTestId('draft-confirm'));
   await waitFor(() =>
@@ -334,6 +341,7 @@ test('queues multiple ISBN drafts', async () => {
       String(url).endsWith('/assistant/commit')
     )
   ).toHaveLength(2);
+  await waitFor(() => expect(axios.get).toHaveBeenCalledTimes(1));
 });
 
 test('rebuilds a stale edit draft after a 409', async () => {

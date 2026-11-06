@@ -51,7 +51,8 @@ def test_book_01_create_minimal(client, db):
     assert data["edition"] == ""
     assert data["printing_info"] == ""
     assert data["tags"] == []
-    assert data["in_wish"] is None
+    assert data["in_wish"] is False
+    assert data["archived"] is False
 
     # Relationship fields become null because handler returns flat IDs,
     # but BookResponse schema expects nested objects

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
@@ -30,13 +30,15 @@ function looksLikeAction(query, focusBookId) {
 export default function useAssistantChat(
   pageContext = null,
   onContextUsed = null,
-  canWrite = true
+  canWrite = true,
+  onBookCreated = null
 ) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState(null);
   const [draftQueue, setDraftQueue] = useState([]);
+  const createdBookRef = useRef(null);
   const [candidates, setCandidates] = useState([]);
   const [committing, setCommitting] = useState(false);
 
@@ -89,6 +91,7 @@ export default function useAssistantChat(
               });
             }
             if (Array.isArray(data.drafts)) {
+              createdBookRef.current = null;
               setDraft(data.drafts[0] || null);
               setDraftQueue(data.drafts.slice(1));
               if (data.drafts.length > 1) {
@@ -267,6 +270,9 @@ export default function useAssistantChat(
               { title }
             ),
           });
+          if (data.status === 'created') {
+            createdBookRef.current = data.book || { id: data.book_id };
+          }
         }
         if (remaining.length) {
           append({
@@ -277,6 +283,9 @@ export default function useAssistantChat(
             }),
             action: true,
           });
+        } else if (createdBookRef.current) {
+          onBookCreated?.(createdBookRef.current);
+          createdBookRef.current = null;
         }
       } catch (error) {
         if (error?.response?.status === 409 && draft.book_id) {
@@ -318,7 +327,7 @@ export default function useAssistantChat(
         setCommitting(false);
       }
     },
-    [append, committing, draft, draftQueue, t]
+    [append, committing, draft, draftQueue, onBookCreated, t]
   );
 
   const fillMissing = useCallback(async () => {
@@ -353,6 +362,7 @@ export default function useAssistantChat(
   const cancelDraft = useCallback(() => {
     setDraft(null);
     setDraftQueue([]);
+    createdBookRef.current = null;
     setCandidates([]);
   }, []);
 
@@ -390,6 +400,7 @@ export default function useAssistantChat(
     setMessages([]);
     setDraft(null);
     setDraftQueue([]);
+    createdBookRef.current = null;
     setCandidates([]);
   }, []);
 

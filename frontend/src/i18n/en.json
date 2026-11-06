@@ -399,7 +399,9 @@
     "archived": "Archived",
     "edit": "Edit",
     "unarchive": "Unarchive",
-    "archiveFailed": "Archive failed"
+    "archiveFailed": "Archive failed",
+    "clone": "Clone",
+    "cloneFailed": "Clone failed"
   },
   "archived": {
     "title": "Archived Books",

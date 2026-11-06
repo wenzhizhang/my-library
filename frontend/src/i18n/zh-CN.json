@@ -381,7 +381,9 @@
     "archived": "已归档",
     "edit": "编辑",
     "unarchive": "取消归档",
-    "archiveFailed": "归档失败"
+    "archiveFailed": "归档失败",
+    "clone": "克隆",
+    "cloneFailed": "克隆失败"
   },
   "archived": {
     "title": "已归档图书",
